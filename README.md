@@ -58,7 +58,7 @@ Starting from a fresh REAPER? Do [Installation](#installation-on-a-fresh-reaper)
 most of it ReaPack and ReaImGui). Once FOH-Mate is loaded as an action, this is the shortest way from an
 empty window to a working rack:
 
-1. **Run it.** In **Actions > Show action list...**, select **Script: FOHMate_v0.11.9.lua** and click **Run**.
+1. **Run it.** In **Actions > Show action list...**, select **Script: FOHMate.lua** and click **Run**.
    On a new project the window is empty.
 2. **Create a rack.** Click the round **+** at the top right of the window (or double-click empty space).
    "Rack 1" appears. Behind the scenes it is a new track named `RACK: Rack 1`, hidden from REAPER's track
@@ -125,7 +125,7 @@ ReaImGui comes from the default **ReaTeam Extensions** repository, which ReaPack
 
 ### 4. Get FOH-Mate
 
-1. Download `FOHMate_v0.11.9.lua` from this repository (it is a single file).
+1. Download `src/FOHMate.lua` from this repository (it is a single file).
 2. Copy it into REAPER's **Scripts** folder: **Options > Show REAPER resource path...** and open the
    **Scripts** folder.
 
@@ -133,11 +133,11 @@ ReaImGui comes from the default **ReaTeam Extensions** repository, which ReaPack
 
 1. **Actions > Show action list...**
 2. Click **New action... > Load ReaScript...**
-3. Choose `FOHMate_v0.11.9.lua`.
+3. Choose `FOHMate.lua`.
 
 ### 6. Run it
 
-In the action list, find **Script: FOHMate_v0.11.9.lua** and click **Run**. The Plugins Host window opens.
+In the action list, find **Script: FOHMate.lua** and click **Run**. The Plugins Host window opens.
 It can float, or be docked (see [Docking](#docking)).
 
 To make it easy to reach, right-click a toolbar and add the action, or assign it a shortcut.
@@ -392,7 +392,7 @@ FOH-Mate keeps an eye on the latency each rack adds (every FX reports its own, i
 #### The FX latency list
 
 FOH-Mate keeps one list of FX and the latency they report, shared by every project on the computer
-(`Data/FOHMate/fx_latency.txt` in REAPER's resource folder; **Latency > Open the FOH-Mate data
+(`Data/FOHMate/fx_latency.txt` in REAPER's resource folder; **Options > Open the FOH-Mate data
 folder** shows it, with the scan log and the last error report). Every FX loaded in a rack is added or
 updated as it is seen; a scan can fill it in for everything installed. **Latency > FX latency list...**
 shows it: latency (last reported, and the highest seen), whether the FX is allowed, and where the
@@ -479,9 +479,11 @@ Please include all three in a bug report.
 
 ## Updating and uninstalling
 
-- **Update:** replace the script file with the new one and re-run it. If the file name changed (it
-  includes the version), load the new file in the action list and remove the old action.
-- **Coming from Live Rack:** load `FOHMate_v...lua` in the action list and remove the old `LiveRack_v...lua`
+- **Update:** replace `FOHMate.lua` with the new one and re-run it. The file name doesn't change
+  between versions, so the action, toolbar buttons and shortcuts keep working. If you used an older
+  file with the version in its name (`FOHMate_v...lua`), load `FOHMate.lua` once and remove the old
+  action.
+- **Coming from Live Rack:** load `FOHMate.lua` in the action list and remove the old `LiveRack_v...lua`
   action. Your settings, favorites and latency list are copied over the first time FOH-Mate starts, and
   your racks keep their saved data. Once everything checks out you can delete the old
   `<REAPER resource path>/Data/LiveRack/` folder.
@@ -495,7 +497,7 @@ Please include all three in a bug report.
 
 **Version numbers** are *major.minor.revision*: the revision goes up for small fixes and adjustments,
 the minor number for new features or bigger changes. The current version is shown in the window's
-title bar (next to the Plugins Host title) and in the file name.
+title bar (next to the Plugins Host title); it is not part of the file name.
 
 Issues and pull requests are welcome. When reporting a bug, please include the FOH-Mate version
 (shown next to the Plugins Host title), your REAPER version, operating system, ReaImGui version, and the
