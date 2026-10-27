@@ -41,6 +41,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 - Windows reopen at their last size, also after being collapsed or minimized.
 - FX latency list: Allowed checkboxes centered.
 - Fixed: error after **Remove every FX** (and other actions that change a rack's FX from its menus).
+- Fixed: choosing **Stereo from here** again on the FX that is already the stereo point now goes
+  back to the automatic stereo point (it did nothing).
 - If FOH-Mate stops on an error, the exact place (line and chain of calls) goes to REAPER's console
   and to `Data/FOHMate/last_error.txt`.
 - **FX > Plugin list...** replaces the FX latency list: every installed FX with its type (in color),
