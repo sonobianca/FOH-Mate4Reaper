@@ -2,10 +2,14 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 69). Priorities: 64-67, then 63.
+New items get the next free number (next: 70). Priorities: 64-67, then 63.
 
 ## Open
 
+- [ ] 69. (0.11.16) Plugin list: click a developer's name in the list (only theirs show), click it
+  again: **All developers** comes back. And on a mono-in, stereo-out rack: right-click an FX >
+  **Stereo from here** (it gets the tick and the glow), then pick **Stereo from here** again on the
+  same FX: the stereo point goes back to automatic (the "Stereo point: automatic" item is ticked).
 - [ ] 68. (0.11.15) The script file is now **FOHMate.lua** (no version in the name). Load it as an action
   (or point your toolbar button / shortcut to it): it runs, and the title bar shows **0.11.15**. Meters
   still move on existing racks (the meter file on disk is rewritten once at this start).
@@ -28,8 +32,8 @@ New items get the next free number (next: 69). Priorities: 64-67, then 63.
   follows. Nothing hovered: a general hint (Edit) or what still works (Show).
 - [ ] 53. **FX > Plugin list...**: every installed FX; type column in color; latency, Allowed and
   status still right; name filter, type drop-down, Favorites and latency checkboxes, sort.
-  *Partly ok: every FX listed, type colors, latency/Highest/Status, red names over the limit and the
-  Allowed box all good. Still to check: filters and sort.*
+  *Partly ok: every FX listed, type colors, latency/Highest/Status, red names over the limit, the
+  Allowed box, name/type/developer filters and the latency checkbox all good. Still to check: sort.*
 - [ ] 63. (0.11.14) On a **mono** rack (or the mono part of a mono-to-stereo rack), a plug-in with a
   stereo key input gets a **mono** key: its key menu reads *Stereo Input (summed to mono)*, a single dot
   shows next to the key button, and in REAPER's pin connector both key pins listen to the same channel.
@@ -42,6 +46,8 @@ New items get the next free number (next: 69). Priorities: 64-67, then 63.
 - [ ] 60. (0.11.11) Plugin list: **Developer** column (names no longer end in "(Developer)"); developer
   drop-down with its own search field; clicking a developer in the list filters to it, again shows
   all; Sort: developer.
+  *All ok except: clicking the developer again did not go back to all developers (fixed in 0.11.16,
+  see 69). "Sort: developer" is now the Developer column header (see 61).*
 - [ ] 54. Plugin list: click the star to make a favorite (gold), click again to remove. Favorites stay
   after restarting REAPER.
 - [ ] 55. Plugin list selection: click, Cmd-click, Shift-click (range), Select all shown, Clear.
