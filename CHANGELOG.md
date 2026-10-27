@@ -43,6 +43,24 @@ Changes since the last public release, grouped by minor version (revisions are f
 - Fixed: error after **Remove every FX** (and other actions that change a rack's FX from its menus).
 - If FOH-Mate stops on an error, the exact place (line and chain of calls) goes to REAPER's console
   and to `Data/FOHMate/last_error.txt`.
+- **FX > Plugin list...** replaces the FX latency list: every installed FX with its type (in color),
+  developer, latency (last and highest), Allowed and scan status. Filter by name, type or developer
+  (the developer drop-down has its own search field; click a developer in the list to show only
+  theirs, again to show all), and show only favorites or only FX with latency. Click a column header
+  to sort by it, again to reverse.
+- Plugin list selection: click, Cmd/Ctrl-click, Shift-click for a range, or **Select all shown**, then
+  **Rescan selected...** (Edit mode). Right-click for Rescan and Add to / Remove from favorites. A
+  failed FX can be retried this way.
+- **Favorites**: click the star in the Plugin list. Every FX menu (**+**, Insert FX, Replace FX) shows
+  **Favorites** and **Recently used** under the search field. **Settings > Behavior > Recently used
+  FX** sets how many (0 hides it).
+- Dots between the FX show the signal's width: one dot for mono, two for stereo. On a mono-in,
+  stereo-out rack the stereo point glows. An FX with a key shows one or two dots next to its key button.
+- Sidechain keys follow the FX's width: on a mono rack (or the mono part of a rack), an FX with a
+  stereo key input gets a mono key, and a stereo key again when the FX turns stereo.
+- **Options > Stereo pairs on odd-even channels only**, like most consoles: stereo inputs, outputs and
+  keys start on an odd channel (1/2, 3/4...).
+- A grey help line above the status bar says what clicks and keys do on whatever is under the pointer.
 
 ## 0.10
 
