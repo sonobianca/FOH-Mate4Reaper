@@ -1,4 +1,4 @@
--- FOHMate_v0.11.14.lua
+-- FOHMate.lua
 -- FOH-Mate: live sound tools for REAPER. Its first module, Plugins Host, is a rack-based
 -- FX panel built with ReaImGui.
 --
@@ -27,7 +27,7 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.11.14'   -- major.minor.revision, shown in the window's title bar
+VERSION         = '0.11.15'   -- major.minor.revision, shown in the window's title bar
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
 GLOW_M          = 6         -- room left around the racks for the selection glow
 NAME_FONT_SIZE  = 16        -- rack name font (bold)
@@ -379,7 +379,7 @@ end
 
 JSFX_SRC = [==[
 desc:FOHMate Meter
-// Part of FOHMate_v0.11.14.lua - do not remove. Audio passes through untouched.
+// Part of FOH-Mate (FOHMate.lua) - do not remove. Audio passes through untouched.
 // Copyright (C) 2026 Bianca and the FOH-Mate contributors. GPL-3.0-or-later (see LICENSE).
 // Stage 0 = chain input, stage 1 = chain output (before the track fader).
 // Publishes peak and RMS data to the panel through gmem.
