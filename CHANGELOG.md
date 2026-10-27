@@ -5,8 +5,11 @@ Changes since the last public release, grouped by minor version (revisions are f
 ## 0.11
 
 - **New name: FOH-Mate.** The project was called Live Rack; it is now FOH-Mate (live sound tools for
-  REAPER). The rack is its first module and its window is titled **Plugins Host**. The script is now
-  `FOHMate_v<version>.lua`. Every "Live Rack" / "LiveRack" label, menu item, file name and text is gone.
+  REAPER). The rack is its first module and its window is titled **Plugins Host**. Every "Live Rack" /
+  "LiveRack" label, menu item, file name and text is gone.
+- The script is now `FOHMate.lua` (in `src/` in the repository). The version is shown in the window's
+  title bar only, not in the file name, so updating means replacing the file: the action, toolbar
+  buttons and shortcuts keep working.
 - Nothing is lost by the rename: the first time FOH-Mate starts it copies your settings, window sizes
   and dock position, and the latency list from the old names, and moves the saved data of your racks
   (bypass, sidechain keys, routing, stereo point...) to the new names the first time each rack is seen.
@@ -29,7 +32,7 @@ Changes since the last public release, grouped by minor version (revisions are f
   sidechain inputs are left unconnected.
 - FX that are switched off no longer count toward latency (REAPER drops them from compensation).
 - Rack latency box: always, only when a rack has latency, or off.
-- **Latency > Open the FOH-Mate data folder** (latency list, scan log, error report).
+- **Options > Open the FOH-Mate data folder** (latency list, scan log, error report).
 - Latency scan: Audio Units that report 0 get a second, later look; a short pause between FX (both set
   in Settings); no FX or FX chain window is left open; the log keeps earlier runs. A scan that doesn't
   finish (crash, REAPER closed) can be continued where it stopped. **Rescan all** leaves out FX that
