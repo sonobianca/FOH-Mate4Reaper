@@ -10,6 +10,7 @@ New items get the next free number (next: 70). Priorities: 64-67, then 63.
   again: **All developers** comes back. And on a mono-in, stereo-out rack: right-click an FX >
   **Stereo from here** (it gets the tick and the glow), then pick **Stereo from here** again on the
   same FX: the stereo point goes back to automatic (the "Stereo point: automatic" item is ticked).
+  *Developer click: ok. Stereo from here: still to check.*
 - [ ] 68. (0.11.15) The script file is now **FOHMate.lua** (no version in the name). Load it as an action
   (or point your toolbar button / shortcut to it): it runs, and the title bar shows **0.11.15**. Meters
   still move on existing racks (the meter file on disk is rewritten once at this start).
@@ -43,11 +44,6 @@ New items get the next free number (next: 70). Priorities: 64-67, then 63.
 - [ ] 61. (0.11.12) Plugin list: click each column header to sort by it, click again to reverse; the
   arrow shows the column and direction. Latency and Highest start biggest first; the star column puts
   favorites first. The Sort drop-down is gone.
-- [ ] 60. (0.11.11) Plugin list: **Developer** column (names no longer end in "(Developer)"); developer
-  drop-down with its own search field; clicking a developer in the list filters to it, again shows
-  all; Sort: developer.
-  *All ok except: clicking the developer again did not go back to all developers (fixed in 0.11.16,
-  see 69). "Sort: developer" is now the Developer column header (see 61).*
 - [ ] 54. Plugin list: click the star to make a favorite (gold), click again to remove. Favorites stay
   after restarting REAPER.
 - [ ] 55. Plugin list selection: click, Cmd-click, Shift-click (range), Select all shown, Clear.
@@ -67,6 +63,9 @@ New items get the next free number (next: 70). Priorities: 64-67, then 63.
   stereo pair, and the key menu's Stereo Input list only 1/2, 3/4...; off again: every pair.
 
 ## Done
+
+- [x] 60. (0.11.11) Plugin list Developer column, developer drop-down with its own search field,
+  click a developer to filter: ok. Clicking it again didn't show all developers: fixed in 0.11.16, ok.
 
 - [x] 20-23, 44-46. **Clicking glitch** (mouse couldn't click in plug-in windows or FOH-Mate menus):
   never happened again after extensive use since; considered fixed. Cause never found. What was known:
