@@ -28,6 +28,8 @@ New items get the next free number (next: 69). Priorities: 64-67, then 63.
   follows. Nothing hovered: a general hint (Edit) or what still works (Show).
 - [ ] 53. **FX > Plugin list...**: every installed FX; type column in color; latency, Allowed and
   status still right; name filter, type drop-down, Favorites and latency checkboxes, sort.
+  *Partly ok: every FX listed, type colors, latency/Highest/Status, red names over the limit and the
+  Allowed box all good. Still to check: filters and sort.*
 - [ ] 63. (0.11.14) On a **mono** rack (or the mono part of a mono-to-stereo rack), a plug-in with a
   stereo key input gets a **mono** key: its key menu reads *Stereo Input (summed to mono)*, a single dot
   shows next to the key button, and in REAPER's pin connector both key pins listen to the same channel.
