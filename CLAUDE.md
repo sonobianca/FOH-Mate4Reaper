@@ -29,11 +29,7 @@ language and keep them small.
    constant and shows in the window title bar, not in the file name.
 4. `CHANGELOG.md` is grouped by minor version only (revisions folded in). Every change needs an entry.
 5. Bianca tests in REAPER; the script can't be run here. After a change, say exactly what to check
-   and add it to `docs/TESTING.md` as a numbered open item. When she reports results by number,
+   and add it to `docs/TESTING.md` as a numbered open item. When Bianca reports results by number,
    tick the item, move it to Done and note what was found.
 6. Never run git push, merge, rebase or delete branches. Work on a branch, commit in small steps,
    and say when it is ready to push.
-
-## Known open bug
-Sometimes the mouse stops clicking in plug-in windows and FOH-Mate menus (TESTING.md items 20,
-44-46). Don't try to fix it blind: help narrow it down.

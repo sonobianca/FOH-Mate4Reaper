@@ -58,26 +58,15 @@ New items get the next free number (next: 69). Priorities: 64-67, then 63.
 - [ ] 59. **Options > Stereo pairs on odd-even channels only**: In > Stereo input, Out > Hardware out:
   stereo pair, and the key menu's Stereo Input list only 1/2, 3/4...; off again: every pair.
 
-Clicking glitch (mouse can't click in plug-in windows or FOH-Mate menus), seen again:
-
-- [ ] 20. Does it stop when you close the Plugins Host window? (First impression: closing Plugins Host
-  and reopening everything did **not** fix it. Confirm next time.)
-- [x] 21. Both the soothe3 windows and the Plugins Host window stopped taking clicks.
-- [x] 22. No sidechain involved. (Mono / mono-to-stereo rack: not known.)
-- [ ] 46. It felt like only **some areas of the screen** didn't take clicks: probably an invisible
-  window on top. When it happens: Cmd+Shift+4 then Space, and move over a dead area: a highlighted
-  frame where nothing is visible is the blocker (Esc to cancel). Mission Control (F3) shows all
-  windows too. Do the dead areas match where a FOH-Mate menu or tooltip appeared earlier?
-- [ ] 45. Next time, also try: can you click REAPER's own main window and its menus? If not, look for
-  a hidden dialog (Cmd+\` to cycle REAPER's windows, or Mission Control): a plug-in's license /
-  update window or a REAPER prompt hidden behind other windows blocks every REAPER window.
-- [x] 23. No confirmation box open. Happened again in **Show mode**, with only 3 soothe3 instances
-  open (no other windows).
-- [ ] 44. Next time: does it affect only the soothe3 windows, or other plug-in windows too? Does it
-  also happen in Edit mode? Does it go away if you switch Plugins Host to Edit and back, or click once
-  inside the Plugins Host window?
-
 ## Done
+
+- [x] 20-23, 44-46. **Clicking glitch** (mouse couldn't click in plug-in windows or FOH-Mate menus):
+  never happened again after extensive use since; considered fixed. Cause never found. What was known:
+  soothe3 windows and the Plugins Host window both stopped taking clicks, no sidechain involved, no
+  confirmation box open, seen in Show mode with only 3 soothe3 instances open; closing and reopening
+  FOH-Mate did not seem to fix it. If it comes back: check for an invisible window over the dead areas
+  (Cmd+Shift+4 then Space), a hidden REAPER dialog (Cmd+` or Mission Control), and whether other
+  plug-in windows and Edit mode are affected too.
 
 - [x] 50. FX types in their own color everywhere (All FX submenus, latency list, scan window,
   confirmations, Settings).
