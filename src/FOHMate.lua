@@ -27,7 +27,7 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.11.15'   -- major.minor.revision, shown in the window's title bar
+VERSION         = '0.11.16'   -- major.minor.revision, shown in the window's title bar
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
 GLOW_M          = 6         -- room left around the racks for the selection glow
 NAME_FONT_SIZE  = 16        -- rack name font (bold)
@@ -3172,7 +3172,9 @@ function draw_plugin_list()
         end
         -- developer: click to show only that developer
         ig.TableNextColumn(ctx)
-        if ig.Selectable(ctx, it.dev .. '##dv', false) then W.dev = (W.dev == it.dev) and nil or it.dev end
+        if ig.Selectable(ctx, it.dev .. '##dv', false) then
+          if W.dev == it.dev then W.dev = nil else W.dev = it.dev end   -- not "x and nil or y": that never gives nil
+        end
         if ig.IsItemHovered(ctx) then
           ig.SetTooltip(ctx, W.dev == it.dev and 'Click: every developer again' or ('Click: only ' .. it.dev))
         end
@@ -4649,7 +4651,8 @@ function draw_rack(info, x0, y0, H, M, dt, now)
       if widen then
         ig.Separator(ctx)
         if ig.MenuItem(ctx, 'Stereo from here', nil, split_manual and split_i == k) then
-          local g = (split_manual and split_i == k) and nil or fx_guid
+          local g = fx_guid
+          if split_manual and split_i == k then g = nil end   -- ticked already: back to automatic
           later[#later + 1] = function() set_split(tr, g) end
         end
         if ig.MenuItem(ctx, 'Stereo point: automatic', nil, not split_manual) then
