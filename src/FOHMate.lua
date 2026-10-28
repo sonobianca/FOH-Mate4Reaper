@@ -27,7 +27,7 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.11.16'   -- major.minor.revision, shown in the window's title bar
+VERSION         = '0.11.17'   -- major.minor.revision, shown in the window's title bar
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
 GLOW_M          = 6         -- room left around the racks for the selection glow
 NAME_FONT_SIZE  = 16        -- rack name font (bold)
@@ -664,8 +664,13 @@ function rack_index(tr)
   return nil
 end
 
+-- the window being drawn ('plist', 'settings'; nil = Plugins Host). A confirmation opens over the
+-- window that asked for it: opened over Plugins Host it can hide behind the other window and block
+-- every FOH-Mate window until answered.
+CONFIRM_HOST = nil
+
 function request_confirm(text, yes, label)
-  confirm = { text = text, yes = yes, label = label or 'Yes' }
+  confirm = { text = text, yes = yes, label = label or 'Yes', host = CONFIRM_HOST or 'main' }
   confirm_open = true
 end
 
@@ -3016,6 +3021,7 @@ function draw_plugin_list()
   local W = LATWIN
   local vis, open = begin_window('latlist', 'Plugin list###lr_latlist', 760, 520, true)
   if vis then
+    CONFIRM_HOST = 'plist'
     -- filters
     ig.SetNextItemWidth(ctx, 180)
     local rv, f = ig.InputTextWithHint(ctx, '##flt', 'Filter by name', W.filter)
@@ -3215,9 +3221,14 @@ function draw_plugin_list()
       end
       ig.EndTable(ctx)
     end
+    draw_confirm('plist')
+    CONFIRM_HOST = nil
     ig.End(ctx)
   end
-  if not open then LATWIN.open = false end
+  if not open then
+    LATWIN.open = false
+    if confirm and confirm.host == 'plist' then confirm = nil end   -- closed while asking: Cancel
+  end
 end
 
 ---------------------------------------- Show mode: FX over the limit go offline
@@ -5269,7 +5280,12 @@ function draw_dialogs()
     ig.EndPopup(ctx)
   end
 
-  if confirm then
+  draw_confirm('main')
+end
+
+-- the "Please confirm" box, drawn inside the window that asked for it (host)
+function draw_confirm(host)
+  if confirm and confirm.host == host then
     if confirm_open then
       ig.OpenPopup(ctx, 'Please confirm')
       confirm_open = false
@@ -5735,6 +5751,7 @@ function draw_settings()
   if not S.show_settings then return end
   local vis, open = begin_window('settings', 'FOH-Mate Settings', 440, 560, true)
   if vis then
+    CONFIRM_HOST = 'settings'
     local group, group_open = nil, false
     for _, e in ipairs(SCHEMA) do
       if e.group ~= group then
@@ -5791,9 +5808,14 @@ function draw_settings()
     if ig.Button(ctx, 'Reset to defaults', 150, 0) then
       request_confirm('Reset every setting in this window to its default?', reset_cfg, 'Reset')
     end
+    draw_confirm('settings')
+    CONFIRM_HOST = nil
     ig.End(ctx)
   end
-  if not open then S.show_settings = false end
+  if not open then
+    S.show_settings = false
+    if confirm and confirm.host == 'settings' then confirm = nil end   -- closed while asking: Cancel
+  end
 end
 
 ---------------------------------------------------------------- main loop
