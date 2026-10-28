@@ -2,12 +2,13 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 72).
+New items get the next free number (next: 73).
 
 ## Open
 
-Nothing open.
-
+- [ ] 72. (0.11.19) **Options > Settings...**: one **Latency** section only, holding the two limits,
+  Silence alerts, Scan: pause between FX and Scan: extra wait for AU (their values kept). Hovering any
+  section header: no error. **Latency > Latency limits...** opens Settings on the Latency section.
 
 ## Done
 
