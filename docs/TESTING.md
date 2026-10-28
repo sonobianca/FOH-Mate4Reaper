@@ -37,11 +37,13 @@ New items get the next free number (next: 70). Priorities: 64-67, then 63.
   Make the rack stereo: the key turns stereo (two stacked dots, two channels) on its own, and back.
 - [ ] 62. (0.11.13) Key dots sit in the gap between the FX name and the key button; the name button
   keeps the same width whether a key is connected or not.
-- [ ] 54. Plugin list: click the star to make a favorite (gold), click again to remove. Favorites stay
-  after restarting REAPER.
 - [ ] 55. Plugin list selection: click, Cmd-click, Shift-click (range), Select all shown, Clear.
   **Rescan selected...** and right-click > Rescan / Add to / Remove from favorites. A failed FX can be
   rescanned this way.
+  *Selection (click, Cmd-click, Shift-click, Select all, Clear): ok. **Rescan selected** froze the
+  script and the window. To narrow down: does Esc unfreeze it (confirmation box hidden behind the
+  Plugin list)? Is a scan progress window shown (a plug-in hanging on load)? Does REAPER itself still
+  respond? With the Plugin list moved aside, does the confirmation appear? Which FX were selected?*
 - [ ] 56. **+** menu (and Insert / Replace FX): **Favorites** and **Recently used** under the search
   field. Recently used lists the last 5 different FX picked, newest first; Settings > Behavior >
   Recently used FX changes the count (0 hides the menu).
@@ -57,6 +59,8 @@ New items get the next free number (next: 70). Priorities: 64-67, then 63.
 
 ## Done
 
+- [x] 54. Plugin list stars: gold on click, off again, Favorites checkbox, favorites in the + menu,
+  kept after a REAPER restart: ok.
 - [x] 61. (0.11.12) Plugin list: click a column header to sort, again to reverse, arrow shows column
   and direction; Latency/Highest biggest first, star puts favorites first; Sort drop-down gone: ok.
 - [x] 53. FX > Plugin list: every FX listed, type colors, latency/Highest/Status, red names over the
