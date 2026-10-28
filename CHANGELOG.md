@@ -43,6 +43,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 - Fixed: error after **Remove every FX** (and other actions that change a rack's FX from its menus).
 - Fixed: choosing **Stereo from here** again on the FX that is already the stereo point now goes
   back to the automatic stereo point (it did nothing).
+- Fixed: a confirmation asked from the Plugin list or the Settings window opens over that window. It
+  could open hidden behind it, and every FOH-Mate window then waited for an answer you couldn't see.
 - If FOH-Mate stops on an error, the exact place (line and chain of calls) goes to REAPER's console
   and to `Data/FOHMate/last_error.txt`.
 - **FX > Plugin list...** replaces the FX latency list: every installed FX with its type (in color),
