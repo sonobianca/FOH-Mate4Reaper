@@ -27,7 +27,7 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.11.18'   -- major.minor.revision, shown in the window's title bar
+VERSION         = '0.11.19'   -- major.minor.revision, shown in the window's title bar
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
 GLOW_M          = 6         -- room left around the racks for the selection glow
 NAME_FONT_SIZE  = 16        -- rack name font (bold)
@@ -117,6 +117,10 @@ SCHEMA = {
     tip = 'A rack whose FX add up to more latency than this raises an alert,\neven when each FX is under the per-FX limit (0 = any latency).' },
   { group = 'Latency', key = 'lat_silence', label = 'Silence alerts for (min)', kind = 'i', min = 1, max = 240, def = 15, fmt = '%d min',
     tip = 'How long Options > Silence latency alerts lasts.' },
+  { group = 'Latency', key = 'scan_pause', label = 'Scan: pause between FX (s)', kind = 'f', min = 0, max = 2, def = 0.2, fmt = '%.2f s',
+    tip = 'A short rest between one FX being removed and the next one loading.\nRaise it if scans crash REAPER often.' },
+  { group = 'Latency', key = 'scan_au_wait', label = 'Scan: extra wait for AU (s)', kind = 'f', min = 0, max = 5, def = 1.5, fmt = '%.1f s',
+    tip = 'An Audio Unit that reports no latency is read a second time after this extra wait\n(some AUs only report once fully loaded). 0 = no second look.' },
 
   { group = 'FX type colors', key = 'col_VST3', label = 'VST3', kind = 'color', def = 0x5FB3F0 },
   { group = 'FX type colors', key = 'col_VST', label = 'VST', kind = 'color', def = 0x6FD08A },
@@ -126,11 +130,6 @@ SCHEMA = {
   { group = 'FX type colors', key = 'col_LV2', label = 'LV2', kind = 'color', def = 0x4FD0C8 },
   { group = 'FX type colors', key = 'col_DX', label = 'DX', kind = 'color', def = 0xB0B0B0 },
   { group = 'FX type colors', key = 'col_Other', label = 'Other', kind = 'color', def = 0x9A9A9A },
-
-  { group = 'Latency', key = 'scan_pause', label = 'Scan: pause between FX (s)', kind = 'f', min = 0, max = 2, def = 0.2, fmt = '%.2f s',
-    tip = 'A short rest between one FX being removed and the next one loading.\nRaise it if scans crash REAPER often.' },
-  { group = 'Latency', key = 'scan_au_wait', label = 'Scan: extra wait for AU (s)', kind = 'f', min = 0, max = 5, def = 1.5, fmt = '%.1f s',
-    tip = 'An Audio Unit that reports no latency is read a second time after this extra wait\n(some AUs only report once fully loaded). 0 = no second look.' },
 
   { group = 'Behavior', key = 'copy_mod', label = 'Copy modifier key', kind = 'mod', def = 'ctrl',
     tip = 'Hold while dropping an FX to copy it (Ctrl is Cmd on macOS).' },
