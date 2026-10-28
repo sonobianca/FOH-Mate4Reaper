@@ -12,6 +12,8 @@ New items get the next free number (next: 71). Priorities: 64-67, then 63.
   Settings > **Reset to defaults**: the box shows over Settings (Cancel it). Close the Plugin list while
   its box is open (if possible): FOH-Mate keeps working. Other confirmations (Delete FX..., Latency >
   Rescan all...) still show over Plugins Host.
+  *Rescan from the Plugin list: ok. Still to check: right-click > Rescan, Settings, closing the list
+  while asking, other confirmations.*
 - [ ] 69. (0.11.16) Plugin list: click a developer's name in the list (only theirs show), click it
   again: **All developers** comes back. And on a mono-in, stereo-out rack: right-click an FX >
   **Stereo from here** (it gets the tick and the glow), then pick **Stereo from here** again on the
@@ -43,15 +45,6 @@ New items get the next free number (next: 71). Priorities: 64-67, then 63.
   Make the rack stereo: the key turns stereo (two stacked dots, two channels) on its own, and back.
 - [ ] 62. (0.11.13) Key dots sit in the gap between the FX name and the key button; the name button
   keeps the same width whether a key is connected or not.
-- [ ] 55. Plugin list selection: click, Cmd-click, Shift-click (range), Select all shown, Clear.
-  **Rescan selected...** and right-click > Rescan / Add to / Remove from favorites. A failed FX can be
-  rescanned this way.
-  *Selection (click, Cmd-click, Shift-click, Select all, Clear): ok. **Rescan selected** froze the
-  script and the window. To narrow down: does Esc unfreeze it (confirmation box hidden behind the
-  Plugin list)? Is a scan progress window shown (a plug-in hanging on load)? Does REAPER itself still
-  respond? With the Plugin list moved aside, does the confirmation appear? Which FX were selected?*
-  *Found: the confirmation box opened late or hidden behind the Plugin list. Fixed in 0.11.17 (see 70);
-  the rescan itself still to check.*
 - [ ] 56. **+** menu (and Insert / Replace FX): **Favorites** and **Recently used** under the search
   field. Recently used lists the last 5 different FX picked, newest first; Settings > Behavior >
   Recently used FX changes the count (0 hides the menu).
@@ -67,6 +60,9 @@ New items get the next free number (next: 71). Priorities: 64-67, then 63.
 
 ## Done
 
+- [x] 55. Plugin list selection (click, Cmd-click, Shift-click, Select all, Clear) and Rescan selected:
+  ok. The rescan first froze every FOH-Mate window: its confirmation box opened late or hidden behind
+  the Plugin list. Fixed in 0.11.17 (see 70); the rescan then works perfectly.
 - [x] 54. Plugin list stars: gold on click, off again, Favorites checkbox, favorites in the + menu,
   kept after a REAPER restart: ok.
 - [x] 61. (0.11.12) Plugin list: click a column header to sort, again to reverse, arrow shows column
