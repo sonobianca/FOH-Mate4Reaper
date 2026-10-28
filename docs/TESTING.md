@@ -6,10 +6,6 @@ New items get the next free number (next: 72). Priorities: 64-67, then 63.
 
 ## Open
 
-- [ ] 71. (0.11.18) Plugins Host **docked**, Plugin list open over its middle: **Latency > Rescan all
-  FX for latency...** shows its box on top, centered on Plugins Host (Cancel). Same with Settings open
-  instead of the Plugin list, and with both open (the box comes with the one clicked last). Plugins
-  Host **floating**: boxes still show normally. Plugin list's own Rescan box still shows over the list.
 - [ ] 64. (0.11.14) **Rename**: no "Live Rack" / "LiveRack" anywhere (window titles, menus, Settings,
   alerts, tooltips, script file name). The rack window and the big title in its top bar read
   **Plugins Host** (does the longer title still fit next to the buttons?); Settings reads
@@ -48,6 +44,8 @@ New items get the next free number (next: 72). Priorities: 64-67, then 63.
 
 ## Done
 
+- [x] 71. (0.11.18) Docked Plugins Host: Rescan all box in front with the Plugin list, Settings, or
+  both open (follows the one clicked last); floating Plugins Host normal; Plugin list's own box ok.
 - [x] 70. (0.11.17) Confirmations over the window that asks: Plugin list Rescan (button and
   right-click), Settings Reset, closing the list while asking, Delete FX: ok. Latency > Rescan all was
   hidden behind the Plugin list with Plugins Host docked: fixed in 0.11.18, see 71.
