@@ -6,12 +6,12 @@ New items get the next free number (next: 73).
 
 ## Open
 
-- [ ] 72. (0.11.19) **Options > Settings...**: one **Latency** section only, holding the two limits,
-  Silence alerts, Scan: pause between FX and Scan: extra wait for AU (their values kept). Hovering any
-  section header: no error. **Latency > Latency limits...** opens Settings on the Latency section.
+Nothing open.
 
 ## Done
 
+- [x] 72. (0.11.19) Settings: one Latency section with all five settings, values kept, no error on
+  hover, Latency > Latency limits... opens it: ok.
 - [x] 56. Favorites and Recently used under the search field (+, Insert FX, Replace FX); last 5
   different FX, newest first; Settings > Behavior > Recently used FX count, 0 hides it: ok.
 - [x] 52. Help line: every hovered control, rack and FX drags with Cmd/Opt, Edit and Show hints: ok.
