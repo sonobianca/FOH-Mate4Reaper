@@ -27,7 +27,7 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.11.17'   -- major.minor.revision, shown in the window's title bar
+VERSION         = '0.11.18'   -- major.minor.revision, shown in the window's title bar
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
 GLOW_M          = 6         -- room left around the racks for the selection glow
 NAME_FONT_SIZE  = 16        -- rack name font (bold)
@@ -664,13 +664,33 @@ function rack_index(tr)
   return nil
 end
 
--- the window being drawn ('plist', 'settings'; nil = Plugins Host). A confirmation opens over the
+-- the window being drawn ('latlist', 'settings'; nil = Plugins Host). A confirmation opens over the
 -- window that asked for it: opened over Plugins Host it can hide behind the other window and block
 -- every FOH-Mate window until answered.
 CONFIRM_HOST = nil
+MAIN_CENTER, MAIN_DOCKED = nil, false   -- Plugins Host, as of its last frame
+
+-- Plugins Host docked: the floating FOH-Mate windows stay in front of it and would hide its
+-- boxes. Returns the open one used last (its id), or nil.
+function floating_host()
+  if not MAIN_DOCKED then return nil end
+  local best, at = nil, -1
+  for _, id in ipairs({ 'latlist', 'settings' }) do
+    local st = WINSZ[id]
+    if st and st.last >= FRAME - 1 and (st.focused or 0) > at then best, at = id, st.focused or 0 end
+  end
+  return best
+end
 
 function request_confirm(text, yes, label)
-  confirm = { text = text, yes = yes, label = label or 'Yes', host = CONFIRM_HOST or 'main' }
+  local host, over_main = CONFIRM_HOST, false
+  if not host then
+    -- asked by Plugins Host: opened from a floating window when one would hide it, still centered
+    -- on Plugins Host
+    host = floating_host() or 'main'
+    over_main = host ~= 'main'
+  end
+  confirm = { text = text, yes = yes, label = label or 'Yes', host = host, over_main = over_main }
   confirm_open = true
 end
 
@@ -3021,7 +3041,7 @@ function draw_plugin_list()
   local W = LATWIN
   local vis, open = begin_window('latlist', 'Plugin list###lr_latlist', 760, 520, true)
   if vis then
-    CONFIRM_HOST = 'plist'
+    CONFIRM_HOST = 'latlist'
     -- filters
     ig.SetNextItemWidth(ctx, 180)
     local rv, f = ig.InputTextWithHint(ctx, '##flt', 'Filter by name', W.filter)
@@ -3221,13 +3241,13 @@ function draw_plugin_list()
       end
       ig.EndTable(ctx)
     end
-    draw_confirm('plist')
+    draw_confirm('latlist')
     CONFIRM_HOST = nil
     ig.End(ctx)
   end
   if not open then
     LATWIN.open = false
-    if confirm and confirm.host == 'plist' then confirm = nil end   -- closed while asking: Cancel
+    if confirm and confirm.host == 'latlist' then confirm = nil end   -- closed while asking: Cancel
   end
 end
 
@@ -5080,6 +5100,7 @@ function begin_window(id, title, def_w, def_h, p_open, flags)
   local vis, open = ig.Begin(ctx, title, p_open, flags)
   if vis then
     st.last = FRAME
+    if ig.IsWindowFocused(ctx, ig.FocusedFlags_RootAndChildWindows()) then st.focused = FRAME end
     if not back and not ig.IsWindowDocked(ctx) then
       local w, h = ig.GetWindowSize(ctx)
       if w >= 120 and h >= 80 and (math.abs(w - st.w) > 0.5 or math.abs(h - st.h) > 0.5) then
@@ -5280,6 +5301,9 @@ function draw_dialogs()
     ig.EndPopup(ctx)
   end
 
+  local wx, wy = ig.GetWindowPos(ctx)
+  local ww, wh = ig.GetWindowSize(ctx)
+  MAIN_CENTER, MAIN_DOCKED = { wx + ww / 2, wy + wh / 2 }, ig.IsWindowDocked(ctx)
   draw_confirm('main')
 end
 
@@ -5290,9 +5314,15 @@ function draw_confirm(host)
       ig.OpenPopup(ctx, 'Please confirm')
       confirm_open = false
     end
-    local wx, wy = ig.GetWindowPos(ctx)
-    local ww, wh = ig.GetWindowSize(ctx)
-    ig.SetNextWindowPos(ctx, wx + ww / 2, wy + wh / 2, ig.Cond_Appearing(), 0.5, 0.5)
+    local cx, cy
+    if confirm.over_main and MAIN_CENTER then
+      cx, cy = MAIN_CENTER[1], MAIN_CENTER[2]
+    else
+      local wx, wy = ig.GetWindowPos(ctx)
+      local ww, wh = ig.GetWindowSize(ctx)
+      cx, cy = wx + ww / 2, wy + wh / 2
+    end
+    ig.SetNextWindowPos(ctx, cx, cy, ig.Cond_Appearing(), 0.5, 0.5)
     local shown = ig.BeginPopupModal(ctx, 'Please confirm', nil, ig.WindowFlags_AlwaysAutoResize())
     if shown then
       type_text(confirm.text)
