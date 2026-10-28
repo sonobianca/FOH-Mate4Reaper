@@ -2,10 +2,14 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 71). Priorities: 64-67, then 63.
+New items get the next free number (next: 72). Priorities: 64-67, then 63.
 
 ## Open
 
+- [ ] 71. (0.11.18) Plugins Host **docked**, Plugin list open over its middle: **Latency > Rescan all
+  FX for latency...** shows its box on top, centered on Plugins Host (Cancel). Same with Settings open
+  instead of the Plugin list, and with both open (the box comes with the one clicked last). Plugins
+  Host **floating**: boxes still show normally. Plugin list's own Rescan box still shows over the list.
 - [ ] 70. (0.11.17) Confirmation boxes open over the window that asks: Plugin list > select 2-3 FX >
   **Rescan selected...** (also with the list moved over the middle of Plugins Host): the box shows at
   once over the list; Cancel, then again with Scan: the scan runs. Same with right-click > Rescan.
@@ -15,7 +19,8 @@ New items get the next free number (next: 71). Priorities: 64-67, then 63.
   *Rescan from the Plugin list, right-click > Rescan, Settings, closing the list while asking, Delete
   FX: ok. **Latency > Rescan all**: the box did not appear on top. To narrow down: was the Plugin list
   or Settings open over Plugins Host? Where did the box end up, did Esc help? Docked or floating?
-  Does it show with the Plugin list closed?*
+  Does it show with the Plugin list closed?* *Found: Plugins Host docked, the box was hidden behind the
+  open Plugin list; fine with the list closed. Fixed in 0.11.18, see 71.*
 - [ ] 64. (0.11.14) **Rename**: no "Live Rack" / "LiveRack" anywhere (window titles, menus, Settings,
   alerts, tooltips, script file name). The rack window and the big title in its top bar read
   **Plugins Host** (does the longer title still fit next to the buttons?); Settings reads
