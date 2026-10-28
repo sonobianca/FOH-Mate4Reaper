@@ -2,10 +2,16 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 70). Priorities: 64-67, then 63.
+New items get the next free number (next: 71). Priorities: 64-67, then 63.
 
 ## Open
 
+- [ ] 70. (0.11.17) Confirmation boxes open over the window that asks: Plugin list > select 2-3 FX >
+  **Rescan selected...** (also with the list moved over the middle of Plugins Host): the box shows at
+  once over the list; Cancel, then again with Scan: the scan runs. Same with right-click > Rescan.
+  Settings > **Reset to defaults**: the box shows over Settings (Cancel it). Close the Plugin list while
+  its box is open (if possible): FOH-Mate keeps working. Other confirmations (Delete FX..., Latency >
+  Rescan all...) still show over Plugins Host.
 - [ ] 69. (0.11.16) Plugin list: click a developer's name in the list (only theirs show), click it
   again: **All developers** comes back. And on a mono-in, stereo-out rack: right-click an FX >
   **Stereo from here** (it gets the tick and the glow), then pick **Stereo from here** again on the
@@ -44,6 +50,8 @@ New items get the next free number (next: 70). Priorities: 64-67, then 63.
   script and the window. To narrow down: does Esc unfreeze it (confirmation box hidden behind the
   Plugin list)? Is a scan progress window shown (a plug-in hanging on load)? Does REAPER itself still
   respond? With the Plugin list moved aside, does the confirmation appear? Which FX were selected?*
+  *Found: the confirmation box opened late or hidden behind the Plugin list. Fixed in 0.11.17 (see 70);
+  the rescan itself still to check.*
 - [ ] 56. **+** menu (and Insert / Replace FX): **Favorites** and **Recently used** under the search
   field. Recently used lists the last 5 different FX picked, newest first; Settings > Behavior >
   Recently used FX changes the count (0 hides the menu).
