@@ -2,22 +2,12 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 72). Priorities: 64-67, then 63.
+New items get the next free number (next: 72). Priority: 63.
 
 ## Open
 
-- [ ] 64. (0.11.14) **Rename**: no "Live Rack" / "LiveRack" anywhere (window titles, menus, Settings,
-  alerts, tooltips, script file name). The rack window and the big title in its top bar read
-  **Plugins Host** (does the longer title still fit next to the buttons?); Settings reads
-  **FOH-Mate Settings**; the data folder item reads **Open the FOH-Mate data folder**.
-- [ ] 65. (0.11.14) **Migration**, on the machine that ran Live Rack: start src/FOHMate.lua (0.11.14 or
-  later). Colors, mode, dock position, window sizes and all Settings are as before; favorites, recently
-  used FX and the latency list are there (copied to Data/FOHMate; Data/LiveRack is left untouched). On existing racks:
-  bypass state, sidechain keys, stereo point and "allowed latency" FX are kept, and the old LiveRack
-  meters are replaced by FOHMate ones (Effects/FOHMate). Quit and restart: nothing is copied twice.
 - [ ] 66. (0.11.9) Same checks as 64 and 65 on **FOHMate_v0.11.9.lua** (the rename-only build for the
   repository; it has no favorites or recently used FX).
-- [ ] 67. A fresh install (no old settings, no Data/LiveRack, no old meters) starts clean with no error.
 - [ ] 51. (0.11.10) **Options > Open the FOH-Mate data folder** is there (and gone from Latency).
 - [ ] 52. Help line (grey, above the status bar): hover a rack name, an FX, the on/off circle, the key
   button, In/Out, the level box, SC, BYPASS, MUTE, A/B, +: each says what clicks and keys do. Drag a
@@ -44,6 +34,11 @@ New items get the next free number (next: 72). Priorities: 64-67, then 63.
 
 ## Done
 
+- [x] 67. Fresh install on a new Mac (0.11.14): starts clean, no error, everything looks good.
+- [x] 65. Migration on the Live Rack machine: settings, mode, dock, window sizes, favorites, recent FX,
+  latency list, racks' saved data and meters all carried over; nothing copied twice: ok.
+- [x] 64. Rename: no "Live Rack" anywhere on screen; Plugins Host titles, FOH-Mate Settings, Open the
+  FOH-Mate data folder: ok.
 - [x] 71. (0.11.18) Docked Plugins Host: Rescan all box in front with the Plugin list, Settings, or
   both open (follows the one clicked last); floating Plugins Host normal; Plugin list's own box ok.
 - [x] 70. (0.11.17) Confirmations over the window that asks: Plugin list Rescan (button and
