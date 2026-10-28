@@ -10,17 +10,6 @@ New items get the next free number (next: 72). Priorities: 64-67, then 63.
   FX for latency...** shows its box on top, centered on Plugins Host (Cancel). Same with Settings open
   instead of the Plugin list, and with both open (the box comes with the one clicked last). Plugins
   Host **floating**: boxes still show normally. Plugin list's own Rescan box still shows over the list.
-- [ ] 70. (0.11.17) Confirmation boxes open over the window that asks: Plugin list > select 2-3 FX >
-  **Rescan selected...** (also with the list moved over the middle of Plugins Host): the box shows at
-  once over the list; Cancel, then again with Scan: the scan runs. Same with right-click > Rescan.
-  Settings > **Reset to defaults**: the box shows over Settings (Cancel it). Close the Plugin list while
-  its box is open (if possible): FOH-Mate keeps working. Other confirmations (Delete FX..., Latency >
-  Rescan all...) still show over Plugins Host.
-  *Rescan from the Plugin list, right-click > Rescan, Settings, closing the list while asking, Delete
-  FX: ok. **Latency > Rescan all**: the box did not appear on top. To narrow down: was the Plugin list
-  or Settings open over Plugins Host? Where did the box end up, did Esc help? Docked or floating?
-  Does it show with the Plugin list closed?* *Found: Plugins Host docked, the box was hidden behind the
-  open Plugin list; fine with the list closed. Fixed in 0.11.18, see 71.*
 - [ ] 64. (0.11.14) **Rename**: no "Live Rack" / "LiveRack" anywhere (window titles, menus, Settings,
   alerts, tooltips, script file name). The rack window and the big title in its top bar read
   **Plugins Host** (does the longer title still fit next to the buttons?); Settings reads
@@ -59,6 +48,9 @@ New items get the next free number (next: 72). Priorities: 64-67, then 63.
 
 ## Done
 
+- [x] 70. (0.11.17) Confirmations over the window that asks: Plugin list Rescan (button and
+  right-click), Settings Reset, closing the list while asking, Delete FX: ok. Latency > Rescan all was
+  hidden behind the Plugin list with Plugins Host docked: fixed in 0.11.18, see 71.
 - [x] 69. (0.11.16) Plugin list: clicking a developer again shows all developers; Stereo from here
   picked again on the stereo point goes back to automatic: ok.
 - [x] 68. (0.11.15) Script runs as FOHMate.lua from the action, toolbar and shortcut; meters ok.
