@@ -10,15 +10,14 @@ Live sound tools for [REAPER](https://www.reaper.fm).
 
 **Plugins Host** is the first module: a rack-based FX panel for REAPER, made for live sound.
 
-Plugins Host turns a handful of REAPER tracks into **racks**: strips with their own input and output
+Plugins Host turns a handful of REAPER tracks into **racks**, each with its own input and output
 routing, a chain of FX, a level, mute and bypass, and input/output meters. All racks live in one
 window, away from your playback tracks, so the mixer and the track view stay clean.
 
-> **Status: work in progress (v0.x).** It is used and tested on macOS with REAPER 7.81. Windows and
+> **Status: work in progress (v0.x).** It is used and tested on macOS with REAPER 7.84. Windows and
 > Linux are untested. Expect rough edges and changes between versions.
 
 ![Plugins Host](docs/screenshot.png)
-<!-- Add a screenshot of the window at docs/screenshot.png -->
 
 **Contents:** [What it does](#what-it-does) · [Quick start](#quick-start) · [Requirements](#requirements) ·
 [Installation on a fresh REAPER](#installation-on-a-fresh-reaper) · [Using FOH-Mate](#using-foh-mate) ·
@@ -31,7 +30,7 @@ window, away from your playback tracks, so the mixer and the track view stay cle
 
 - **Racks are tracks.** Any track whose name starts with `RACK:` becomes a rack. FOH-Mate hides it
   from the track list and the mixer, keeps it off the master, and shows it in its own window.
-- **Everything about a rack in one strip:** name, input and output routing, FX chain, level (dB),
+- **Everything about a rack in one place:** name, input and output routing, FX chain, level (dB),
   BYPASS, MUTE, and input/output meters with peak hold and clip markers.
 - **Edit and Show modes.** A cue-light switch (green = Edit, red = Show) locks the racks and their FX
   while you perform. Level, mute, bypass and FX on/off keep working.
@@ -48,7 +47,10 @@ window, away from your playback tracks, so the mixer and the track view stay cle
 - **Rack colors,** automatic or picked by hand, plus a **Daylight** theme for bright rooms.
 - **Latency watchdog.** Racks and FX that add more latency than your limit flash **!!**; FX you
   accept can be allowed, and alerts can be silenced for a while or switched off.
-- **Status bar** with CPU and RAM gauges, REAPER's latency, latency alerts, and rack and FX counts.
+- **Plugin list** of every installed FX, with favorites, developers, latency and scan status.
+- **Favorites and recently used FX** at the top of every FX menu.
+- **Status bar** with CPU and RAM gauges, REAPER's latency, latency alerts, and rack and FX counts,
+  and a **help line** above it that says what the mouse can do on whatever it points at.
 
 ---
 
@@ -80,7 +82,7 @@ empty window to a working rack:
 
 | What | Notes |
 |---|---|
-| [REAPER](https://www.reaper.fm) 7.x | Developed on 7.81. Older versions are not tested. |
+| [REAPER](https://www.reaper.fm) 7.x | Developed on 7.81 to 7.84. Older versions are not tested. |
 | [ReaPack](https://reapack.com) | Used to install ReaImGui. |
 | [ReaImGui](https://github.com/cfillion/reaimgui) | The graphics library FOH-Mate is built with. |
 
@@ -200,7 +202,7 @@ extension's *Global startup action*).
 | Drag an FX onto another rack | Copy it there |
 | Hold Cmd/Ctrl while dropping an FX | Copy |
 | Hold Alt while dropping an FX on another rack | Move |
-| Right-click an FX | Insert FX, Replace FX, Delete FX..., Allow latency |
+| Right-click an FX | Insert FX, Replace FX, Delete FX..., Allow latency, Stereo from here |
 | Shift + double-click the dB box | Reset the level to 0 dB |
 | Alt-click (Option-click) the dB box | 0 dB, or -inf when already at 0 dB |
 | Click a meter | Reset every peak hold line and clip marker |
@@ -257,6 +259,9 @@ confirmation. Everything is undoable with REAPER's undo.
   you typed; **Enter** picks the first one.
 - In the menus each FX shows its **type** (VST3, AU, CLAP, JS...) on the right in that type's color, and
   its known **latency** in red after its name. Colors are set in **FX > FX type colors...**.
+- **Favorites** and **Recently used** sit right under the search field in every FX menu. Star your
+  favorites in **FX > Plugin list...**; Recently used lists the last FX you picked, newest first
+  (how many is set in **Settings > Behavior**; 0 hides it).
 - **FX > FX types** limits the menus to the FX types you use, with a count for each type.
 
 ### Sidechains
@@ -264,7 +269,10 @@ confirmation. Everything is undoable with REAPER's undo.
 - **Key button** on an FX row opens its sidechain menu: *None*, *Mono Input* (any hardware input),
   *Stereo Input* (any input pair; summed to mono when the FX has a mono sidechain) and *Bus* (every
   sidechain bus, plus *Create new bus...*). The button lights up when a key is set; hover it to see
-  the source.
+  the source. One dot next to the button means a mono key, two stacked dots a stereo key.
+- **The key follows the FX's width.** An FX on a mono rack, or on the mono part of a rack, gets a mono
+  key, even if the plug-in has a stereo sidechain: a stereo source is summed to mono (two receives at
+  -6 dB into one channel, visible in the routing window). When the FX turns stereo, its key does too.
 - **SC button** (next to the level) lists the sidechain busses: tick one to send the rack to it and set
   the send level with its slider. *Create new sidechain bus...* makes one and sends the rack to it.
   Right-click a bus name to rename or delete it. The send is taken after the rack's FX and before its
@@ -298,6 +306,10 @@ out:
   outputs at all, the same as the input side.
 - The **meters follow**: one bar for a mono side, two for a stereo side. Hover **In** or **Out** to
   read the width.
+- **Dots between the FX** show the signal's width all along the chain: one dot for mono, two for
+  stereo.
+- **Options > Stereo pairs on odd-even channels only** offers only 1/2, 3/4, 5/6... as stereo inputs,
+  outputs and keys, like most consoles. Off, every pair is offered.
 
 What the FX get:
 
@@ -307,9 +319,11 @@ What the FX get:
 | stereo in (any out) | every FX stereo; a mono output sums the two sides at the hardware output |
 | mono in, stereo out | mono up to the **stereo point**, stereo from there on |
 
-The **stereo point** is the FX where the chain turns stereo, marked by a line above it. By default it is
+The **stereo point** is the FX where the chain turns stereo. It glows, with one dot above it and two
+below. By default it is
 the first FX that comes in a mono-to-stereo version (a reverb, for example). Right-click any FX >
-**Stereo from here** to pick it yourself; **Stereo point: automatic** goes back to the default. With
+**Stereo from here** to pick it yourself (choose it again, or **Stereo point: automatic**, to go back
+to the default). With
 no stereo point the whole chain stays mono and the output carries it on both sides.
 
 How an FX changes width, best option first:
@@ -351,16 +365,19 @@ The top bar, right side: **+** (new rack), then four menus.
 | Menu | What is in it |
 |---|---|
 | **Display** | Daylight mode, Rack latency box (off / always / only with latency), rack colors, Dock |
-| **FX** | FX types, FX type colors, Hide FX over the latency limit, Take FX over the limit offline in Show mode |
-| **Latency** | Latency alerts, Silence / Resume, Latency limits, FX latency list, Open the FOH-Mate data folder, Scan new / Rescan all FX, Ask to scan new FX |
-| **Options** | Disconnect inputs/outputs on copy and template, Disable metering and Level match, Settings... |
+| **FX** | FX types, FX type colors, Plugin list..., Hide FX over the latency limit, Take FX over the limit offline in Show mode |
+| **Latency** | Latency alerts, Silence / Resume, Latency limits, Scan new / Rescan all FX, Retry failed FX, Ask to scan new FX |
+| **Options** | Disconnect inputs/outputs on copy and template, Disable metering and Level match, Stereo pairs on odd-even channels only, Open the FOH-Mate data folder, Settings... |
 
-Windows (Settings, FX latency list) reopen at the size you left them, also after being collapsed.
+Windows (Settings, Plugin list) reopen at the size you left them, also after being collapsed.
 
 ### Status bar
 
 CPU and RAM gauges, **Latency: in [..] ms - out [..] ms** as reported by REAPER, the latency alert line
 (see below), and the rack and FX counts. Hover a gauge for details.
+
+The grey **help line** just above it says what clicks and keys do on whatever the mouse points at (a
+rack name, an FX, a button), and follows along while you drag a rack or an FX.
 
 ### Latency watchdog
 
@@ -371,7 +388,7 @@ FOH-Mate keeps an eye on the latency each rack adds (every FX reports its own, i
   culprits; hover any FX to read its latency. The status bar flashes how many racks are over.
 - **Right-click an FX > Allow latency** for an FX you accept (a look-ahead limiter, say). Its latency
   is no longer counted, in this rack or any other, in every project: the mark is kept in the FX
-  latency list (below), and carries over to its mono/stereo version.
+  Plugin list (below), and carries over to its mono/stereo version.
 - **Display > Rack latency box** adds a box across the bottom of every rack with its latency in ms
   and samples (red when over the limit): **Always**, **Only when a rack has latency**, or **Off**. Hover it for each FX's share and REAPER's own figure for the
   chain. It updates once a second, and right away when FX are added or removed.
@@ -389,14 +406,26 @@ FOH-Mate keeps an eye on the latency each rack adds (every FX reports its own, i
   **!! FX**. When the FX are each fine but add up to more than the per-rack limit, the rack's whole
   frame flashes red, the tag reads **!! RACK**, and only the FX adding the most latency flashes.
 
-#### The FX latency list
+#### The Plugin list
 
 FOH-Mate keeps one list of FX and the latency they report, shared by every project on the computer
 (`Data/FOHMate/fx_latency.txt` in REAPER's resource folder; **Options > Open the FOH-Mate data
-folder** shows it, with the scan log and the last error report). Every FX loaded in a rack is added or
-updated as it is seen; a scan can fill it in for everything installed. **Latency > FX latency list...**
-shows it: latency (last reported, and the highest seen), whether the FX is allowed, and where the
-number comes from (*scan*, *seen* in a rack, or *failed* to load). Tick **Allowed** there too.
+folder** shows it, with favorites, the scan log and the last error report). Every FX loaded in a rack
+is added or updated as it is seen; a scan can fill it in for everything installed.
+
+**FX > Plugin list...** shows every installed FX, one per row:
+
+- **Star** (click it to make the FX a favorite), **Type** in its color, **FX** name, **Developer**,
+  **Latency** (last reported) and **Highest** seen, **Allowed** (tick it here too), and **Status**:
+  *measured* by a scan, *seen in a rack*, *failed* to load, or *not scanned*. Names over the per-FX
+  limit are red.
+- **Filters:** by name (every word must match), by type, by developer (the drop-down has its own
+  search field; clicking a developer in the list shows only theirs, again shows all), **Favorites**
+  only, and **Latency, allowed or failed** only.
+- **Sort:** click a column header, again to reverse. Latency and Highest start biggest first.
+- **Select** FX with click, Cmd/Ctrl-click and Shift-click, or **Select all shown**, then **Rescan
+  selected...** (Edit mode). Right-click a row to rescan it or the selection, or to add or remove
+  favorites. This is also how a *failed* FX can be tried again on its own.
 
 - **Latency > Scan new FX for latency...** measures the effects not measured yet; **Rescan all FX
   for latency...** measures them all again (the only way an FX is measured twice), leaving out FX that
@@ -433,7 +462,7 @@ number comes from (*scan*, *seen* in a rack, or *failed* to load). Tick **Allowe
 
 **Options > Settings...** opens a window with the values you can change: automatic color ranges, meter
 range and fall speed, Level match time and gate, latency limits and silence time, FX type colors,
-copy and move keys, corner rounding, and the
+copy and move keys, how many recently used FX to show, corner rounding, and the
 dimensions of the racks (grouped under *Layout*). Changes apply immediately and are saved. Ctrl+click
 a slider to type a value. **Reset to defaults** restores everything.
 
