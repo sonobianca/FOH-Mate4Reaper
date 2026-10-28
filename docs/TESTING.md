@@ -6,19 +6,16 @@ New items get the next free number (next: 72).
 
 ## Open
 
-- [ ] 66. (0.11.9) Same checks as 64 and 65 on **FOHMate_v0.11.9.lua** (the rename-only build for the
-  repository; it has no favorites or recently used FX).
-- [ ] 51. (0.11.10) **Options > Open the FOH-Mate data folder** is there (and gone from Latency).
-- [ ] 52. Help line (grey, above the status bar): hover a rack name, an FX, the on/off circle, the key
-  button, In/Out, the level box, SC, BYPASS, MUTE, A/B, +: each says what clicks and keys do. Drag a
-  rack, then an FX (same rack, then over another rack), pressing and releasing Cmd and Opt: the line
-  follows. Nothing hovered: a general hint (Edit) or what still works (Show).
-- [ ] 56. **+** menu (and Insert / Replace FX): **Favorites** and **Recently used** under the search
-  field. Recently used lists the last 5 different FX picked, newest first; Settings > Behavior >
-  Recently used FX changes the count (0 hides the menu).
+Nothing open.
+
 
 ## Done
 
+- [x] 56. Favorites and Recently used under the search field (+, Insert FX, Replace FX); last 5
+  different FX, newest first; Settings > Behavior > Recently used FX count, 0 hides it: ok.
+- [x] 52. Help line: every hovered control, rack and FX drags with Cmd/Opt, Edit and Show hints: ok.
+- [x] 51. (0.11.10) Open the FOH-Mate data folder in Options, gone from Latency: ok.
+- [x] 66. Closed, not needed: the 0.11.9 file is replaced by 0.11.18 once merged into main.
 - [x] 63. (0.11.14) Mono key follows the FX's width: soothe3 on a mono rack gets a mono key (bus size
   1, one key pin on channel 3); the sum is two -6 dB receives into that channel; turns stereo with the
   rack and back: ok.
