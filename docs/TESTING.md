@@ -12,16 +12,10 @@ New items get the next free number (next: 71). Priorities: 64-67, then 63.
   Settings > **Reset to defaults**: the box shows over Settings (Cancel it). Close the Plugin list while
   its box is open (if possible): FOH-Mate keeps working. Other confirmations (Delete FX..., Latency >
   Rescan all...) still show over Plugins Host.
-  *Rescan from the Plugin list: ok. Still to check: right-click > Rescan, Settings, closing the list
-  while asking, other confirmations.*
-- [ ] 69. (0.11.16) Plugin list: click a developer's name in the list (only theirs show), click it
-  again: **All developers** comes back. And on a mono-in, stereo-out rack: right-click an FX >
-  **Stereo from here** (it gets the tick and the glow), then pick **Stereo from here** again on the
-  same FX: the stereo point goes back to automatic (the "Stereo point: automatic" item is ticked).
-  *Developer click: ok. Stereo from here: still to check.*
-- [ ] 68. (0.11.15) The script file is now **FOHMate.lua** (no version in the name). Load it as an action
-  (or point your toolbar button / shortcut to it): it runs, and the title bar shows **0.11.15**. Meters
-  still move on existing racks (the meter file on disk is rewritten once at this start).
+  *Rescan from the Plugin list, right-click > Rescan, Settings, closing the list while asking, Delete
+  FX: ok. **Latency > Rescan all**: the box did not appear on top. To narrow down: was the Plugin list
+  or Settings open over Plugins Host? Where did the box end up, did Esc help? Docked or floating?
+  Does it show with the Plugin list closed?*
 - [ ] 64. (0.11.14) **Rename**: no "Live Rack" / "LiveRack" anywhere (window titles, menus, Settings,
   alerts, tooltips, script file name). The rack window and the big title in its top bar read
   **Plugins Host** (does the longer title still fit next to the buttons?); Settings reads
@@ -60,6 +54,9 @@ New items get the next free number (next: 71). Priorities: 64-67, then 63.
 
 ## Done
 
+- [x] 69. (0.11.16) Plugin list: clicking a developer again shows all developers; Stereo from here
+  picked again on the stereo point goes back to automatic: ok.
+- [x] 68. (0.11.15) Script runs as FOHMate.lua from the action, toolbar and shortcut; meters ok.
 - [x] 55. Plugin list selection (click, Cmd-click, Shift-click, Select all, Clear) and Rescan selected:
   ok. The rescan first froze every FOH-Mate window: its confirmation box opened late or hidden behind
   the Plugin list. Fixed in 0.11.17 (see 70); the rescan then works perfectly.
