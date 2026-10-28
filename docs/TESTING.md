@@ -31,19 +31,12 @@ New items get the next free number (next: 70). Priorities: 64-67, then 63.
   button, In/Out, the level box, SC, BYPASS, MUTE, A/B, +: each says what clicks and keys do. Drag a
   rack, then an FX (same rack, then over another rack), pressing and releasing Cmd and Opt: the line
   follows. Nothing hovered: a general hint (Edit) or what still works (Show).
-- [ ] 53. **FX > Plugin list...**: every installed FX; type column in color; latency, Allowed and
-  status still right; name filter, type drop-down, Favorites and latency checkboxes, sort.
-  *Partly ok: every FX listed, type colors, latency/Highest/Status, red names over the limit, the
-  Allowed box, name/type/developer filters and the latency checkbox all good. Still to check: sort.*
 - [ ] 63. (0.11.14) On a **mono** rack (or the mono part of a mono-to-stereo rack), a plug-in with a
   stereo key input gets a **mono** key: its key menu reads *Stereo Input (summed to mono)*, a single dot
   shows next to the key button, and in REAPER's pin connector both key pins listen to the same channel.
   Make the rack stereo: the key turns stereo (two stacked dots, two channels) on its own, and back.
 - [ ] 62. (0.11.13) Key dots sit in the gap between the FX name and the key button; the name button
   keeps the same width whether a key is connected or not.
-- [ ] 61. (0.11.12) Plugin list: click each column header to sort by it, click again to reverse; the
-  arrow shows the column and direction. Latency and Highest start biggest first; the star column puts
-  favorites first. The Sort drop-down is gone.
 - [ ] 54. Plugin list: click the star to make a favorite (gold), click again to remove. Favorites stay
   after restarting REAPER.
 - [ ] 55. Plugin list selection: click, Cmd-click, Shift-click (range), Select all shown, Clear.
@@ -64,6 +57,10 @@ New items get the next free number (next: 70). Priorities: 64-67, then 63.
 
 ## Done
 
+- [x] 61. (0.11.12) Plugin list: click a column header to sort, again to reverse, arrow shows column
+  and direction; Latency/Highest biggest first, star puts favorites first; Sort drop-down gone: ok.
+- [x] 53. FX > Plugin list: every FX listed, type colors, latency/Highest/Status, red names over the
+  limit, Allowed box, name/type/developer filters, latency checkbox, sort: ok.
 - [x] 60. (0.11.11) Plugin list Developer column, developer drop-down with its own search field,
   click a developer to filter: ok. Clicking it again didn't show all developers: fixed in 0.11.16, ok.
 
