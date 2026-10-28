@@ -2,7 +2,7 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 72). Priority: 63.
+New items get the next free number (next: 72).
 
 ## Open
 
@@ -13,32 +13,19 @@ New items get the next free number (next: 72). Priority: 63.
   button, In/Out, the level box, SC, BYPASS, MUTE, A/B, +: each says what clicks and keys do. Drag a
   rack, then an FX (same rack, then over another rack), pressing and releasing Cmd and Opt: the line
   follows. Nothing hovered: a general hint (Edit) or what still works (Show).
-- [ ] 63. (0.11.14) On a **mono** rack (or the mono part of a mono-to-stereo rack), a plug-in with a
-  stereo key input gets a **mono** key: its key menu reads *Stereo Input (summed to mono)*, a single dot
-  shows next to the key button. The sum is in the rack's routing (R button > Receives): two receives
-  from the SC IN: track, source channels 1 and 2, each -6 dB, both into one mono track channel (e.g.
-  3); the pin connector shows that channel on the key pin (one key pin when the FX's bus size is 1,
-  both key pins on it when the FX kept two). Make the rack stereo: the key turns stereo on its own (two
-  stacked dots, one stereo receive to 3/4, key pins on 3 and 4), and back.
-  *Seen: soothe3 on a mono rack (bus size 1, "2 in 1 out"): one key pin on channel 3, routing works.
-  Still to check: the two -6 dB receives in the routing window, and the switch to stereo and back.*
-- [ ] 62. (0.11.13) Key dots sit in the gap between the FX name and the key button; the name button
-  keeps the same width whether a key is connected or not.
 - [ ] 56. **+** menu (and Insert / Replace FX): **Favorites** and **Recently used** under the search
   field. Recently used lists the last 5 different FX picked, newest first; Settings > Behavior >
   Recently used FX changes the count (0 hides the menu).
-- [ ] 57. Dots, on a **mono** rack: one dot above the first FX, one between each FX, one below the
-  last. **Stereo** rack: two dots everywhere. **Mono in, stereo out**: one dot until the stereo point,
-  which glows (color opposite to the rack's) with one dot above and two below, then two dots. Dots are
-  centered on the narrower FX when one has a key button. Do they look connected, and readable in
-  Daylight mode?
-- [ ] 58. FX with a key connected: one dot (mono key) or two stacked dots (stereo key) between the name
-  and the key button; nothing when no key is set.
-- [ ] 59. **Options > Stereo pairs on odd-even channels only**: In > Stereo input, Out > Hardware out:
-  stereo pair, and the key menu's Stereo Input list only 1/2, 3/4...; off again: every pair.
 
 ## Done
 
+- [x] 63. (0.11.14) Mono key follows the FX's width: soothe3 on a mono rack gets a mono key (bus size
+  1, one key pin on channel 3); the sum is two -6 dB receives into that channel; turns stereo with the
+  rack and back: ok.
+- [x] 62. (0.11.13) Key dots in the gap between name and key button; name button width unchanged: ok.
+- [x] 58. Key dots: one for a mono key, two stacked for stereo, none without a key: ok.
+- [x] 57. Dots on mono, stereo and mono-in/stereo-out racks, glowing stereo point, centering, Daylight: ok.
+- [x] 59. Options > Stereo pairs on odd-even channels only, on and off: ok.
 - [x] 67. Fresh install on a new Mac (0.11.14): starts clean, no error, everything looks good.
 - [x] 65. Migration on the Live Rack machine: settings, mode, dock, window sizes, favorites, recent FX,
   latency list, racks' saved data and meters all carried over; nothing copied twice: ok.
