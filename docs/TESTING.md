@@ -15,8 +15,13 @@ New items get the next free number (next: 72). Priority: 63.
   follows. Nothing hovered: a general hint (Edit) or what still works (Show).
 - [ ] 63. (0.11.14) On a **mono** rack (or the mono part of a mono-to-stereo rack), a plug-in with a
   stereo key input gets a **mono** key: its key menu reads *Stereo Input (summed to mono)*, a single dot
-  shows next to the key button, and in REAPER's pin connector both key pins listen to the same channel.
-  Make the rack stereo: the key turns stereo (two stacked dots, two channels) on its own, and back.
+  shows next to the key button. The sum is in the rack's routing (R button > Receives): two receives
+  from the SC IN: track, source channels 1 and 2, each -6 dB, both into one mono track channel (e.g.
+  3); the pin connector shows that channel on the key pin (one key pin when the FX's bus size is 1,
+  both key pins on it when the FX kept two). Make the rack stereo: the key turns stereo on its own (two
+  stacked dots, one stereo receive to 3/4, key pins on 3 and 4), and back.
+  *Seen: soothe3 on a mono rack (bus size 1, "2 in 1 out"): one key pin on channel 3, routing works.
+  Still to check: the two -6 dB receives in the routing window, and the switch to stereo and back.*
 - [ ] 62. (0.11.13) Key dots sit in the gap between the FX name and the key button; the name button
   keeps the same width whether a key is connected or not.
 - [ ] 56. **+** menu (and Insert / Replace FX): **Favorites** and **Recently used** under the search
