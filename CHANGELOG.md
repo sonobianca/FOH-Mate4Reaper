@@ -45,6 +45,7 @@ Changes since the last public release, grouped by minor version (revisions are f
   back to the automatic stereo point (it did nothing).
 - Fixed: a confirmation asked from the Plugin list or the Settings window opens over that window. It
   could open hidden behind it, and every FOH-Mate window then waited for an answer you couldn't see.
+  The same for confirmations from a docked Plugins Host while the Plugin list or Settings is open.
 - If FOH-Mate stops on an error, the exact place (line and chain of calls) goes to REAPER's console
   and to `Data/FOHMate/last_error.txt`.
 - **FX > Plugin list...** replaces the FX latency list: every installed FX with its type (in color),
