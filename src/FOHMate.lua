@@ -2145,6 +2145,12 @@ function fit_fx(tr, fx, w, swap)
   if w == W_MONO then
     if outs == 1 then set_out_pin(tr, fx, 0, 3) end          -- 3 = channels 1 and 2
   elseif outs and outs >= 1 then
+    -- main inputs hear the audio only: going from a mono bus size back to stereo, the pin that
+    -- was the key input becomes Main R and still listens to the key's channel
+    for p = 0, math.min(outs, 2) - 1 do
+      local lo = reaper.TrackFX_GetPinMappings(tr, fx, 0, p)
+      if lo & ~3 ~= 0 then reaper.TrackFX_SetPinMappings(tr, fx, 0, p, 1 << p, 0) end
+    end
     if reaper.TrackFX_GetPinMappings(tr, fx, 1, 0) == 3 then set_out_pin(tr, fx, 0, 1) end
   end
 end
