@@ -27,7 +27,7 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.11.20'   -- major.minor.revision, shown in the window's title bar
+VERSION         = '0.11.21'   -- major.minor.revision, shown in the window's title bar
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
 GLOW_M          = 6         -- room left around the racks for the selection glow
 NAME_FONT_SIZE  = 16        -- rack name font (bold)
@@ -4580,7 +4580,10 @@ function draw_rack(info, x0, y0, H, M, dt, now)
         -- a connected key: its width (one dot = mono, two stacked = stereo) in the gap between the
         -- name and the key button (the name keeps its size)
         local x1, x2 = wx + fh + spx + name_w, wx + WW - fh
-        width_dots(dl, (x1 + x2) / 2, y + fh / 2, kind, true, T.dots, c.sec_bg, dot_r)
+        -- the key's own width: a mono source into a stereo FX is still one dot
+        local src = key.src
+        local src_stereo = is_sc_bus(src) or (math.floor(reaper.GetMediaTrackInfo_Value(src, 'I_RECINPUT')) & 1024) ~= 0
+        width_dots(dl, (x1 + x2) / 2, y + fh / 2, (kind == 2 and src_stereo) and 2 or 1, true, T.dots, c.sec_bg, dot_r)
       end
       lock_begin(locked)
       if round_button(dl, '##key' .. fx, wx + WW - fh, y, fh, lbl ~= nil,

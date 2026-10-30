@@ -4,6 +4,7 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.11
 
+- Key dots show the width of the key's source: a mono sidechain into a stereo FX is one dot, not two.
 - Sidechain fix: switching a mono rack to stereo no longer leaves the FX's Main R input listening to
   the sidechain key (which made the key come out of the rack's right channel).
 - **New name: FOH-Mate.** The project was called Live Rack; it is now FOH-Mate (live sound tools for
