@@ -2,11 +2,14 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 73).
+New items get the next free number (next: 74).
 
 ## Open
 
-Nothing open.
+- [ ] 73. (0.11.20) Mono-in/stereo-out rack with ReaComp (or any FX with a sidechain key) and a key
+  assigned. Switch the rack input to stereo. The key must not come out of the right channel. Open
+  the FX's I/O window: Main Input R should be on Track Channel 2, Aux inputs on 3/4 (not Main R on 3).
+  Then switch back to mono and again to stereo.
 
 ## Done
 
