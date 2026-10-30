@@ -6,15 +6,14 @@ New items get the next free number (next: 75).
 
 ## Open
 
-- [ ] 74. (0.11.21) Mono hardware input (In 1) as the key of a stereo FX (ReaComp): one dot. A stereo
-  pair (In 1/2) or a sidechain bus: two dots. A stereo source into a mono FX: one dot.
-- [ ] 73. (0.11.20) Mono-in/stereo-out rack with ReaComp (or any FX with a sidechain key) and a key
-  assigned. Switch the rack input to stereo. The key must not come out of the right channel. Open
-  the FX's I/O window: Main Input R should be on Track Channel 2, Aux inputs on 3/4 (not Main R on 3).
-  Then switch back to mono and again to stereo.
+Nothing open.
 
 ## Done
 
+- [x] 74. (0.11.21) Key dots show the key source's width: mono input into a stereo FX is one dot,
+  stereo pair or bus two dots, stereo into a mono FX one: ok.
+- [x] 73. (0.11.20) Mono-in/stereo-out rack with a keyed FX switched to stereo: key no longer comes
+  out the right channel (Main R back on channel 2): ok.
 - [x] 72. (0.11.19) Settings: one Latency section with all five settings, values kept, no error on
   hover, Latency > Latency limits... opens it: ok.
 - [x] 56. Favorites and Recently used under the search field (+, Insert FX, Replace FX); last 5
