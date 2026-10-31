@@ -2,7 +2,7 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 91).
+New items get the next free number (next: 92).
 
 ## Open
 

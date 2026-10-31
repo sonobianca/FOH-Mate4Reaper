@@ -196,8 +196,12 @@ function begin_window(id, title, def_w, def_h, p_open, flags)
     WINSZ[id] = st
   end
   local back = st.last ~= FRAME - 1          -- not shown last frame: coming back
-  if back then ig.SetNextWindowSize(ctx, st.w, st.h, ig.Cond_Always()) end
-  local vis, open = ig.Begin(ctx, title, p_open, flags)
+  if back then
+    ig.SetNextWindowSize(ctx, st.w, st.h, ig.Cond_Always())
+    -- opens next to the Plugins Host window, so it can't come up off the screen (a remembered position can)
+    if MAIN_X then ig.SetNextWindowPos(ctx, MAIN_X + 40, MAIN_Y + 70, ig.Cond_Always()) end
+  end
+  local vis, open = ig.Begin(ctx, title, p_open, (flags or 0) | ig.WindowFlags_NoCollapse())
   if vis then
     st.last = FRAME
     if ig.IsWindowFocused(ctx, ig.FocusedFlags_RootAndChildWindows()) then st.focused = FRAME end

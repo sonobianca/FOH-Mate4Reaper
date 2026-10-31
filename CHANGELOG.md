@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Settings, Plugin list and the Performance parameters window open next to the Plugins Host window (a remembered position could leave them off the screen) and can no longer be folded.
+
 - **Performance mode** (first step, the view): **Display > Performance mode** puts every rack in one
   row that scrolls sideways, with a column under each rack. Each column scrolls on its own: the rows
   fade out at the top or bottom edge while there is more beyond, and a slim bar on the right shows

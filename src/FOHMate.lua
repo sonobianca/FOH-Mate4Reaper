@@ -171,6 +171,7 @@ function loop()
   if visible then
     -- remember size (and detect the "minimized" shrink)
     local docked = ig.IsWindowDocked(ctx)
+    MAIN_X, MAIN_Y = ig.GetWindowPos(ctx)
     if not docked then
       local w, h = ig.GetWindowSize(ctx)
       local shrunk = prev_w and (w <= MIN_W + 1 and h <= MIN_H + 1)
