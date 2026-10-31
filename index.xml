@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<index version="1" name="FOH-Mate">
+  <category name="Live sound">
+    <reapack name="FOHMate.lua" type="script" desc="FOH-Mate">
+      <metadata>
+        <link rel="website">https://github.com/sonobianca/FOH-Mate4Reaper</link>
+      </metadata>
+      <version name="0.12.0" author="Bianca" time="2026-10-31T06:05:25Z">
+        <changelog><![CDATA[- The code is split into modules: `FOHMate.lua` plus a `FOHMate` folder next to it holding the rest
+  (racks, sidechain, latency, menus...). Nothing changes on screen or in the sound; the code is just
+  easier to read and maintain. Installing and updating now means copying the file and the folder.
+- FOH-Mate can be installed and updated with ReaPack (from this version on).]]></changelog>
+        <source main="main">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate.lua</source>
+        <source file="FOHMate/settings.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/settings.lua</source>
+        <source file="FOHMate/context.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/context.lua</source>
+        <source file="FOHMate/jsfx.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/jsfx.lua</source>
+        <source file="FOHMate/state.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/state.lua</source>
+        <source file="FOHMate/helpers.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/helpers.lua</source>
+        <source file="FOHMate/modes.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/modes.lua</source>
+        <source file="FOHMate/colors.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/colors.lua</source>
+        <source file="FOHMate/chain.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/chain.lua</source>
+        <source file="FOHMate/tracks.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/tracks.lua</source>
+        <source file="FOHMate/sidechain.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/sidechain.lua</source>
+        <source file="FOHMate/stereo.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/stereo.lua</source>
+        <source file="FOHMate/latency.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/latency.lua</source>
+        <source file="FOHMate/fx_list.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/fx_list.lua</source>
+        <source file="FOHMate/scan.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/scan.lua</source>
+        <source file="FOHMate/plugin_list.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/plugin_list.lua</source>
+        <source file="FOHMate/add_fx_menu.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/add_fx_menu.lua</source>
+        <source file="FOHMate/setup.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/setup.lua</source>
+        <source file="FOHMate/widgets.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/widgets.lua</source>
+        <source file="FOHMate/sidechain_ui.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/sidechain_ui.lua</source>
+        <source file="FOHMate/racks.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/racks.lua</source>
+        <source file="FOHMate/top_bar.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/top_bar.lua</source>
+        <source file="FOHMate/window.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/window.lua</source>
+      </version>
+    </reapack>
+  </category>
+</index>
