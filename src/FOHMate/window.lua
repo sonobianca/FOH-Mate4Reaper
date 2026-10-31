@@ -377,7 +377,7 @@ function draw_perf_column(inf, x, y, w, h, M)
     local dl = ig.GetWindowDrawList(ctx)
     local cx, cy = ig.GetWindowPos(ctx)
     local cw, ch = ig.GetWindowSize(ctx)
-    local rw = cw - 8                                      -- room for the position bar
+    local rw = cw - 6 - PAD                                -- room for the position bar: the gap left of it equals the gap right of it (1 px + PAD)
     local rh = math.floor(M.fh * 1.6)
     local d = M.fh
     local n = math.floor(CFG.perf_demo_rows)
