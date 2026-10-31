@@ -794,8 +794,10 @@ function draw_rack(info, x0, y0, H, M, dt, now)
     local what = lat.rack_over and 'RACK' or 'FX'
     if blink then
       if lat.rack_over then
-        -- the whole rack is over its limit: its frame flashes red (drawn first, the tag goes on top)
-        ig.DrawList_AddRect(dl, x0 - 1, y0 - 1, x0 + RACK_W + 1, y0 + H + 1, ALERT_RED, ROUNDING + 3, 0, 3)
+        -- the whole rack is over its limit: its frame flashes red (drawn first, the tag goes on top).
+        -- Same outline and corners as the rack's own frame, and thicker (2, or 3 when selected), so
+        -- the rack's color doesn't show through
+        ig.DrawList_AddRect(dl, x0, y0, x0 + RACK_W, y0 + H, ALERT_RED, ROUNDING + 2, 0, 4)
       end
       local x1, y1, x2, y2 = draw_alert_pill(dl, px, py, ('!!  %s  %.1f ms'):format(what, ms))
       ig.DrawList_AddRect(dl, x1, y1, x2, y2, WHITE, (y2 - y1) / 2, 0, 1)   -- thin outline, readable on any color

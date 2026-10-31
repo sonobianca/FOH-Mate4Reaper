@@ -15,6 +15,8 @@ Changes since the last public release, grouped by minor version (revisions are f
   Count every format..., changing a latency limit, or turning this option on checks the racks again.
   The FX it adds come back online with the others when you go back to Edit.
 - The latency alert tag on the first row of racks is no longer cut off at the top.
+- The flashing red frame of a rack over its latency limit covers the rack's own frame completely
+  (thicker, same corners), so the rack's color no longer shows through.
 - **Allow latency** stays per format. With the option on, allowing an FX that has other formats
   installed first says that only this format is allowed (that note can be hidden).
 - **"Don't show this again"** on popups that are not critical: creating a rack by double-click,

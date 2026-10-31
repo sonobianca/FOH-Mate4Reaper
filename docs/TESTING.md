@@ -2,9 +2,13 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 81).
+New items get the next free number (next: 82).
 
 ## Open
+
+- [ ] 81. (0.13.2) A rack over its latency limit (rack limit, so the whole frame flashes): the red
+  frame is thicker and hides the rack's own colored frame completely, corners included, with the rack
+  selected and not selected.
 
 - [ ] 80. (0.13.1) The flashing "!! RACK ... ms" / "!! FX" tag on a rack of the first row shows whole
   (nothing cut off at the top). The racks sit a few pixels lower than before; selection glow and
