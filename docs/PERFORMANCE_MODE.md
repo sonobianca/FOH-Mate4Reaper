@@ -25,7 +25,8 @@ An optional view, switched on and off with a toggle. Edit and Show keep working 
 - **Edit mode:** full racks, everything as in the normal view.
 - **Show mode:** a rack is its name with a small **M** and **B** on the right and a handle at the bottom
   of the name. The handle unfolds the rack's FX section (with the meters beside it), pushing only that
-  rack's column down; again to fold. Animated (about 0.2 s). Open sections fold back by themselves
+  rack's column down; again to fold. Animated (about 0.2 s). While folded, thin horizontal meters sit either side of
+  the chevron (input left, output right) and fade out as the vertical ones appear. Open sections fold back by themselves
   after a time without mouse or key activity (Settings, default 15 s, 0 = never).
 - **A column belongs to its rack.** Each row is one parameter of an FX of that rack. (Later: rows
   controlling an FX of another rack. The storage must not forbid it.)

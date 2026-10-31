@@ -2,7 +2,7 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 89).
+New items get the next free number (next: 90).
 
 ## Open
 
@@ -31,6 +31,13 @@ New items get the next free number (next: 89).
   (g) Both triangles the same size; the same gap between rows widened and folded; placeholder rows
   now carry a number to see how they spread. Also Edit mode, a bypassed rack, Daylight mode, a
   narrow window, CPU while scrolling sideways.
+
+- [ ] 89. (0.14.0) Show mode, FX section folded: thin horizontal meters either side of the chevron
+  (input left, output right; one bar for a mono rack, two for stereo; clip marker at the right end,
+  peak hold tick). Do they move with the audio and match the vertical ones? Do they fade out while
+  the FX section opens, with the vertical meters appearing in the same move? Readable but not
+  noisy? Also with "no meters" on (nothing drawn), a bypassed or muted rack, Daylight mode, CPU.
+  (Rollback point before this: tag `perf-checkpoint-2`.)
 
 ## Done
 

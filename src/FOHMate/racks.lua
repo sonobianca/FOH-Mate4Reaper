@@ -896,6 +896,14 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
     local dir = handle.open and -3 or 3
     ig.DrawList_AddLine(dl, hx - 12, handle.y - dir * 0.5, hx, handle.y + dir * 0.5, hcol, 2.5)
     ig.DrawList_AddLine(dl, hx, handle.y + dir * 0.5, hx + 12, handle.y - dir * 0.5, hcol, 2.5)
+    -- the FX section is folded: thin horizontal meters either side of the chevron (input on the
+    -- left, output on the right). They fade out while it opens, and the vertical ones take over.
+    local fa = 1 - 3 * (vh - folded_height(M)) / math.max(1, H - folded_height(M))
+    if metering and fa > 0 then
+      fa = math.min(1, fa)
+      draw_hbar(dl, x0 + PAD + SI, hx - 20, handle.y, m.lv_in, m.hold_in, m.clip_in, io_in == W_MONO, fa)
+      draw_hbar(dl, hx + 20, x0 + RACK_W - PAD - SI, handle.y, m.lv_out, m.hold_out, m.clip_out, io_out == W_MONO, fa)
+    end
   end
 
   -- latency watchdog: flashing tag on the rack's top border
