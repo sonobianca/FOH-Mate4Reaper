@@ -6,13 +6,12 @@ New items get the next free number (next: 76).
 
 ## Open
 
-- [ ] 75. (0.12.0) Modular code. Restart FOH-Mate with the existing action (it runs the script from
-  the repo, so it picks up the new files): the title shows v0.12.0 and everything works as in 0.11.21
-  (racks, meters, menus, Settings, Plugin list, add/remove FX, sidechain keys, Show mode). Also: rename
-  `src/FOHMate` for a moment and run it: a clear message says a file is missing (then rename it back).
+Nothing open.
 
 ## Done
 
+- [x] 75. (0.12.0) Modular code: v0.12.0 runs from the existing action and everything works as in
+  0.11.21; with the `FOHMate` folder renamed, the missing-file message shows: ok.
 - [x] 74. (0.11.21) Key dots show the key source's width: mono input into a stereo FX is one dot,
   stereo pair or bus two dots, stereo into a mono FX one: ok.
 - [x] 73. (0.11.20) Mono-in/stereo-out rack with a keyed FX switched to stereo: key no longer comes
