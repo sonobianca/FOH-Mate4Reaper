@@ -641,19 +641,16 @@ function perf_keys()
   return PERF_KEYS
 end
 
--- the last time the user did something in REAPER: moved the mouse (anywhere on screen, not only
--- over this window), clicked, used the wheel, or pressed a key while this window has the focus.
--- With the js_ReaScriptAPI extension installed, clicks anywhere count too. Keys are only looked
--- at while a section is open, and every third frame.
+-- the last time the user really used FOH-Mate: clicked or dragged, scrolled over the Plugins Host
+-- window, or pressed a key while it has the focus. Moving the mouse around does not count, nor
+-- does work elsewhere in REAPER. Keys are only looked at while a section is open, and every
+-- third frame.
 function perf_activity(now, any_open)
-  local mx, my = reaper.GetMousePosition()                 -- the whole screen, so REAPER's other windows count
-  local wv, wh = ig.GetMouseWheel(ctx)
-  if mx ~= PERF_MX or my ~= PERF_MY or wv ~= 0 or wh ~= 0
-     or ig.IsMouseDown(ctx, 0) or ig.IsMouseDown(ctx, 1)
-     or (reaper.JS_Mouse_GetState and reaper.JS_Mouse_GetState(3) ~= 0) then
-    PERF_ACT = now
+  local over = ig.IsWindowHovered(ctx, ig.HoveredFlags_ChildWindows())
+  if over then
+    local wv, wh = ig.GetMouseWheel(ctx)
+    if wv ~= 0 or wh ~= 0 or ig.IsMouseDown(ctx, 0) or ig.IsMouseDown(ctx, 1) then PERF_ACT = now end
   end
-  PERF_MX, PERF_MY = mx, my
   PERF_FRAME = PERF_FRAME + 1
   if any_open and PERF_FRAME % 3 == 0 then
     for _, k in ipairs(perf_keys()) do

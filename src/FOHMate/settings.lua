@@ -88,9 +88,9 @@ SCHEMA = {
     tip = 'Height of the clip markers above the meters.' },
 
   { group = 'Performance mode', key = 'perf_fold_auto', label = 'Fold the FX and parameter sections by themselves', kind = 'bool', min = 0, max = 1, def = 1,
-    tip = 'On: an open FX section (Show mode) and a widened parameter section fold back after the time below\nwithout activity in REAPER. Off: they stay open until you fold them.' },
+    tip = 'On: an open FX section (Show mode) and a widened parameter section fold back after the time below\nwithout you using FOH-Mate. Off: they stay open until you fold them.' },
   { group = 'Performance mode', key = 'perf_fold_after', label = 'Fold them after', kind = 'i', min = 0, max = 120, def = 15, fmt = '%d s',
-    tip = 'An open FX section (Show mode) and a widened parameter column fold back after this long\nwithout any activity in REAPER (the mouse moving anywhere, clicks, keys typed here) (when the option above is on).' },
+    tip = 'An open FX section (Show mode) and a widened parameter column fold back after this long\nwithout you using FOH-Mate (a click, a drag, scrolling or a key in its window; moving the mouse\nalone does not count), when the option above is on.' },
   { group = 'Performance mode', key = 'perf_demo_rows', label = 'Placeholder rows (test only)', kind = 'i', min = 0, max = 40, def = 0, fmt = '%d rows',
     tip = 'Fills every column with empty rows so the scrolling can be tried before parameter rows exist.\nGoes away in the next version.' },
 }
