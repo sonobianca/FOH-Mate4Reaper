@@ -11,6 +11,8 @@
 -- the rack and on each FX that adds latency, and a line in the status bar.
 -- FX marked "Allow latency" (right-click) are left out of the count.
 -- Alerts can be silenced for a while or switched off in the Options menu.
+-- With Latency > Count every format at its highest latency, an FX counts with
+-- the highest figure of its formats (see fx_list.lua, "one plugin in several formats").
 
 LAT = {}            -- [rack guid] = { t, total, counted, fx = { [fx guid] = samples }, over }
 
@@ -67,7 +69,7 @@ function rack_latency(tr, guid, list, now)
   for _, it in ipairs(list) do sig[#sig + 1] = it.enabled and '1' or '0' end
   sig = table.concat(sig)
   if L and now - L.t < 1.0 and L.sig == sig then return L end
-  L = { t = now, sig = sig, total = 0, counted = 0, fx = {}, offline = {}, disabled = {} }
+  L = { t = now, sig = sig, total = 0, counted = 0, fx = {}, offline = {}, disabled = {}, est = {} }
   -- REAPER's own figure for the whole chain, when it gives one (for comparison)
   if nfx > 0 then
     local ok, v = reaper.TrackFX_GetNamedConfigParm(tr, 0, 'chain_pdc_reporting')
@@ -94,7 +96,8 @@ function rack_latency(tr, guid, list, now)
     local n = 0
     if not off then
       n = fx_latency(tr, it.fx)
-      latdb_record(name, n, 'seen')
+      latdb_record(name, n, 'seen')       -- the list keeps what the FX itself reports
+      n, L.est[g] = latency_counted(name, n)
       if not it.enabled then n = 0 end
     end
     L.fx[g] = n

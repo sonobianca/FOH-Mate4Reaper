@@ -4,6 +4,15 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.13
 
+- **Latency > Count every format at its highest latency** (off by default). A plugin installed in
+  several formats (AU, VST3, VST...) counts with the highest latency any of its formats reports: some
+  formats, often AU, report 0 where another reports the real figure. Alerts, limits, the rack latency
+  box, the FX menus and Show mode's offline step use it; REAPER's own compensation is not changed. The
+  Plugin list marks estimated figures with * (hover for where they come from). Formats are matched on
+  name and developer, ignoring the type, spaces, a channel count like "(4ch)" and the developer's name
+  inside the plugin's name.
+- **Allow latency** stays per format. With the option on, allowing an FX that has other formats
+  installed first says that only this format is allowed (that note can be hidden).
 - **"Don't show this again"** on popups that are not critical: creating a rack by double-click,
   replacing or deleting one FX, an action on several selected racks, and the scan notes. Once hidden, a
   question is answered yes without asking. On "new effects were found, scan now?" the checkbox turns

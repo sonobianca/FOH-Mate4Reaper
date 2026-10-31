@@ -524,7 +524,7 @@ function draw_rack(info, x0, y0, H, M, dt, now)
       end
     end
     if (fx_lat > 0 or S.lat_box == 'always') and ig.IsItemHovered(ctx) and not drag_prev_fx then
-      ig.SetTooltip(ctx, 'Latency: ' .. samples_text(fx_lat)
+      ig.SetTooltip(ctx, 'Latency: ' .. samples_text(fx_lat) .. estimate_note(lat.est[fx_guid])
         .. (lat.disabled[fx_guid] and '\n(off: not counted)' or (fx_ok and '\n(allowed: not counted by the watchdog)' or '')))
     end
     -- latency watchdog: this FX adds latency to a rack over the limit
@@ -579,7 +579,9 @@ function draw_rack(info, x0, y0, H, M, dt, now)
       ig.Separator(ctx)
       local fl = lat.fx[fx_guid] or 0
       if ig.MenuItem(ctx, 'Allow latency' .. (fl > 0 and ('  (%d smp)'):format(fl) or ''), nil, lat.allowed[fx_guid] == true) then
-        set_latency_allowed(tr, fx_guid, not lat.allowed[fx_guid])
+        local on = not lat.allowed[fx_guid]
+        local function go() set_latency_allowed(tr, fx_guid, on) end
+        if on then confirm_allowed_one_format(fx_orig_name(tr, fx), go) else go() end
       end
       if widen then
         ig.Separator(ctx)
@@ -776,7 +778,7 @@ function draw_rack(info, x0, y0, H, M, dt, now)
         local g = reaper.TrackFX_GetFXGUID(tr, it.fx)
         local n = lat.fx[g] or 0
         local tag = lat.offline[g] and '  (offline)' or (lat.disabled[g] and '  (off: not counted)' or (lat.allowed[g] and '  (allowed)' or ''))
-        lines[#lines + 1] = ('  %s: %d smp%s'):format(clean_fx_name(it.name), n, tag)
+        lines[#lines + 1] = ('  %s: %d smp%s%s'):format(clean_fx_name(it.name), n, estimate_note(lat.est[g]), tag)
       end
       if lat.chain then lines[#lines + 1] = ('REAPER reports for the chain: %d smp'):format(lat.chain) end
       if lat.chain_actual then lines[#lines + 1] = ('REAPER applies: %d smp (valid once playback ran)'):format(lat.chain_actual) end
@@ -804,7 +806,8 @@ function draw_rack(info, x0, y0, H, M, dt, now)
         local g = reaper.TrackFX_GetFXGUID(tr, it.fx)
         local n = lat.fx[g] or 0
         if n > 0 and not lat.allowed[g] then
-          names[#names + 1] = ('  %s: %d smp%s'):format(clean_fx_name(it.name), n, lat.fx_over[g] and '  (over the FX limit)' or '')
+          names[#names + 1] = ('  %s: %d smp%s%s'):format(clean_fx_name(it.name), n, estimate_note(lat.est[g]),
+                                                         lat.fx_over[g] and '  (over the FX limit)' or '')
         end
       end
       local head = lat.rack_over

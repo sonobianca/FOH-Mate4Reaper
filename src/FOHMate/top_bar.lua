@@ -99,6 +99,13 @@ function draw_latency_menu()
   if ig.MenuItem(ctx, ('Latency limits...   (FX %d / rack %d smp)'):format(LAT_LIMIT, LAT_RACK_LIMIT)) then
     open_settings_at('Latency')
   end
+  if toggle_setting('Count every format at its highest latency', 'lat_formats', 'latformats',
+       'A plugin installed in several formats (AU, VST3, VST...) counts with the highest\n'
+       .. 'latency any of its formats reports: some formats (often AU) report 0 where\n'
+       .. 'another reports the real figure. Estimated figures are marked * in the Plugin list.\n'
+       .. 'Only alerts, limits and figures use it: REAPER\'s compensation is not changed.') then
+    LAT = {}                          -- every rack is counted again right away
+  end
   ig.Separator(ctx)
   local can = not SCAN.active and S.mode == 'edit'
   if ig.MenuItem(ctx, 'Scan new FX for latency...', nil, false, can) then ask_scan('new') end
@@ -208,7 +215,7 @@ end
 -- an FX in a menu: name, its latency in red when it has some, its type in the type's color
 function fx_menu_item(it)
   local e = latdb_get(it.name)
-  local lat = (e and e.src ~= 'failed') and (e.lat or 0) or 0
+  local lat = (e and e.src ~= 'failed') and (latency_counted(e.name, e.lat or 0)) or 0
   local lat_txt = lat > 0 and ('%d smp'):format(lat) or nil
   local label = it.label or it.name
   local pad = ''

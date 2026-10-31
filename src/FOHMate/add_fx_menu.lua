@@ -125,7 +125,7 @@ end
 function get_view()
   if not fx_db then fx_db = build_fx_db() end
   local key = table.concat(hidden_list(), ',')
-  if S.hide_over then key = key .. '|' .. LAT_LIMIT .. '|' .. LATDB.rev end
+  if S.hide_over then key = key .. '|' .. LAT_LIMIT .. '|' .. LATDB.rev .. '|' .. tostring(S.lat_formats) end
   if fx_view and fx_view_key == key then return fx_view end
 
   local function visible(items)

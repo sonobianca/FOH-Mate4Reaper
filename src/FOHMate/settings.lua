@@ -215,6 +215,7 @@ function load_settings()
     lat_silence_until = tonumber(reaper.GetExtState(EXT_SECTION, 'latsilence')) or 0,
     ask_scan    = reaper.GetExtState(EXT_SECTION, 'askscan') ~= '0',    -- offer to scan new FX
     hide_over   = reaper.GetExtState(EXT_SECTION, 'hideover') == '1',   -- FX over the limit left out of the menus
+    lat_formats = reaper.GetExtState(EXT_SECTION, 'latformats') == '1', -- every format counts at its highest latency
     show_off    = reaper.GetExtState(EXT_SECTION, 'showoff') == '1',    -- Show mode takes them offline
     -- latency box under every rack: 'off', 'always' or 'auto' (only racks with latency)
     lat_box     = (function()

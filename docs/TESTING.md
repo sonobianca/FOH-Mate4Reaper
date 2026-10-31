@@ -2,9 +2,16 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 78).
+New items get the next free number (next: 79).
 
 ## Open
+
+- [ ] 78. (0.13.0) Latency > **Count every format at its highest latency** (off at first). Turn it on.
+  Plugin list, AU of bx_limiter: Latency shows `304*`, hover says the VST3 reports 304; with a per-FX
+  limit under 304 its name turns red. A rack with the AU bx_limiter: rack latency box and FX hover show
+  304 "(estimated from VST3)", the watchdog alerts. Turn the option off: back to 0, no alert. Plugin
+  list Allowed on the AU: a note says only the AU is allowed and lists the VST3 (has "Don't show this
+  again"); Allow ticks it, Cancel doesn't. With the option off, no note.
 
 - [ ] 77. (0.13.0) "Don't show this again". Double-click empty space: the "Create a new rack?" box has
   the checkbox (tooltip explains it); tick it and Create; double-click again: a rack is created with no

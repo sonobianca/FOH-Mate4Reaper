@@ -157,7 +157,95 @@ end
 
 -- an FX is "over" on its own when its known latency is above the limit
 function latdb_over(e)
-  return e and not e.allowed and e.src ~= 'failed' and (e.lat or 0) > LAT_LIMIT
+  return e and not e.allowed and e.src ~= 'failed' and (latency_counted(e.name, e.lat or 0)) > LAT_LIMIT
+end
+
+---------------------------------------- one plugin in several formats
+--
+-- Some formats report 0 latency where another format of the same plugin reports
+-- the real figure (often AU vs VST3). With Latency > Count every format at its
+-- highest latency, an FX counts with the highest figure any of its formats
+-- reports. Only FOH-Mate's alerts, limits and figures use it: REAPER's own
+-- compensation is untouched.
+--
+-- Formats are matched on name and developer, leaving out the type ("VST3: "), a
+-- channel count at the end ("(4ch)", "(4->8ch)", "(2 out)"), spaces, and the
+-- developer's name inside the plugin's name:
+--   "VST3: FabFilter Pro-Q 3 (FabFilter) (4ch)" and "AU: Pro-Q 3 (FabFilter)"
+--   both give "pro-q3|fabfilter". JSFX exist in one format only and are left out.
+
+function fx_family_key(name)
+  local s = (name or ''):lower()
+  if s:find('^js:') then return nil end
+  s = s:gsub('^[^:]*:%s*', '')
+  s = s:gsub('%s*%(%d+%->%d+ch%)$', '')
+  s = s:gsub('%s*%(%d+ch%)$', '')
+  s = s:gsub('%s*%(%d+ out%)$', '')
+  local base, dev = s:match('^(.-)%s*%(([^()]*)%)$')
+  if not base then base, dev = s, '' end
+  base = base:gsub('%s', '')
+  dev = dev:gsub('%s', '')
+  if dev ~= '' then
+    local short = base:gsub(dev:gsub('%p', '%%%0'), '')
+    if short ~= '' then base = short end     -- a plugin named just like its developer keeps its name
+  end
+  return base .. '|' .. dev
+end
+
+FAMILY = { rev = -1, by = {} }   -- [family key] = { n = formats measured, lat = highest, from = its name }
+
+-- rebuilt only when the latency list changed
+function fx_families()
+  if FAMILY.rev ~= LATDB.rev then
+    local by = {}
+    for _, e in pairs(LATDB.by) do
+      local k = e.src ~= 'failed' and fx_family_key(e.name)
+      if k then
+        local f = by[k]
+        if not f then f = { n = 0, lat = -1 }; by[k] = f end
+        f.n = f.n + 1
+        if (e.lat or 0) > f.lat then f.lat, f.from = e.lat or 0, e.name end
+      end
+    end
+    FAMILY.by, FAMILY.rev = by, LATDB.rev
+  end
+  return FAMILY.by
+end
+
+-- the latency FOH-Mate counts for an FX whose own figure is "own". With the
+-- option on and another format reporting more, that figure, plus the name of
+-- the format it comes from (nil when it is the FX's own figure).
+function latency_counted(name, own)
+  if not S.lat_formats then return own end
+  local k = fx_family_key(name)
+  local f = k and fx_families()[k]
+  if f and f.n > 1 and f.lat > own then return f.lat, f.from end
+  return own
+end
+
+-- "  (estimated from VST3)"
+function estimate_note(from)
+  return from and ('  (estimated from %s)'):format(from:match('^([^:]+):') or from) or ''
+end
+
+-- the other installed formats of an FX ("AU: ...", "VST: ..."), for the Allowed warning
+function other_formats(name)
+  if not fx_db then fx_db = build_fx_db() end
+  local k, out = fx_family_key(name), {}
+  if not k then return out end
+  for _, it in ipairs(fx_db.all) do
+    if it.name ~= name and fx_family_key(it.name) == k then out[#out + 1] = it.name end
+  end
+  return out
+end
+
+-- "Allowed" belongs to one format only: with the option on and other formats
+-- installed, say so first (that note can be hidden)
+function confirm_allowed_one_format(name, go)
+  local others = S.lat_formats and other_formats(name) or {}
+  if #others == 0 then go(); return end
+  request_confirm(('Allow latency for this format only:\n  %s\n\nIts other formats still count their latency:\n  %s')
+                  :format(name, table.concat(others, '\n  ')), go, 'Allow', 'allowed_one_format')
 end
 
 ---------------------------------------- favorite and recently used FX

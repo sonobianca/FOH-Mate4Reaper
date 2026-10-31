@@ -40,7 +40,7 @@ PLIST_SORT = {
   type    = function(r) return type_rank(r.it.type) end,
   name    = function(r) return r.it.short:lower() end,
   dev     = function(r) return r.it.dev:lower() end,
-  lat     = function(r) return (r.e and r.e.src ~= 'failed') and (r.e.lat or 0) or -1 end,
+  lat     = function(r) return (r.e and r.e.src ~= 'failed') and (latency_counted(r.e.name, r.e.lat or 0)) or -1 end,
   max     = function(r) return (r.e and r.e.src ~= 'failed') and (r.e.max or 0) or -1 end,
   allowed = function(r) return (r.e and r.e.allowed) and 0 or 1 end,
   status  = function(r) return r.e and (STATUS_RANK[r.e.src] or 4) or 5 end,
@@ -55,7 +55,7 @@ function plugin_rows()
   if not fx_db then fx_db = build_fx_db() end
   local W = LATWIN
   local key = table.concat({ W.filter, tostring(W.type), tostring(W.dev), tostring(W.only_lat), tostring(W.only_fav), W.sort, tostring(W.desc),
-                             LATDB.rev, FAVS.rev, LAT_LIMIT, tostring(fx_db) }, '|')
+                             LATDB.rev, FAVS.rev, LAT_LIMIT, tostring(S.lat_formats), tostring(fx_db) }, '|')
   if W.cache_key == key then return W.rows end
   local words = {}
   for w in W.filter:lower():gmatch('%S+') do words[#words + 1] = w end
@@ -281,8 +281,13 @@ function draw_plugin_list()
         if not e or e.src == 'failed' then
           ig.TextDisabled(ctx, e and 'n/a' or '-')
         else
-          local txt = ('%d (%.2f ms)'):format(e.lat or 0, (e.lat or 0) * 1000 / sample_rate())
+          local n, from = latency_counted(e.name, e.lat or 0)
+          local txt = ('%d%s (%.2f ms)'):format(n, from and '*' or '', n * 1000 / sample_rate())
           if over then ig.TextColored(ctx, ALERT_RED, txt) else ig.Text(ctx, txt) end
+          if from and ig.IsItemHovered(ctx) then
+            ig.SetTooltip(ctx, ('Estimated: this format reports %d samples,\n%s reports %d.\n'
+                               .. '(Latency > Count every format at its highest latency)'):format(e.lat or 0, from, n))
+          end
         end
         ig.TableNextColumn(ctx)
         if e and e.src ~= 'failed' then ig.Text(ctx, tostring(e.max or 0)) else ig.TextDisabled(ctx, '-') end
@@ -291,7 +296,11 @@ function draw_plugin_list()
         local cw = ig.GetContentRegionAvail(ctx)
         ig.SetCursorPosX(ctx, ig.GetCursorPosX(ctx) + math.max(0, (cw - fh) / 2))
         local c, nv = ig.Checkbox(ctx, '##al', e ~= nil and e.allowed)
-        if c then latdb_set_allowed(it.name, nv); LAT = {} end
+        if c then
+          local name = it.name
+          local function go() latdb_set_allowed(name, nv); LAT = {} end
+          if nv then confirm_allowed_one_format(name, go) else go() end
+        end
         -- status
         ig.TableNextColumn(ctx)
         if e and e.src == 'failed' then
@@ -336,7 +345,7 @@ function offline_for_show()
         local items, total = {}, 0
         for _, it in ipairs(list) do
           local nm = fx_orig_name(tr, it.fx)
-          local lat = fx_latency(tr, it.fx)
+          local lat = (latency_counted(nm, fx_latency(tr, it.fx)))
           if lat > 0 and not latdb_allowed(nm) and not reaper.TrackFX_GetOffline(tr, it.fx)
              and reaper.TrackFX_GetEnabled(tr, it.fx) then
             items[#items + 1] = { guid = reaper.TrackFX_GetFXGUID(tr, it.fx), lat = lat }
