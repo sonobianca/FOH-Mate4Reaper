@@ -65,6 +65,17 @@ consoles functions they don't have.
 ## Longer term
 - Possible hybrid licensing model: core and basic modules free, advanced modules licensed.
 
+## If we get there and have the motivation
+- **A FOH-Mate font.** Bianca likes the look of the stroke font that draws the vertical values in
+  Performance mode (light, technical, even spacing) and would like it, or something built on that
+  look, across the whole interface. The idea is to design a custom font in that style, so no
+  third-party font license is involved, rather than pick an existing one. Things to check first: the
+  stroke font only has the digits and a few letters and costs a drawing call per line, so it can't
+  simply be used everywhere; a real font file would be loaded through ReaImGui's font functions
+  (does the installed ReaImGui version load a font from a file, or only an installed system font?),
+  and the font would ship with the script through ReaPack. A cheaper stop on the way: try a few
+  existing fonts with a similar feel.
+
 ## Open questions
 - **AU vs VST3 reliability.** Some AU versions report 0 latency where the VST3 reports real latency,
   mostly Plugin Alliance (about 700 plug-ins installed). Full scan result: 85 of 249 AU/VST3 pairs
