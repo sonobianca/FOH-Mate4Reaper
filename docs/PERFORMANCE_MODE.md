@@ -1,6 +1,6 @@
 # FOH-Mate: Performance mode
 
-Design agreed with Bianca, and the order to build it in. Built step by step on the `performance-mode` branch. The short version of
+Design agreed with Bianca, and the order to build it in. Nothing is built yet. The short version of
 the idea is in `docs/ROADMAP.md`; this file is the detail. Built in the 0.14 versions.
 
 ## What it is

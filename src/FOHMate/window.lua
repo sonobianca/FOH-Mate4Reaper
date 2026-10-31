@@ -443,12 +443,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     local rh = math.floor(rh0 * f)
     local gy = select(2, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
     local pitch = rh + gy + pad                                  -- from one row to the next (the gap is the same stacked or in columns)
-    -- the rows are the rack's saved parameter rows; "Placeholder rows" (Settings) swaps them for examples
-    local now_t = reaper.time_precise()
-    local demo = math.floor(CFG.perf_demo_rows)
-    local rows = demo > 0 and {} or params_read(tr)
-    local gmap = demo == 0 and fx_guid_map(tr) or nil
-    local n = demo > 0 and demo or #rows
+    local n = math.floor(CFG.perf_demo_rows)
     local names = { 'Threshold', 'Ratio', 'Attack time', 'Low band crossover frequency', 'Output gain',
                     'Mix', 'High shelf frequency', 'Sidechain high-pass filter' }
     local values = { '-18 dB', '4:1', '12 ms', '250 Hz', '+3 dB', '50%', '8 kHz', '80 Hz' }   -- placeholders
@@ -478,30 +473,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         rx, ry = ig.GetCursorScreenPos(ctx)
       end
       if rx + rw > cx and rx < cx + cw then                -- rows outside the column's view aren't drawn
-        local rx0 = rx
         rx = rx + 3; local rw2 = rw - 6                      -- a little room for the hover glow
-        -- what this row shows: a placeholder, or the real parameter (fxi = where its FX is now)
-        local rname, vtxt, norm, fxi, missing
-        local r = rows[k]
-        if demo > 0 then
-          rname, vtxt, norm = names[(k - 1) % #names + 1], values[(k - 1) % #values + 1], ((k * 37) % 100) / 100
-        else
-          rname = r.name or r.pname
-          fxi = gmap[r.guid]
-          if fxi and r.idx < reaper.TrackFX_GetNumParams(tr, fxi) then
-            local _, pn = reaper.TrackFX_GetParamName(tr, fxi, r.idx, '')
-            missing = (pn ~= r.pname)                         -- a changed plug-in: not the parameter it was
-          else
-            missing = true
-          end
-          if missing then
-            vtxt, norm = '?', 0
-          else
-            norm = reaper.TrackFX_GetParamNormalized(tr, fxi, r.idx)
-            local _, txt = reaper.TrackFX_GetFormattedParamValue(tr, fxi, r.idx)
-            vtxt = param_vtext(txt, norm)
-          end
-        end
         local cd = rh - 8 * f                                    -- the control, outside the name box
         local vw, vg = 22 * f, 4 * f                                 -- the value box between control and name, and the gaps
         local box_w = rw2 - cd - vw - 2 * vg
@@ -511,11 +483,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         local vx = left and (bx + box_w + vg) or (kx + cd + vg)
         -- hover: the whole row (name box and control) glows
         local over = mx_in and mouse_in(rx, ry, rx + rw2, ry + rh)
-        if over and ig.IsMouseClicked(ctx, 0) then ps.last = k end   -- the row touched last
-        if over and demo == 0 and ig.IsMouseClicked(ctx, 1) and not is_locked() then
-          PARAM_MENU_ROW = k
-          ig.OpenPopup(ctx, 'prm_menu')
-        end
+        if over and ig.IsMouseClicked(ctx, 0) then ps.last = k end   -- the row touched last (the real controls will set it)
         if over then
           local base = T.glow & 0xFFFFFF00
           for i = 1, 3 do
@@ -525,10 +493,10 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         end
         ig.DrawList_AddRectFilled(dl, bx, ry, bx + box_w, ry + rh, c.name_bg, ROUNDING)
         ig.DrawList_AddRect(dl, bx, ry, bx + box_w, ry + rh, c.sec_bd, ROUNDING, 0, 1)
-        if demo > 0 then ig.DrawList_AddText(dl, bx + 4, ry + 2, (c.name_txt & 0xFFFFFF00) | 0xA0, tostring(k)) end   -- placeholder row number, to see how the rows spread
+        ig.DrawList_AddText(dl, bx + 4, ry + 2, (c.name_txt & 0xFFFFFF00) | 0xA0, tostring(k))   -- placeholder row number, to see how the rows spread
         -- the name: bold, up to two lines
         local pb = push_bold(name_font, NAME_FONT_SIZE * f)
-        local l1, l2 = rname, nil
+        local l1, l2 = names[(k - 1) % #names + 1], nil
         if ig.CalcTextSize(ctx, l1) > box_w - 8 then
           local cut = l1
           while #cut > 1 and ig.CalcTextSize(ctx, cut) > box_w - 8 do
@@ -545,33 +513,15 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         if ry + rh > cy and ry < cy + ch then
           ig.DrawList_AddRectFilled(dl, vx, ry, vx + vw, ry + rh, c.sec_bg, ROUNDING)
           ig.DrawList_AddRect(dl, vx, ry, vx + vw, ry + rh, c.sec_bd, ROUNDING, 0, 1)
-          draw_vtext(dl, vtxt, vx, ry, vw, rh, contrast_text(c.sec_bg, track_color(tr)), not left, f)
+          draw_vtext(dl, values[(k - 1) % #values + 1], vx, ry, vw, rh, contrast_text(c.sec_bg, track_color(tr)), not left, f)
         end
         -- placeholder control: a knob
         local kcx, kcy, kr = kx + cd / 2, ry + rh / 2, cd / 2 - 1
         ig.DrawList_AddCircleFilled(dl, kcx, kcy, kr, c.sec_bg, 0)
         ig.DrawList_AddCircle(dl, kcx, kcy, kr, c.border, 0, 2 * f)
-        local ang = math.rad(135 + 270 * norm)
+        local ang = math.rad(135 + 270 * (((k * 37) % 100) / 100))
         ig.DrawList_AddLine(dl, kcx + math.cos(ang) * kr * 0.3, kcy + math.sin(ang) * kr * 0.3,
                             kcx + math.cos(ang) * kr * 0.85, kcy + math.sin(ang) * kr * 0.85, T.dots, 3 * f)
-        -- the knob moves the real parameter: drag up and down (Shift: fine)
-        if fxi and not missing then
-          ig.SetCursorScreenPos(ctx, kx, ry)
-          ig.InvisibleButton(ctx, 'k' .. k, cd, rh)
-          if ig.IsItemActive(ctx) then
-            local _, dy = ig.GetMouseDelta(ctx)
-            if dy ~= 0 then
-              local step = has_mod('shift') and 0.0015 or 0.006
-              reaper.TrackFX_SetParamNormalized(tr, fxi, r.idx, math.max(0, math.min(1, norm - dy * step)))
-            end
-            ps.last = k
-            PERF_ACT = now_t
-          end
-          ig.SetCursorScreenPos(ctx, rx0, ry)
-        elseif missing then                                   -- its FX or parameter is gone: greyed out
-          ig.DrawList_AddRectFilled(dl, rx, ry, rx + rw2, ry + rh, (c.bg & 0xFFFFFF00) | 0xB0, ROUNDING)
-          if over then ig.SetTooltip(ctx, 'This parameter is not there any more (the FX was removed or changed).') end
-        end
       end
       if not grid then ig.Dummy(ctx, rw, rh) end
     end
@@ -594,7 +544,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
       px, py = ig.GetCursorScreenPos(ctx)
     end
     ig.SetCursorScreenPos(ctx, px + (rw - rh) / 2, py)
-    if ig.InvisibleButton(ctx, '##addparam', rh, rh) and demo == 0 and not is_locked() then param_picker_open(tr) end
+    ig.InvisibleButton(ctx, '##addparam', rh, rh)
     local hov = ig.IsItemHovered(ctx)
     local pcx, pcy, pr = px + rw / 2, py + rh / 2, rh / 2 - 2
     local pcol = (c.name_txt & 0xFFFFFF00) | (hov and 0xFF or 0xB0)
@@ -603,14 +553,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     local pl = pr * 0.45
     ig.DrawList_AddLine(dl, pcx - pl, pcy, pcx + pl, pcy, pcol, hov and 3 or 2)
     ig.DrawList_AddLine(dl, pcx, pcy - pl, pcx, pcy + pl, pcol, hov and 3 or 2)
-    if hov then
-      ig.SetTooltip(ctx, demo > 0 and 'Add a parameter (not with placeholder rows on)'
-                    or is_locked() and 'Switch to Edit mode to add parameters' or 'Add a parameter')
-    end
-    if ig.BeginPopup(ctx, 'prm_menu') then                  -- right-click on a row, Edit mode
-      if ig.MenuItem(ctx, 'Remove this row') and PARAM_MENU_ROW then params_remove(tr, PARAM_MENU_ROW) end
-      ig.EndPopup(ctx)
-    end
+    if hov then ig.SetTooltip(ctx, 'Add a parameter (coming in the next version)') end
     if grid then                                           -- the area the columns take, for the sideways scroll
       ig.SetCursorScreenPos(ctx, ox, oy)
       ig.Dummy(ctx, math.ceil((n + 1) / rpc) * step_x + pad, rpc * pitch + pad)

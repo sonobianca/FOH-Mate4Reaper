@@ -2,21 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 91).
+New items get the next free number (next: 90).
 
 ## Open
 
-- [ ] 90. (0.14.0) Parameter rows, first version (Performance mode, Settings > Placeholder rows = 0).
-  (a) Edit mode: click the + at the end of a rack's column: the "Add a parameter" window lists the
-  rack's FX; open one, click a parameter: a row appears (plug-in's name, real value in the vertical
-  box, knob). Search narrows the list; added ones show "(added)". Try a plug-in with many parameters
-  (a few hundred): any lag opening the window? (b) Drag the knob up/down: the real parameter moves
-  (check in the FX window), Shift = fine, the value box follows. Moving it in the FX window moves the
-  knob too. Works in Show mode as well; the + says to switch to Edit mode. (c) Right-click a row in
-  Edit mode > Remove this row. (d) Save, close and reopen the project: rows are back. (e) Remove the
-  FX: its rows are greyed out (hover says why), not lost. (f) Values with words (a drop-down "Peak")
-  show as a percentage for now; is that OK until there are real drop-downs? (g) CPU with several
-  racks of 10-20 rows. (Rollback point before this: tag `perf-checkpoint-3`.)
+(none open)
 
 ## Done
 
