@@ -27,7 +27,8 @@ New items get the next free number (next: 87).
   a. Switching to Show mode: every rack shrinks to its name box with M and B (rounded rectangles as
      tall as the name box) on the right and a handle (chevron) at the bottom of the rack; the columns
      move up. Nothing of the FX section peeks out under the name.
-  b. M mutes, B bypasses (they stay lit orange/red, also under the pointer; bypass greys out the
+  b. (Also with an FX that Show mode took offline for latency: B and BYPASS used to do nothing then.)
+     M mutes, B bypasses (they stay lit orange/red, also under the pointer; bypass greys out the
      rack's whole column too); the name still selects the
      rack on click and drags to reorder.
   c. Click anywhere along the bottom edge of the rack, under the FX (the chevron is nearer the bottom

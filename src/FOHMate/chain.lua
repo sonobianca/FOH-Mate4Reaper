@@ -93,7 +93,8 @@ end
 function is_bypassed(tr, list)
   if not get_saved_bypass(tr) then return false end
   for _, it in ipairs(list) do
-    if it.enabled then
+    -- (an FX that is offline, like one Show mode took offline for latency, can't be switched off)
+    if it.enabled and not reaper.TrackFX_GetOffline(tr, it.fx) then
       -- an FX was re-enabled by hand: forget the stale bypass state
       reaper.GetSetMediaTrackInfo_String(tr, EXT_BYPASS, '', true)
       return false
