@@ -21,8 +21,9 @@ New items get the next free number (next: 89).
   (b) Click again: it folds back to one column, scrolled so the last row you clicked is visible.
   (c) In Show mode with an FX section open: widening folds the FX section first, then widens;
   opening an FX section while widened folds the columns back. (d) Widening another rack's column
-  folds the first. (e) Settings > Fold ... after: a widened column folds back by itself after the
-  pause. (f) Smooth and snappy? Band the same size and look as the chevron under the FX section?
+  folds the first. (e) Settings > Performance mode: a widened column and an open FX section fold back by
+  themselves after the pause; with the checkbox "Fold ... by themselves" off they stay open (and
+  the time setting does nothing). (f) Smooth and snappy? Band the same size and look as the chevron under the FX section?
   (h) Widening: every row grows to 1.5 times its width and height, with room around it and a divider between the columns, while the column widens, with a
   bigger control, value and name; back to normal when folded. Smooth? Readable? Rows reflow per
   column as designed? (Experiment: roll back with the tag `perf-widen-checkpoint`.)

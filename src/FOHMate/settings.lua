@@ -87,8 +87,10 @@ SCHEMA = {
   { group = 'Layout', key = 'clip_h', label = 'Clip marker height', kind = 'i', min = 2, max = 12, def = 6, fmt = '%d px',
     tip = 'Height of the clip markers above the meters.' },
 
-  { group = 'Performance mode', key = 'perf_fold_after', label = 'Fold the FX and parameter sections after (s)', kind = 'i', min = 0, max = 120, def = 15, fmt = '%d s',
-    tip = 'An open FX section (Show mode) and a widened parameter column fold back after this long\nwithout any mouse move, click or key press. 0 = they stay open until you fold them.' },
+  { group = 'Performance mode', key = 'perf_fold_auto', label = 'Fold the FX and parameter sections by themselves', kind = 'bool', min = 0, max = 1, def = 1,
+    tip = 'On: an open FX section (Show mode) and a widened parameter section fold back after the time below\nwithout activity. Off: they stay open until you fold them.' },
+  { group = 'Performance mode', key = 'perf_fold_after', label = 'Fold them after', kind = 'i', min = 0, max = 120, def = 15, fmt = '%d s',
+    tip = 'An open FX section (Show mode) and a widened parameter column fold back after this long\nwithout any mouse move, click or key press (when the option above is on).' },
   { group = 'Performance mode', key = 'perf_demo_rows', label = 'Placeholder rows (test only)', kind = 'i', min = 0, max = 40, def = 0, fmt = '%d rows',
     tip = 'Fills every column with empty rows so the scrolling can be tried before parameter rows exist.\nGoes away in the next version.' },
 }

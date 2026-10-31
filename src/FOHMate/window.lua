@@ -686,7 +686,7 @@ function draw_perf_area(infos, M, dt, now)
   perf_activity(now, any_open)
   -- no activity for a while: every FX section folds back (Settings > Performance mode)
   local after = CFG.perf_fold_after
-  if any_open and after > 0 and now - PERF_ACT >= after then
+  if any_open and CFG.perf_fold_auto ~= 0 and after > 0 and now - PERF_ACT >= after then
     for _, st in pairs(PERF_FOLD) do st.open = false end
     for _, ps in pairs(PERF_PARAMS) do ps.open = false end
   end
@@ -1022,6 +1022,12 @@ function draw_settings()
           end
           if rv then
             CFG[e.key] = v
+            save_cfg_value(e)
+          end
+        elseif e.kind == 'bool' then
+          local rv, v = ig.Checkbox(ctx, label, CFG[e.key] ~= 0)
+          if rv then
+            CFG[e.key] = v and 1 or 0
             save_cfg_value(e)
           end
         elseif e.kind == 'mod' then
