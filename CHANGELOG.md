@@ -6,8 +6,9 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 - The code is split into modules: `FOHMate.lua` plus a `FOHMate` folder next to it holding the rest
   (racks, sidechain, latency, menus...). Nothing changes on screen or in the sound; the code is just
-  easier to read and maintain. Installing and updating now means copying the file and the folder.
-- FOH-Mate can be installed and updated with ReaPack (from this version on).
+  easier to read and maintain.
+- FOH-Mate can be installed and updated with ReaPack (see the README). A manual install now means
+  copying the file and the folder.
 
 ## 0.11
 

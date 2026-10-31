@@ -5,11 +5,12 @@
       <metadata>
         <link rel="website">https://github.com/sonobianca/FOH-Mate4Reaper</link>
       </metadata>
-      <version name="0.12.0" author="Bianca" time="2026-10-31T06:05:25Z">
+      <version name="0.12.0" author="Bianca" time="2026-10-31T06:05:32Z">
         <changelog><![CDATA[- The code is split into modules: `FOHMate.lua` plus a `FOHMate` folder next to it holding the rest
   (racks, sidechain, latency, menus...). Nothing changes on screen or in the sound; the code is just
-  easier to read and maintain. Installing and updating now means copying the file and the folder.
-- FOH-Mate can be installed and updated with ReaPack (from this version on).]]></changelog>
+  easier to read and maintain.
+- FOH-Mate can be installed and updated with ReaPack (see the README). A manual install now means
+  copying the file and the folder.]]></changelog>
         <source main="main">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate.lua</source>
         <source file="FOHMate/settings.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/settings.lua</source>
         <source file="FOHMate/context.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/context.lua</source>
