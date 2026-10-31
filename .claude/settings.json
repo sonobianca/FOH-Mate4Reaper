@@ -1,1 +1,12 @@
-{"permissions": {"deny": ["Bash(git push:*)"]}}
+{
+  "permissions": {
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f*)",
+      "Bash(git push * --delete*)",
+      "Bash(git push --delete*)"
+    ]
+  }
+}
