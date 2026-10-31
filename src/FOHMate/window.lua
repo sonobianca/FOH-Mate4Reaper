@@ -378,14 +378,55 @@ function draw_perf_column(inf, x, y, w, h, M)
     local cx, cy = ig.GetWindowPos(ctx)
     local cw, ch = ig.GetWindowSize(ctx)
     local rw = cw - 6 - PAD                                -- room for the position bar: the gap left of it equals the gap right of it (1 px + PAD)
-    local rh = math.floor(M.fh * 1.6)
+    local pushed = push_bold(name_font, NAME_FONT_SIZE)
+    local blh = ig.GetTextLineHeight(ctx)                  -- bold line height: a name may take two lines
+    if pushed then ig.PopFont(ctx) end
+    local rh = math.floor(2 * blh + 12)
     local d = M.fh
     local n = math.floor(CFG.perf_demo_rows)
+    local names = { 'Threshold', 'Ratio', 'Attack time', 'Low band crossover frequency', 'Output gain',
+                    'Mix', 'High shelf frequency', 'Sidechain high-pass filter' }
+    local mx_in = ig.IsWindowHovered(ctx)
     for k = 1, n do
       local rx, ry = ig.GetCursorScreenPos(ctx)
-      ig.DrawList_AddRectFilled(dl, rx, ry, rx + rw, ry + rh, c.sec_bg, ROUNDING)
-      ig.DrawList_AddRect(dl, rx, ry, rx + rw, ry + rh, c.sec_bd, ROUNDING, 0, 1)
-      ig.DrawList_AddText(dl, rx + 8, ry + (rh - M.tlh) / 2, T.dim, ('Row %d'):format(k))
+      rx = rx + 3; local rw2 = rw - 6                      -- a little room for the hover glow
+      local cd = rh - 8                                    -- the control, outside the name box
+      local box_w = rw2 - cd - 6
+      local left = (k % 2 == 1)                            -- odd rows: name left; even rows: name right
+      local bx = left and rx or (rx + rw2 - box_w)
+      local kx = left and (rx + rw2 - cd) or rx
+      -- hover: the whole row (name box and control) glows
+      if mx_in and mouse_in(rx, ry, rx + rw2, ry + rh) then
+        local base = T.glow & 0xFFFFFF00
+        for i = 1, 3 do
+          local a = math.floor(170 * (1 - (i - 1) / 3) ^ 2)
+          ig.DrawList_AddRect(dl, rx - i, ry - i, rx + rw2 + i, ry + rh + i, base | a, ROUNDING + i, 0, 1)
+        end
+      end
+      ig.DrawList_AddRectFilled(dl, bx, ry, bx + box_w, ry + rh, c.name_bg, ROUNDING)
+      ig.DrawList_AddRect(dl, bx, ry, bx + box_w, ry + rh, c.sec_bd, ROUNDING, 0, 1)
+      -- the name: bold, up to two lines
+      local pb = push_bold(name_font, NAME_FONT_SIZE)
+      local l1, l2 = names[(k - 1) % #names + 1], nil
+      if ig.CalcTextSize(ctx, l1) > box_w - 8 then
+        local cut = l1
+        while #cut > 1 and ig.CalcTextSize(ctx, cut) > box_w - 8 do
+          cut = cut:match('^(.*)%s+%S*$') or cut:sub(1, #cut - 1)
+        end
+        l2 = fit_text((l1:sub(#cut + 1):gsub('^%s+', '')), box_w - 8)
+        l1 = cut
+      end
+      local ty = ry + (rh - blh * (l2 and 2 or 1)) / 2
+      ig.DrawList_AddText(dl, bx + (box_w - ig.CalcTextSize(ctx, l1)) / 2, ty, c.name_txt, l1)
+      if l2 then ig.DrawList_AddText(dl, bx + (box_w - ig.CalcTextSize(ctx, l2)) / 2, ty + blh, c.name_txt, l2) end
+      if pb then ig.PopFont(ctx) end
+      -- placeholder control: a knob
+      local kcx, kcy, kr = kx + cd / 2, ry + rh / 2, cd / 2 - 1
+      ig.DrawList_AddCircleFilled(dl, kcx, kcy, kr, c.sec_bg, 0)
+      ig.DrawList_AddCircle(dl, kcx, kcy, kr, c.border, 0, 2)
+      local ang = math.rad(135 + 270 * (((k * 37) % 100) / 100))
+      ig.DrawList_AddLine(dl, kcx + math.cos(ang) * kr * 0.3, kcy + math.sin(ang) * kr * 0.3,
+                          kcx + math.cos(ang) * kr * 0.85, kcy + math.sin(ang) * kr * 0.85, T.dots, 3)
       ig.Dummy(ctx, rw, rh)
     end
     -- the empty row at the end: a "+" in a circle (opens the parameter dialog in the next version)
