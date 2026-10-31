@@ -98,6 +98,12 @@ function param_plugin_key(fxname)
   return (fx_name_type(fxname))
 end
 
+-- the key of an FX of a rack
+function param_fx_key(tr, fxi)
+  local _, name = reaper.TrackFX_GetFXName(tr, fxi, '')
+  return param_plugin_key(name or '')
+end
+
 function param_ovr_load()
   PARAM_OVR = {}
   for _, ln in ipairs(read_lines(PARAM_OVR_FILE)) do
@@ -201,7 +207,7 @@ function param_kind(tr, fxi, r)
 
   -- a correction made by hand wins (a list or steps needs the values to be known)
   local kind, overridden = guess, false
-  local ovr = PARAM_OVR[param_plugin_key((reaper.TrackFX_GetFXName(tr, fxi, ''))) .. '\t' .. (r.pname or '')]
+  local ovr = PARAM_OVR[param_fx_key(tr, fxi) .. '\t' .. (r.pname or '')]
   if ovr and PARAM_KIND_LABEL[ovr.kind] then
     kind, overridden = ovr.kind, true
     if (kind == 'steps' or kind == 'list') and not items then kind = 'knob' end
@@ -218,7 +224,7 @@ end
 -- Sets (or, with kind = nil, clears) the correction for a parameter and files what REAPER said about it.
 function param_set_override(tr, fxi, r, kind)
   if not PARAM_OVR then param_ovr_load() end
-  local plug = param_plugin_key((reaper.TrackFX_GetFXName(tr, fxi, '')))
+  local plug = param_fx_key(tr, fxi)
   local key = plug .. '\t' .. (r.pname or '')
   if kind then
     local guess = param_kind(tr, fxi, r).guess
