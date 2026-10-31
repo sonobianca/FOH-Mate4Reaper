@@ -11,12 +11,10 @@ New items get the next free number (next: 85).
   and bullets. Extensions > ReaPack > Browse packages, right-click **FOH-Mate**, **About this
   package**: the same text. Synchronize packages shows no new version (it is still 0.13.3).
 
-- [ ] 83. (0.13.3) Update through ReaPack, after the `v0.13.3` tag is pushed: Extensions > ReaPack >
-  Synchronize packages offers FOH-Mate 0.13.3; apply it; the ReaPack copy of FOH-Mate runs v0.13.3 and
-  everything works as in the repo copy (the 22 module files updated, nothing left from 0.12.0).
-
 ## Done
 
+- [x] 83. (0.13.3) Update through ReaPack: after the tag was pushed (the first sync failed with a 404
+  until then), Synchronize packages offered 0.13.3 and the ReaPack copy works: ok.
 - [x] 82. (0.13.3) Same gap everywhere (between racks, between rows, under the top bar, about 17 px):
   works.
 - [x] 81. (0.13.2) A rack over its rack latency limit: the thicker red frame hides the rack's own
