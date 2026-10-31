@@ -162,9 +162,23 @@ Manual installs don't update by themselves: see [Updating](#updating-and-uninsta
 In the action list, find **Script: FOHMate.lua** and click **Run**. The Plugins Host window opens.
 It can float, or be docked (see [Docking](#docking)).
 
-To make it easy to reach, right-click a toolbar and add the action, or assign it a shortcut.
 To open it automatically when REAPER starts, set it as a startup action (for example with the SWS
 extension's *Global startup action*).
+
+### 7. Optional: put it in the View menu
+
+REAPER doesn't let an installer change its menus, so this is a one-time step by hand:
+
+1. **Options > Customize menus/toolbars...**
+2. In the drop-down at the top, choose **Main menu: View**.
+3. Select the line it should go under, click **Add...**, pick **Script: FOHMate.lua** and click
+   **Select/close**.
+4. Optional: right-click the new line, **Rename...**, and call it `Plugins Host`.
+5. Click **Save**.
+
+The same window adds it to a toolbar: choose that toolbar in the drop-down instead. To give it a
+keyboard shortcut, select it in **Actions > Show action list...** and click **Add...** under
+*Shortcuts for selected action*.
 
 ### First run: what happens
 
