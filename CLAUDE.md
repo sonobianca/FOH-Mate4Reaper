@@ -1,6 +1,7 @@
 # FOH-Mate
 
-Live-sound toolkit for REAPER, written in Lua (ReaImGui). Main script: `src/FOHMate.lua`. Docs in
+Live-sound toolkit for REAPER, written in Lua (ReaImGui). Main script: `src/FOHMate.lua`, which loads
+the modules in `src/FOHMate/` (list and order in its `MODULES` table). Docs in
 `docs/`, `CHANGELOG.md` and `README.md` at the root.
 
 **At the start of any work session, read `docs/TESTING.md` and `docs/ROADMAP.md`.**
@@ -22,8 +23,10 @@ language and keep them small.
 
 ## Hard constraints
 1. Never use too much CPU or RAM, never add audio latency.
-2. Everything stays in ONE file (`src/FOHMate.lua`). No splitting into modules, no features that
-   need multiple files, without asking Bianca first.
+2. Code is split into modules (`src/FOHMate/*.lua`) for readability, as long as it costs no
+   performance. Every module is loaded once at start into the script's private environment, so all
+   top-level names are shared; new top-level names go there, not into Lua `local`s. A new module must
+   be added to `MODULES` in `src/FOHMate.lua` and to the install files.
 3. Versioning is major.minor.revision: revision for minor adjustments, minor for new features or big
    changes. The major version is Bianca's decision only. The version lives in the one `VERSION`
    constant and shows in the window title bar, not in the file name.

@@ -127,9 +127,9 @@ ReaImGui comes from the default **ReaTeam Extensions** repository, which ReaPack
 
 ### 4. Get FOH-Mate
 
-1. Download `src/FOHMate.lua` from this repository (it is a single file).
-2. Copy it into REAPER's **Scripts** folder: **Options > Show REAPER resource path...** and open the
-   **Scripts** folder.
+1. Download `src/FOHMate.lua` and the `src/FOHMate` folder from this repository.
+2. Copy both into REAPER's **Scripts** folder: **Options > Show REAPER resource path...** and open the
+   **Scripts** folder. The `FOHMate` folder must sit right next to `FOHMate.lua`.
 
 ### 5. Load it as an action
 
@@ -508,8 +508,9 @@ Please include all three in a bug report.
 
 ## Updating and uninstalling
 
-- **Update:** replace `FOHMate.lua` with the new one and re-run it. The file name doesn't change
-  between versions, so the action, toolbar buttons and shortcuts keep working. If you used an older
+- **Update:** replace `FOHMate.lua` and the `FOHMate` folder with the new ones and re-run it. The file
+  name doesn't change between versions, so the action, toolbar buttons and shortcuts keep working.
+  Versions before 0.12 were a single file: add the `FOHMate` folder next to it. If you used an older
   file with the version in its name (`FOHMate_v...lua`), load `FOHMate.lua` once and remove the old
   action.
 - **Coming from Live Rack:** load `FOHMate.lua` in the action list and remove the old `LiveRack_v...lua`
@@ -517,7 +518,7 @@ Please include all three in a bug report.
   your racks keep their saved data. Once everything checks out you can delete the old
   `<REAPER resource path>/Data/LiveRack/` folder.
 - **Uninstall:** use **Revert to regular track** on racks you want to keep as normal tracks, remove the
-  script action, delete the script file, and optionally delete
+  script action, delete `FOHMate.lua` and the `FOHMate` folder, and optionally delete
   `<REAPER resource path>/Effects/FOHMate/`.
 
 ---
