@@ -23,7 +23,9 @@ New items get the next free number (next: 89).
   opening an FX section while widened folds the columns back. (d) Widening another rack's column
   folds the first. (e) Settings > Fold ... after: a widened column folds back by itself after the
   pause. (f) Smooth and snappy? Band the same size and look as the chevron under the FX section?
-  Also Edit mode, a bypassed rack, Daylight mode, a narrow window, CPU while scrolling sideways.
+  (g) Both triangles the same size; the same gap between rows widened and folded; placeholder rows
+  now carry a number to see how they spread. Also Edit mode, a bypassed rack, Daylight mode, a
+  narrow window, CPU while scrolling sideways.
 
 ## Done
 

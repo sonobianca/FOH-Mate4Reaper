@@ -406,15 +406,21 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
   hint_hovered('Click: widen the parameters over the other columns, or fold them back')
   ig.PopID(ctx)
   do
-    local bx, by = x + w / 2, y + bh / 2 + 1
+    local bx, by = math.floor(x + w / 2), math.floor(y + bh / 2) + 1
     local bcol = (c.name_txt & 0xFFFFFF00) | (band_hov and 0xFF or 0xA0)
     local tw, th, tg = 7, 4.5, 2.5
+    -- both triangles are listed the same way round (tip, then the base from the same side), so they
+    -- are filled and smoothed alike
+    local function tri(base, tip)
+      local flip = tip < base and -1 or 1
+      ig.DrawList_AddTriangleFilled(pdl, tip, by, base, by + th * flip, base, by - th * flip, bcol)
+    end
     if ps.open then       -- face to face: tips toward the middle
-      ig.DrawList_AddTriangleFilled(pdl, bx - tg - tw, by - th, bx - tg - tw, by + th, bx - tg, by, bcol)
-      ig.DrawList_AddTriangleFilled(pdl, bx + tg + tw, by - th, bx + tg + tw, by + th, bx + tg, by, bcol)
+      tri(bx - tg - tw, bx - tg)
+      tri(bx + tg + tw, bx + tg)
     else                  -- back to back: tips away from the middle
-      ig.DrawList_AddTriangleFilled(pdl, bx - tg, by - th, bx - tg, by + th, bx - tg - tw, by, bcol)
-      ig.DrawList_AddTriangleFilled(pdl, bx + tg, by - th, bx + tg, by + th, bx + tg + tw, by, bcol)
+      tri(bx - tg, bx - tg - tw)
+      tri(bx + tg, bx + tg + tw)
     end
   end
 
@@ -431,6 +437,8 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     local blh = ig.GetTextLineHeight(ctx)                  -- bold line height: a name may take two lines
     if pushed then ig.PopFont(ctx) end
     local rh = math.floor(2 * blh + 12)
+    local gy = select(2, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
+    local pitch = rh + gy                                  -- from one row to the next (the gap is the same stacked or in columns)
     local n = math.floor(CFG.perf_demo_rows)
     local names = { 'Threshold', 'Ratio', 'Attack time', 'Low band crossover frequency', 'Output gain',
                     'Mix', 'High shelf frequency', 'Sidechain high-pass filter' }
@@ -439,7 +447,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     ig.Dummy(ctx, 1, 3)                                    -- room for the glow of the first row
     local ox, oy = ig.GetCursorScreenPos(ctx)
     local step_x = colw + 4                                -- widened: from one column of rows to the next
-    local rpc = math.max(1, math.floor((ch - 3 - 8) / rh)) -- rows per column when widened (8: the sideways bar)
+    local rpc = math.max(1, math.floor((ch - 3 - 8) / pitch)) -- rows per column when widened (8: the sideways bar)
     if grid then
       if ig.GetScrollY(ctx) ~= 0 then ig.SetScrollY(ctx, 0) end
       if mx_in then                                        -- the wheel moves sideways here too
@@ -449,14 +457,14 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     else
       if ig.GetScrollX(ctx) ~= 0 then ig.SetScrollX(ctx, 0) end
       if ps.reveal > 0 then                                -- just folded back: show the row touched last
-        if ps.last then ig.SetScrollY(ctx, math.max(0, 3 + (ps.last - 1) * rh - (ch - rh) / 2)) end
+        if ps.last then ig.SetScrollY(ctx, math.max(0, 3 + (ps.last - 1) * pitch - (ch - rh) / 2)) end
         ps.reveal = ps.reveal - 1
       end
     end
     for k = 1, n do
       local rx, ry
       if grid then
-        rx, ry = ox + math.floor((k - 1) / rpc) * step_x, oy + ((k - 1) % rpc) * rh
+        rx, ry = ox + math.floor((k - 1) / rpc) * step_x, oy + ((k - 1) % rpc) * pitch
       else
         rx, ry = ig.GetCursorScreenPos(ctx)
       end
@@ -481,6 +489,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         end
         ig.DrawList_AddRectFilled(dl, bx, ry, bx + box_w, ry + rh, c.name_bg, ROUNDING)
         ig.DrawList_AddRect(dl, bx, ry, bx + box_w, ry + rh, c.sec_bd, ROUNDING, 0, 1)
+        ig.DrawList_AddText(dl, bx + 4, ry + 2, (c.name_txt & 0xFFFFFF00) | 0xA0, tostring(k))   -- placeholder row number, to see how the rows spread
         -- the name: bold, up to two lines
         local pb = push_bold(name_font, NAME_FONT_SIZE)
         local l1, l2 = names[(k - 1) % #names + 1], nil
@@ -516,7 +525,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     -- (opens the parameter dialog in the next version). Only the circle and the + light up.
     local px, py
     if grid then
-      px, py = ox + math.floor(n / rpc) * step_x, oy + (n % rpc) * rh
+      px, py = ox + math.floor(n / rpc) * step_x, oy + (n % rpc) * pitch
     else
       px, py = ig.GetCursorScreenPos(ctx)
     end
@@ -533,7 +542,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     if hov then ig.SetTooltip(ctx, 'Add a parameter (coming in the next version)') end
     if grid then                                           -- the area the columns take, for the sideways scroll
       ig.SetCursorScreenPos(ctx, ox, oy)
-      ig.Dummy(ctx, math.ceil((n + 1) / rpc) * step_x, rpc * rh)
+      ig.Dummy(ctx, math.ceil((n + 1) / rpc) * step_x, rpc * pitch)
     else
       ig.Dummy(ctx, 1, 3)
     end
