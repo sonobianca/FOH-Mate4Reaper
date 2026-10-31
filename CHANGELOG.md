@@ -16,6 +16,10 @@ Changes since the last public release, grouped by minor version (revisions are f
   with example rows (names in bold, controls outside the name box, alternating sides, the whole row
   glows under the pointer).
 
+- Fixed: **BYPASS** (and the new B) did nothing in Show mode on a rack with an FX that Show mode had
+  taken offline for latency: the offline FX counted as "switched on again by hand" and cancelled the
+  bypass.
+
 ## 0.13
 
 - **Latency > Count every format at its highest latency** (off by default). A plugin installed in
