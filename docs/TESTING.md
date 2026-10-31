@@ -6,14 +6,18 @@ New items get the next free number (next: 90).
 
 ## Open
 
-- [ ] 87. (0.14.0) Performance mode rows show their value: a small vertical box between the control and
+(none open)
+
+## Done
+
+- [x] 87. (0.14.0) Performance mode rows show their value: a small vertical box between the control and
   the name, with placeholder values that fit the parameter ("-18 dB", "4:1", "12 ms", "250 Hz",
   "+3 dB", "50%", "8 kHz", "80 Hz"). With the control on the right the value reads top to bottom
   (clockwise quarter turn), with the control on the left it reads bottom to top (counterclockwise).
   Legible at a glance? Right size, thickness and distance from the name? Also in Daylight mode and
   with many rows (CPU gauge while scrolling 40 placeholder rows in two or three columns).
 
-- [ ] 88. (0.14.0) Widening a parameter column (turn on Performance mode, Settings > Placeholder rows, e.g.
+- [x] 88. (0.14.0) Widening a parameter column (turn on Performance mode, Settings > Placeholder rows, e.g.
   20). The band at the top of a column has two small triangles back to back. (a) Click it: the
   column widens over the neighbouring columns to the full window width and the rows flow in columns
   (top to bottom, then the next column) that scroll sideways (trackpad, or the mouse wheel); the
@@ -32,15 +36,14 @@ New items get the next free number (next: 90).
   now carry a number to see how they spread. Also Edit mode, a bypassed rack, Daylight mode, a
   narrow window, CPU while scrolling sideways.
 
-- [ ] 89. (0.14.0) Performance mode, Show mode: the only meters are thin horizontal bars either side
+- [x] 89. (0.14.0) Performance mode, Show mode: the only meters are thin horizontal bars either side
   of the chevron (input left, output right, mirrored: tops and clip lights both next to the chevron; one bar for a mono rack, two for stereo; clip marker at
   the right end, peak hold tick), visible folded and unfolded. No vertical meters; the FX section
   uses the full width of the rack when open (FX names, the + button, drop zones, drag and drop
   of FX all still right?). Edit mode keeps the full racks with vertical meters. Readable but not
   noisy? Also with "no meters" on (nothing drawn), a bypassed or muted rack, Daylight mode, CPU.
   (Rollback point before this: tag `perf-checkpoint-2`.)
-
-## Done
+  All three (87, 88, 89): ok.
 
 - [x] 86. (0.14.0) Performance mode in Show mode: racks fold to the name with M and B, the handle
   (centered, whole-width click zone) opens and folds the FX section with the animation and moves only
