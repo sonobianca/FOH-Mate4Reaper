@@ -25,8 +25,10 @@ Bianca's design (planning stage, nothing built yet):
 - Rows are saved with the project, on the rack.
 - **Scrolling is per column,** and where you are must be clear at a glance: the content fades to
   transparent at the top and bottom edge while there is more beyond, plus a slim position indicator.
-- **XY controller (Edit mode):** two parameters can be combined into one XY pad; each axis can be
-  reversed from a context menu.
+- **XY controller (Edit mode):** rows are selectable; any two selected parameters can be combined into
+  one XY pad. Axes can be reversed or swapped from a context menu (reverse is on every control).
+- The meters stay in the slim rack.
+- Detail and build order: `docs/PERFORMANCE_MODE.md`.
 - Replaces the "Performance Panel" idea under Advanced view mode below. MIDI mapping stays a later step.
 
 ## Advanced view mode
