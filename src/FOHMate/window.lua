@@ -371,9 +371,22 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
   local tr = inf.tr
   local guid = reaper.GetTrackGUID(tr)
   local c = rack_colors(track_color(tr), inf.bypassed)
+  -- a widened column sits over its neighbours, so it is drawn inside a window of its own with an
+  -- opaque background: drawn straight on the area it would lie underneath their windows
+  local outer = false
+  if e > 0 then
+    ig.SetCursorScreenPos(ctx, x, y)
+    ig.PushStyleColor(ctx, ig.Col_ChildBg(), c.bg)
+    ig.PushStyleVar(ctx, ig.StyleVar_ChildRounding(), ROUNDING + 2)
+    outer = true
+    begin_child('wide' .. guid, w, h, ig.WindowFlags_NoScrollbar() | ig.WindowFlags_NoScrollWithMouse())
+    ig.PopStyleVar(ctx)
+    ig.PopStyleColor(ctx)
+  end
   local pdl = ig.GetWindowDrawList(ctx)
+  local ins = outer and 1 or 0                             -- the border stays inside that window
   ig.DrawList_AddRectFilled(pdl, x, y, x + w, y + h, c.bg, ROUNDING + 2)
-  ig.DrawList_AddRect(pdl, x, y, x + w, y + h, c.border, ROUNDING + 2, 0, 2)
+  ig.DrawList_AddRect(pdl, x + ins, y + ins, x + w - ins, y + h - ins, c.border, ROUNDING + 2, 0, 2)
 
   -- the band at the top, like the handle under the FX section: two small triangles, back to
   -- back to widen, face to face to fold back. The whole width is the button.
@@ -566,6 +579,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     end
     ig.EndChild(ctx)
   end
+  if outer then ig.EndChild(ctx) end
 end
 
 -- Performance mode, Show mode: each rack folds its FX section under the name. The state per
