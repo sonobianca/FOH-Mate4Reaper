@@ -264,6 +264,24 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
   local function clip_off()
     if clipped then ig.PopClipRect(ctx); clipped = false end
   end
+  -- compact: the handle at the bottom of the rack folds and unfolds its FX section. It is
+  -- submitted before everything else (and before the clip below, which would cut it off).
+  local handle
+  if compact then
+    ig.PushID(ctx, guid)
+    local fs = perf_fold_state(guid)
+    local hy = y0 + vh - PAD - HANDLE_H
+    ig.SetCursorScreenPos(ctx, x0 + RACK_W / 2 - 40, hy)
+    if ig.InvisibleButton(ctx, 'fold', 80, HANDLE_H) then
+      fs.open = not fs.open
+      PERF_ACT = now
+    end
+    handle = { hov = ig.IsItemHovered(ctx), open = fs.open, y = hy + HANDLE_H / 2 }
+    if handle.hov then ig.SetTooltip(ctx, fs.open and 'Fold the FX section' or 'Show the FX section') end
+    hint_hovered('Click: show or fold the FX section of this rack')
+    ig.PopID(ctx)
+  end
+
   clip_on()
   section(hdr_top, hdr_bot, compact)
   section(fxs_top, fxs_bot)
@@ -289,22 +307,6 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
   end
 
   ig.PushID(ctx, guid)
-
-  -- compact: the handle at the bottom of the rack folds and unfolds its FX section. It is
-  -- submitted first so it wins where it overlaps the FX while the rack is moving.
-  local handle
-  if compact then
-    local fs = perf_fold_state(guid)
-    local hy = y0 + vh - PAD - HANDLE_H
-    ig.SetCursorScreenPos(ctx, x0 + RACK_W / 2 - 40, hy)
-    if ig.InvisibleButton(ctx, 'fold', 80, HANDLE_H) then
-      fs.open = not fs.open
-      PERF_ACT = now
-    end
-    handle = { hov = ig.IsItemHovered(ctx), open = fs.open, y = hy + HANDLE_H / 2 }
-    if handle.hov then ig.SetTooltip(ctx, fs.open and 'Fold the FX section' or 'Show the FX section') end
-    hint_hovered('Click: show or fold the FX section of this rack')
-  end
 
   ------------------------------------------------ routing + Rack Option Menu (round, above the meters)
   local by = name_y + (M.name_h - METER_W) / 2
