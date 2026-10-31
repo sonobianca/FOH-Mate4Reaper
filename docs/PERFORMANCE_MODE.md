@@ -22,8 +22,11 @@ An optional view, switched on and off with a toggle. Edit and Show keep working 
 ```
 
 - **The toggle** switches the whole window; the choice is saved like the other view settings (for REAPER, not per project).
-- **Full or slim rack** is a second toggle. Slim keeps the name, the FX boxes, BYPASS, MUTE **and the
-  meters**; routing and level are hidden.
+- **Edit mode:** full racks, everything as in the normal view.
+- **Show mode:** a rack is its name with a small **M** and **B** on the right and a handle at the bottom
+  of the name. The handle unfolds the rack's FX section (with the meters beside it), pushing only that
+  rack's column down; again to fold. Animated (about 0.2 s). Open sections fold back by themselves
+  after a time without mouse or key activity (Settings, default 15 s, 0 = never).
 - **A column belongs to its rack.** Each row is one parameter of an FX of that rack. (Later: rows
   controlling an FX of another rack. The storage must not forbid it.)
 - **Rows alternate sides:** name left / control right, then control left / name right.
@@ -32,6 +35,8 @@ An optional view, switched on and off with a toggle. Edit and Show keep working 
   their parameter is get the knob/slider.
 - **Name** defaults to what the plugin reports and can be renamed. **Color** is the rack's, changeable
   per row from a drop-down.
+- **Row look:** the name in bold in its own box (two lines allowed), the control outside the box,
+  rows taller for that, the whole row (control included) glows under the pointer.
 - **Always one empty row** at the end with a + in a circle: it opens a dialog to pick a parameter.
 - **Edit mode only:** add, remove, reorder, rename, recolor, combine. Show mode only moves the controls.
 - **Deleting an FX** deletes its rows; the delete confirmation says so.

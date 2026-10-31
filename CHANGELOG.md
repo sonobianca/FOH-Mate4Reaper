@@ -5,12 +5,16 @@ Changes since the last public release, grouped by minor version (revisions are f
 ## 0.14
 
 - **Performance mode** (first step, the view): **Display > Performance mode** puts every rack in one
-  row that scrolls sideways, with an empty column under each rack. Each column scrolls on its own: the
-  rows fade out at the top or bottom edge while there is more beyond, and a slim bar on the right shows
-  where you are. **Display > Slim racks** (in Performance mode) hides In/Out, the routing button and the
-  level; the name, FX, BYPASS, MUTE and the meters stay. Edit and Show mode work as before. The
-  parameter rows come in the next steps; until then **Settings > Performance mode > Placeholder rows**
-  fills the columns with empty rows to try the scrolling.
+  row that scrolls sideways, with a column under each rack. Each column scrolls on its own: the rows
+  fade out at the top or bottom edge while there is more beyond, and a slim bar on the right shows
+  where you are. In **Edit mode** the racks are full racks. In **Show mode** a rack is just its name
+  with a small **M** (mute) and **B** (bypass) on the right; the handle at the bottom of the name opens
+  its FX section (with the meters beside it) and pushes that rack's column down, and clicking it again
+  folds it back, both animated. **Settings > Performance mode > Fold the FX section after** folds open
+  racks back after that many seconds without a mouse move, click or key press (15 by default, 0 =
+  never). The parameter rows come in the next steps; until then **Placeholder rows** fills the columns
+  with example rows (names in bold, controls outside the name box, alternating sides, the whole row
+  glows under the pointer).
 
 ## 0.13
 

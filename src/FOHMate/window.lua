@@ -458,7 +458,52 @@ function draw_perf_column(inf, x, y, w, h, M)
   end
 end
 
--- Performance mode: every rack in one row (it scrolls sideways), a column under each
+-- Performance mode, Show mode: each rack folds its FX section under the name. The state per
+-- rack: open (what was asked) and t (0 folded .. 1 open, moving toward it so it animates).
+PERF_FOLD, PERF_ACT, PERF_MX, PERF_MY, PERF_FRAME, PERF_FOLD_SECS = {}, 0, 0, 0, 0, 0.2
+
+function perf_fold_state(guid)
+  local st = PERF_FOLD[guid]
+  if not st then st = { open = false, t = 0 }; PERF_FOLD[guid] = st end
+  return st
+end
+
+-- every key ReaImGui knows (but not the mouse and the modifier flags), for the idle timer
+function perf_keys()
+  if not PERF_KEYS then
+    PERF_KEYS = {}
+    for name, fn in pairs(reaper) do
+      if type(name) == 'string' and name:find('^ImGui_Key_')
+         and not (name:find('Mouse') or name:find('Mod') or name:find('Reserved') or name:find('None')
+                  or name:find('Gamepad') or name:find('KeysData') or name:find('COUNT')) then
+        local ok, v = pcall(fn)
+        if ok and type(v) == 'number' then PERF_KEYS[#PERF_KEYS + 1] = v end
+      end
+    end
+  end
+  return PERF_KEYS
+end
+
+-- the last time the user did something: moved or clicked the mouse, used the wheel, pressed a key.
+-- Keys are only looked at while an FX section is open, and every third frame.
+function perf_activity(now, any_open)
+  local mx, my = ig.GetMousePos(ctx)
+  local wv, wh = ig.GetMouseWheel(ctx)
+  if mx ~= PERF_MX or my ~= PERF_MY or wv ~= 0 or wh ~= 0
+     or ig.IsMouseDown(ctx, 0) or ig.IsMouseDown(ctx, 1) then
+    PERF_ACT = now
+  end
+  PERF_MX, PERF_MY = mx, my
+  PERF_FRAME = PERF_FRAME + 1
+  if any_open and PERF_FRAME % 3 == 0 then
+    for _, k in ipairs(perf_keys()) do
+      if ig.IsKeyDown(ctx, k) then PERF_ACT = now; break end
+    end
+  end
+end
+
+-- Performance mode: every rack in one row (it scrolls sideways), a column under each.
+-- In Show mode a rack is just its name until its handle is clicked; its column moves with it.
 function draw_perf_area(infos, M, dt, now)
   local x_left, y_top = ig.GetCursorScreenPos(ctx)
   local gap = rack_gap()
@@ -473,27 +518,56 @@ function draw_perf_area(infos, M, dt, now)
     return
   end
 
-  local row_h = 0
+  local compact = perf_compact()
+  local any_open = false
+  if compact then
+    for _, inf in ipairs(infos) do
+      if perf_fold_state(reaper.GetTrackGUID(inf.tr)).open then any_open = true; break end
+    end
+  end
+  perf_activity(now, any_open)
+  -- no activity for a while: every FX section folds back (Settings > Performance mode)
+  local after = CFG.perf_fold_after
+  if any_open and after > 0 and now - PERF_ACT >= after then
+    for _, st in pairs(PERF_FOLD) do st.open = false end
+  end
+
+  local row_h = 0                                  -- Edit mode: full racks, all as tall as the tallest
   for _, inf in ipairs(infos) do row_h = math.max(row_h, inf.nat) end
   local total_w = 2 * GLOW_M + #infos * RACK_W + (#infos - 1) * gap
   local win_x, win_y = ig.GetWindowPos(ctx)
   local win_w, win_h = ig.GetWindowSize(ctx)
   local sbw = ig.GetStyleVar(ctx, ig.StyleVar_ScrollbarSize())
   local bottom = win_y + win_h - (total_w > win_w and sbw or 0) - 2     -- above the sideways scrollbar
-  local col_y = y + row_h + gap                          -- the same gap as between racks
-  local col_h = math.max(60, bottom - col_y)
+  local folded = folded_height(M)
+  local deepest = y
 
   for i, inf in ipairs(infos) do
     local x = wx + (i - 1) * (RACK_W + gap)
-    draw_rack(inf, x, y, row_h, M, dt, now)
-    rects[#rects + 1] = { x, y, x + RACK_W, y + row_h }
-    draw_perf_column(inf, x, col_y, RACK_W, col_h, M)
+    local H, vh = row_h, row_h
+    if compact then
+      local st = perf_fold_state(reaper.GetTrackGUID(inf.tr))
+      local target = st.open and 1 or 0
+      local step = math.min(dt, 0.05) / PERF_FOLD_SECS
+      if st.t < target then st.t = math.min(target, st.t + step) elseif st.t > target then st.t = math.max(target, st.t - step) end
+      local e = st.t * st.t * (3 - 2 * st.t)           -- smoothstep: eases in and out
+      H = inf.nat
+      vh = folded + (H - folded) * e
+    else
+      perf_fold_state(reaper.GetTrackGUID(inf.tr)).open = false
+      perf_fold_state(reaper.GetTrackGUID(inf.tr)).t = 0
+    end
+    draw_rack(inf, x, y, H, M, dt, now, vh)
+    rects[#rects + 1] = { x, y, x + RACK_W, y + vh }
+    local col_y = y + vh + gap                     -- the same gap as between racks
+    draw_perf_column(inf, x, col_y, RACK_W, math.max(60, bottom - col_y), M)
+    deepest = math.max(deepest, col_y + math.max(60, bottom - col_y))
   end
 
   empty_space_click(rects, math.huge)
 
   -- make the area as wide as the racks (the sideways scrollbar follows), as tall as the columns
-  ig.SetCursorScreenPos(ctx, x_left, col_y + col_h)
+  ig.SetCursorScreenPos(ctx, x_left, deepest)
   ig.Dummy(ctx, total_w, 1)
 end
 
@@ -567,7 +641,7 @@ function draw(dt, now)
       info.slot = i - 1
       info.bypassed = is_bypassed(tr, info.list)
       info.box = latbox_on(S.lat_box == 'auto' and rack_latency(tr, reaper.GetTrackGUID(tr), info.list, now).total or 0)
-      info.nat = natural_height(#info.list, M, info.box, slim_racks())
+      info.nat = natural_height(#info.list, M, info.box, perf_compact())
       nfx = nfx + #info.list
       infos[#infos + 1] = info
     end

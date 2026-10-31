@@ -2,30 +2,38 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 86).
+New items get the next free number (next: 87).
 
 ## Open
 
 - [ ] 85. (0.14.0, branch performance-mode) Performance mode, step 1 (the view). In REAPER with a few
   racks:
-  a. **Display > Performance mode** on: the racks line up in one row, an empty column (with a round +)
-     under each; off: the normal grid comes back. Both choices are still there after closing and
-     reopening FOH-Mate.
+  a. **Display > Performance mode** on: the racks line up in one row, a column (with a round +) under
+     each; off: the normal grid comes back. The choice is kept after closing and reopening FOH-Mate.
   b. Many racks (more than fit): a sideways scrollbar appears and works (drag it, or two-finger swipe
      / Shift+wheel). The columns reach the bottom of the window without a second scrollbar.
-  c. **Display > Slim racks** (greyed out unless Performance mode is on): the racks lose In/Out, the R
-     button and the level row, and keep name, "...", FX, BYPASS, MUTE and the meters. Racks get
-     shorter, columns taller. Off: full racks again.
-  d. **Settings > Performance mode > Placeholder rows**: set 20. Each column scrolls by itself (mouse
+  c. **Settings > Performance mode > Placeholder rows**: set 20. Each column scrolls by itself (mouse
      wheel over it, other columns stay put). The rows fade at the top once scrolled and at the bottom
-     while more is below, and the slim bar on the right moves with the position.
-  e. Edit and Show mode inside Performance mode: the cue light, bypass/mute, FX on/off, dragging a rack
-     onto another rack to reorder, selection glow, latency alert tag on the first row (not cropped).
-  f. Docked and floating, narrow and wide window, Daylight mode (column colors and fades).
-- [ ] 84. ReaPack About text, after `index.xml` is merged to `main`: Extensions > ReaPack > Manage
-  repositories, right-click **FOH-Mate**, **About this repository**: the overview shows with headings
-  and bullets. Extensions > ReaPack > Browse packages, right-click **FOH-Mate**, **About this
-  package**: the same text. Synchronize packages shows no new version (it is still 0.13.3).
+     while more is below, and the slim bar on the right moves with the position. The rows: bold name
+     in a box (two lines for long names), the knob outside the box, sides alternating, the whole row
+     glows under the pointer.
+  d. Edit mode inside Performance mode: full racks, all the same height, everything as in the normal
+     view; the latency alert tag on the first row is not cropped; dragging a rack onto another rack
+     reorders.
+  e. Docked and floating, narrow and wide window, Daylight mode.
+- [ ] 86. (0.14.0) Performance mode in Show mode (folding FX section):
+  a. Switching to Show mode: every rack shrinks to its name box with a small M and B on the right and
+     a handle (chevron) at the bottom of the name; the columns move up.
+  b. M mutes, B bypasses (they light up like MUTE/BYPASS in the full rack); the name still selects the
+     rack on click and drags to reorder.
+  c. Click the handle: that rack's FX section opens with a short smooth animation, the meters beside
+     it, and only that rack's column moves down. Click again: it folds back.
+  d. Leave the mouse alone for 15 s (no click, no key): every open rack folds back. Moving the mouse,
+     clicking or pressing a key restarts the 15 s. **Settings > Performance mode > Fold the FX section
+     after**: another value works, 0 = never folds.
+  e. Back to Edit mode: full racks again (nothing folded); to Show: folded again.
+  f. A rack over its latency limit: the red frame and !! tag follow the folded or open height.
+  g. Watch the CPU gauge with several racks open: no visible rise from the idle timer.
 
 ## Done
 
