@@ -55,6 +55,7 @@ EXT_LATOK       = 'P_EXT:FOHMate_latok' -- guids of FX allowed to add latency
 ALERT_RED       = 0xE02828FF
 EXT_SHOWOFF     = 'P_EXT:FOHMate_showoff' -- guids of FX taken offline by Show mode
 EXT_SPLIT       = 'P_EXT:FOHMate_split' -- guid of the FX picked as the stereo point
+EXT_PARAMS      = 'P_EXT:FOHMate_params' -- Performance mode: the parameter rows of a rack
 COPY_BADGE      = 0x2EB84EFF            -- the green "+" that follows the pointer when a drag copies
 
 -- Buttons that open a native REAPER window (FX windows, routing) use this
@@ -89,7 +90,7 @@ math.randomseed(math.floor(reaper.time_precise() * 1000))
 MODULES = {
   'settings', 'context', 'jsfx', 'state', 'helpers', 'modes', 'colors', 'chain', 'tracks',
   'sidechain', 'stereo', 'latency', 'fx_list', 'scan', 'plugin_list', 'add_fx_menu', 'setup',
-  'widgets', 'sidechain_ui', 'racks', 'top_bar', 'window'
+  'widgets', 'sidechain_ui', 'params', 'racks', 'top_bar', 'window'
 }
 
 MODULE_DIR = (debug.getinfo(1, 'S').source:match('^@?(.*[/\\])') or '') .. 'FOHMate/'
@@ -193,6 +194,7 @@ function loop()
     ig.End(ctx)
   end
   draw_settings()
+  draw_param_picker()
   draw_plugin_list()
   draw_scan_window()
   pop_theme(nc)
