@@ -16,8 +16,7 @@ Changes since the last public release, grouped by minor version (revisions are f
   the **Performance parameters** window: a tree of the rack, its FX (name and type in its color) and
   every parameter (kind of value and current value), foldable, with groups selectable (click,
   Cmd/Ctrl-click, Shift-click); **Add to Performance** and **Remove from Performance** work on the
-  selection, and selecting an FX means all of its parameters. A parameter in the Performance has a
-  check mark. A row shows the plug-in's name for it, its real value in the vertical box and a
+  selection, and selecting an FX means all of its parameters. Every parameter and every FX has a check box: click it to put it in or take it out of the Performance (the buttons stay for working on a selection). The section on the right of the window shows the control of what is selected: pick another one (or Automatic), with a preview and what REAPER says about the parameter; the choice is added to the training data (below). A row shows the plug-in's name for it, its real value in the vertical box and a
   control that fits the parameter: a **rotary encoder** (7:30 = minimum, 4:30 = maximum, with small
   arrows for min, max and the default, which is yellow; a band centered at the top for a width (as thin as possible at the minimum, reaching from the minimum mark to the maximum mark at the maximum: bandwidth, stereo width, knee); marks for each value
   when there are only a few; a parameter in dB gets a fader's marks instead: -60, -30, -10, -5, 0 and +5 dB where they fall), a **toggle** (a circle) or a **drop-down** (a circle with an arrow). The default
