@@ -20,6 +20,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 - One gap everywhere: between racks (sideways and down) it is now the same as between the top bar and
   the first row (the room the latency tag needs plus the setting, 8 px by default: about 17 px
   instead of 8). The setting is now called **Extra space between racks**.
+- ReaPack now shows an About overview of FOH-Mate (what it does, requirements, status), for the
+  repository and for the package. The text lives in `tools/reapack_about.txt`.
 - **Allow latency** stays per format. With the option on, allowing an FX that has other formats
   installed first says that only this format is allowed (that note can be hidden).
 - **"Don't show this again"** on popups that are not critical: creating a rack by double-click,

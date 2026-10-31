@@ -1,0 +1,23 @@
+# FOH-Mate
+Live sound tools for REAPER, made by a live sound engineer.
+
+## Plugins Host, the first module
+A rack-based FX panel built with ReaImGui. A few REAPER tracks become racks, each with its own input and output routing, a chain of FX, a level, mute and bypass, and input and output meters. All the racks live in one window, away from your playback tracks, so the mixer and the track view stay clean.
+
+## What it does
+- **Racks are tracks.** Any track named "RACK: ..." becomes a rack, hidden from the track list and kept off the master.
+- **Edit and Show modes.** A cue-light switch locks the racks and their FX while you perform. Level, mute, bypass and FX on/off keep working.
+- **Quick FX handling.** Add, insert, replace, delete, reorder, copy and move FX with menus and drag and drop.
+- **Sidechains without the routing maze.** A key button on every FX that has a sidechain input.
+- **Mono, stereo and mono-to-stereo racks.** FX switch to their mono or stereo version on their own.
+- **Level match,** duplicate a rack or use it as a template, rack colors and a Daylight theme.
+- **Latency watchdog.** Racks and FX that add more latency than your limit flash an alert. A plugin installed in several formats (AU, VST3...) can count at its highest latency, since some formats report 0.
+- **Plugin list** of every installed FX, with favorites, developers, latency and scan status.
+
+## Requirements
+REAPER 7.x and ReaImGui (install it from ReaPack, ReaTeam Extensions). Developed and tested on macOS with REAPER 7.84; Windows and Linux are untested.
+
+## Status
+Work in progress (version 0.x): expect rough edges and changes between versions. Free and open source (GPL-3.0-or-later). Not affiliated with or endorsed by Cockos Incorporated; REAPER is a trademark of Cockos.
+
+Full guide, screenshots and issue tracker: https://github.com/sonobianca/FOH-Mate4Reaper

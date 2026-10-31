@@ -2,9 +2,14 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 84).
+New items get the next free number (next: 85).
 
 ## Open
+
+- [ ] 84. ReaPack About text, after `index.xml` is merged to `main`: Extensions > ReaPack > Manage
+  repositories, right-click **FOH-Mate**, **About this repository**: the overview shows with headings
+  and bullets. Extensions > ReaPack > Browse packages, right-click **FOH-Mate**, **About this
+  package**: the same text. Synchronize packages shows no new version (it is still 0.13.3).
 
 - [ ] 83. (0.13.3) Update through ReaPack, after the `v0.13.3` tag is pushed: Extensions > ReaPack >
   Synchronize packages offers FOH-Mate 0.13.3; apply it; the ReaPack copy of FOH-Mate runs v0.13.3 and

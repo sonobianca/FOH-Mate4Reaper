@@ -20,6 +20,15 @@ reaches users once its tag is pushed. Merging to `main` alone publishes nothing 
 
 Between steps 2 and 3 the list points at a tag that doesn't exist yet: do them together.
 
+## The About text in ReaPack
+
+`tools/reapack_about.txt` is the overview ReaPack shows in the repository's and the package's About
+window. Plain ASCII, with `# ` and `## ` headings, `- ` bullets and `**bold**`; the script turns it
+into RTF (what ReaPack reads) and refuses non-ASCII characters. Edit it, run
+`tools/make_reapack_index.sh`, commit `index.xml`, and merge to `main`: About text changes need no
+new version or tag (ReaPack reads `index.xml` from `main`). Rebuilding the same version keeps its
+release time.
+
 ## Where ReaPack installs it
 
 `<REAPER resource path>/Scripts/FOH-Mate/Live sound/FOHMate.lua`, with the `FOHMate` folder next to
