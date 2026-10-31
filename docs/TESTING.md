@@ -6,12 +6,15 @@ New items get the next free number (next: 80).
 
 ## Open
 
-- [ ] 79. (0.13.0) Show mode re-check, with FX > **Take FX over the limit offline in Show mode** on.
-  Count every format... **off**, a rack with the AU of bx_limiter, switch to Show: it stays online.
-  Still in Show, turn Count every format... **on**: the AU goes offline (strike-through, "1 FX taken
-  offline for latency"). Back to Edit: it comes back online. Also in Show: raise the per-FX limit
-  above 304, lower it to 0 again: the FX goes offline again. A re-check that finds nothing leaves no
-  extra step in Edit > Undo.
+- [ ] 79. (0.13.0) Show mode re-check. Checked by Claude in REAPER: with an FX over the limit, in Show
+  mode, ticking FX > **Take FX over the limit offline in Show mode** takes it offline right away
+  (strike-through, "1 FX taken offline for latency"); back to Edit brings it online; Edit -> Show with
+  the option on takes it offline too. Left for Bianca: in Show, raise the per-FX limit above the FX's
+  latency, then lower it again: the FX goes offline; and turning **Count every format...** on in Show
+  with an AU that really stays at 0 (not bx_limiter: see the note below). A re-check that finds
+  nothing leaves no extra step in Edit > Undo.
+  Note: the AU of bx_limiter reports its real 304 samples once it has been loaded for a moment; the 0
+  in the latency list comes from the scan reading it too early (like Spec Craft, items 16-19).
 
 - [ ] 78. (0.13.0) Latency > **Count every format at its highest latency** (off at first). Turn it on.
   Plugin list, AU of bx_limiter: Latency shows `304*`, hover says the VST3 reports 304; with a per-FX
