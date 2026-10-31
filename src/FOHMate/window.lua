@@ -547,14 +547,23 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           draw_encoder('k' .. k, kcx, kcy, kr, 0, { body = c.sec_bg, col = c.border, ptr = T.dim, s = f, static = true })
           ig.DrawList_AddRectFilled(dl, rx, ry, rx + rw2, ry + rh, (c.bg & 0xFFFFFF00) | 0xB0, ROUNDING)
           if over then ig.SetTooltip(ctx, 'This parameter is not there any more (the FX was removed or changed).') end
-        elseif kind.kind == 'toggle' then
-          local d = 2 * (kr + 3 * f)
-          if circle_check(dl, 'k' .. k, kcx - d / 2, kcy - d / 2, d, norm > 0.5) then newv = norm > 0.5 and 0 or 1 end
         elseif kind.kind == 'list' then
           newv = draw_dropdown('k' .. k, kcx, kcy, kr, norm, kind.items, { body = c.sec_bg, col = c.border, ptr = T.dots, s = f })
         else
-          newv = draw_encoder('k' .. k, kcx, kcy, kr, norm, { body = c.sec_bg, col = c.border, ptr = T.dots, s = f,
-                              style = kind.kind == 'band' and 'band' or 'line', steps = kind.steps, marks = kind.marks, def = r.def })
+          -- inverted: the control shows (and sets) the other way round
+          local inv = r.inv
+          local shown = inv and 1 - norm or norm
+          if kind.kind == 'toggle' then
+            local d = 2 * (kr + 3 * f)
+            if circle_check(dl, 'k' .. k, kcx - d / 2, kcy - d / 2, d, shown > 0.5) then newv = shown > 0.5 and 0 or 1 end
+          else
+            local marks
+            if kind.marks then marks = {}; for i, m in ipairs(kind.marks) do marks[i] = inv and 1 - m or m end end
+            newv = draw_encoder('k' .. k, kcx, kcy, kr, shown, { body = c.sec_bg, col = c.border, ptr = T.dots, s = f,
+                                style = kind.kind == 'band' and 'band' or 'line', steps = kind.steps, marks = marks,
+                                def = r.def and (inv and 1 - r.def or r.def) })
+          end
+          if newv and inv then newv = 1 - newv end
         end
         if newv then
           reaper.TrackFX_SetParamNormalized(tr, fxi, r.idx, newv)
@@ -602,9 +611,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
       if mr and mfx then
         local mk = param_kind(tr, mfx, mr)
         ig.TextDisabled(ctx, 'Control for this parameter')
-        local opts = { { nil, 'Automatic' }, { 'knob', 'Encoder (smooth)' }, { 'band', 'Encoder with a width band' },
-                       { 'steps', 'Stepped encoder' }, { 'toggle', 'Toggle' }, { 'list', 'Drop-down' } }
-        for _, o in ipairs(opts) do
+        for _, o in ipairs(PARAM_CONTROL_OPTS) do
           local on = (o[1] == nil and not mk.overridden) or (o[1] ~= nil and mk.overridden and mk.kind == o[1])
           local label = o[2] .. ((o[1] == nil) and (' (now: ' .. PARAM_KIND_LABEL[mk.guess] .. ')') or '')
           if ig.MenuItem(ctx, label, nil, on) then param_set_override(tr, mfx, mr, o[1]) end

@@ -35,10 +35,10 @@ function params_read(tr)
   if c and c.raw == s then c.frame = FRAME; return c.rows end
   local rows = {}
   for rec in s:gmatch('[^;]+') do
-    local g, i, pn, nm, df = rec:match('^([^|]*)|(%d+)|([^|]*)|([^|]*)|?([^|]*)$')
+    local g, i, pn, nm, df, iv = rec:match('^([^|]*)|(%d+)|([^|]*)|([^|]*)|?([^|]*)|?([^|]*)$')
     if g then
       rows[#rows + 1] = { guid = g, idx = tonumber(i), pname = param_unesc(pn),
-                          name = nm ~= '' and param_unesc(nm) or nil, def = tonumber(df) }
+                          name = nm ~= '' and param_unesc(nm) or nil, def = tonumber(df), inv = (iv == '1') }
     end
   end
   PARAM_CACHE[guid] = { raw = s, rows = rows, frame = FRAME }
@@ -48,14 +48,35 @@ end
 function params_write(tr, rows)
   local t = {}
   for _, r in ipairs(rows) do
-    t[#t + 1] = ('%s|%d|%s|%s|%s'):format(r.guid, r.idx, param_esc(r.pname or ''), param_esc(r.name or ''),
-                                          r.def and ('%.6f'):format(r.def) or '')
+    t[#t + 1] = ('%s|%d|%s|%s|%s|%s'):format(r.guid, r.idx, param_esc(r.pname or ''), param_esc(r.name or ''),
+                                             r.def and ('%.6f'):format(r.def) or '', r.inv and '1' or '')
   end
   reaper.GetSetMediaTrackInfo_String(tr, EXT_PARAMS, table.concat(t, ';'), true)
   PARAM_CACHE[reaper.GetTrackGUID(tr)] = nil
 end
 
 -- FX guid -> index, for the FX of a rack
+-- changes fields of one row (inv, def...): changes = { inv = true, def = 0.5 }; a field set to false is cleared
+function params_update(tr, guid, idx, changes)
+  local rows = {}
+  for _, r in ipairs(params_read(tr)) do
+    local n = {}
+    for k, v in pairs(r) do n[k] = v end
+    if r.guid == guid and r.idx == idx then
+      for k, v in pairs(changes) do n[k] = (v ~= false) and v or nil end
+    end
+    rows[#rows + 1] = n
+  end
+  params_write(tr, rows)
+end
+
+-- the row of a parameter in the Performance, if it is there
+function params_find(tr, guid, idx)
+  for _, r in ipairs(params_read(tr)) do
+    if r.guid == guid and r.idx == idx then return r end
+  end
+end
+
 function fx_guid_map(tr)
   local m = {}
   for i = 0, reaper.TrackFX_GetCount(tr) - 1 do m[reaper.TrackFX_GetFXGUID(tr, i)] = i end
@@ -91,7 +112,12 @@ end
 --   knob: a smooth encoder
 PARAM_OVR      = nil
 PARAM_OVR_FILE = LATDB_DIR .. '/param_controls.txt'
-PARAM_KIND_LABEL = { toggle = 'on/off', list = 'list', steps = 'steps', band = 'width', knob = 'continuous' }
+-- the names of the controls, used everywhere (the tree, the menus, the section on the right)
+PARAM_KIND_LABEL = { knob = 'Encoder', band = 'Width band', steps = 'Stepped encoder', toggle = 'Toggle', list = 'Drop-down' }
+PARAM_CONTROL_OPTS = { { nil, 'Automatic' } }
+for _, k in ipairs({ 'knob', 'band', 'steps', 'toggle', 'list' }) do
+  PARAM_CONTROL_OPTS[#PARAM_CONTROL_OPTS + 1] = { k, PARAM_KIND_LABEL[k] }
+end
 
 -- the plug-in's name without its type, the way the corrections are filed
 function param_plugin_key(fxname)
@@ -210,12 +236,21 @@ function param_kind(tr, fxi, r)
   local ovr = PARAM_OVR[param_fx_key(tr, fxi) .. '\t' .. (r.pname or '')]
   if ovr and PARAM_KIND_LABEL[ovr.kind] then
     kind, overridden = ovr.kind, true
-    if (kind == 'steps' or kind == 'list') and not items then kind = 'knob' end
+    if (kind == 'steps' or kind == 'list') and not items then
+      -- the plug-in doesn't say what its values are: take 11 positions along it
+      n, items = 11, {}
+      for i = 0, 10 do
+        local v = i / 10
+        local _, txt = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, r.idx, v, '')
+        if txt == '' then txt = ('%d%%'):format(i * 10) end
+        items[#items + 1] = { label = txt, norm = v }
+      end
+    end
   end
   k = { kind = kind, guess = guess, overridden = overridden, label = PARAM_KIND_LABEL[kind], marks = marks }
   if (kind == 'steps' or kind == 'list') and items then
     k.steps, k.items = n, items
-    k.label = ('%s of %d'):format(kind == 'steps' and 'steps' or 'list', n)
+    k.label = ('%s (%d)'):format(PARAM_KIND_LABEL[kind], n)
   end
   PARAM_KIND[key] = k
   return k
@@ -313,231 +348,12 @@ function draw_check(dl, x, y, h, col, on, part)
   end
 end
 
--- the plug-in's name without its type, the way the corrections are filed
-function param_plugin_key(fxname)
-  return (fx_name_type(fxname))
-end
-
--- the key of an FX of a rack
-function param_fx_key(tr, fxi)
-  local _, name = reaper.TrackFX_GetFXName(tr, fxi, '')
-  return param_plugin_key(name or '')
-end
-
-function param_ovr_load()
-  PARAM_OVR = {}
-  for _, ln in ipairs(read_lines(PARAM_OVR_FILE)) do
-    local f = {}
-    for x in (ln .. '\t'):gmatch('([^\t]*)\t') do f[#f + 1] = x end
-    if f[1] and f[2] and f[3] and f[3] ~= '' then PARAM_OVR[f[1] .. '\t' .. f[2]] = { kind = f[3], line = ln } end
-  end
-end
-
-function param_ovr_save()
-  local t = {}
-  for _, o in pairs(PARAM_OVR) do t[#t + 1] = o.line end
-  table.sort(t)
-  write_lines(PARAM_OVR_FILE, t)
-end
-
--- what REAPER says about a parameter
-function param_facts(tr, fxi, idx)
-  local ok, step, _, _, istoggle = reaper.TrackFX_GetParameterStepSizes(tr, fxi, idx)
-  local _, mn, mx = reaper.TrackFX_GetParamEx(tr, fxi, idx)
-  local _, t0 = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, idx, 0, '')
-  local _, t1 = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, idx, 1, '')
-  return { ok = ok, step = step, toggle = ok and istoggle, min = mn, max = mx, t0 = t0, t1 = t1 }
-end
-
--- A parameter that is in dB gets the marks of a fader instead of one per step: where -60, -30, -10,
--- -5, 0 and +5 dB lie on it. REAPER can only say what text a position prints, so the parameter is
--- sampled at 41 positions (once) and the positions of those dB values are worked out from that.
--- Returns a list of positions 0..1, or nil when the parameter is not in dB.
-FADER_DB = { -60, -30, -10, -5, 0, 5 }
-
-function param_db_marks(tr, fxi, idx)
-  local pts, is_db = {}, false
-  for i = 0, 40 do
-    local v = i / 40
-    local _, txt = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, idx, v, '')
-    if txt:lower():find('db', 1, true) then is_db = true end
-    local num = tonumber((txt:match('^%s*([%-%+]?%d+%.?%d*)')))
-    if num then pts[#pts + 1] = { v, num } end
-  end
-  if not is_db or #pts < 2 then return nil end
-  local marks = {}
-  for _, target in ipairs(FADER_DB) do
-    for i = 1, #pts - 1 do
-      local a, b = pts[i], pts[i + 1]
-      if (a[2] - target) * (b[2] - target) <= 0 and a[2] ~= b[2] then
-        local v = a[1] + (b[1] - a[1]) * (target - a[2]) / (b[2] - a[2])
-        if v > 0.02 and v < 0.98 then marks[#marks + 1] = v end
-        break
-      end
-    end
-  end
-  return marks
-end
-
-function param_kind(tr, fxi, r)
-  local key = r.guid .. ':' .. r.idx .. ':' .. (r.pname or '')
-  local k = PARAM_KIND[key]
-  if k then return k end
-  if not PARAM_OVR then param_ovr_load() end
-
-  -- how many values there are, when there are few (the step is in the parameter's own units)
-  local ok, step, _, _, istoggle = reaper.TrackFX_GetParameterStepSizes(tr, fxi, r.idx)
-  local _, mn, mx = reaper.TrackFX_GetParamEx(tr, fxi, r.idx)
-  local n
-  if ok and step and step > 0 and mn and mx and mx > mn then
-    local cnt = (mx - mn) / step
-    if cnt <= 31.5 then n = math.floor(cnt + 0.5) + 1 end
-  end
-  local items, numeric
-  if n and n >= 2 then
-    items, numeric = {}, true
-    for i = 0, n - 1 do
-      local v = i / (n - 1)
-      local _, txt = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, r.idx, v, '')
-      if txt == '' then txt = ('%d%%'):format(math.floor(v * 100 + 0.5)) end
-      items[#items + 1] = { label = txt, norm = v }
-      if not tonumber((txt:match('^%s*([%-%+]?[%d%.]+)'))) then numeric = false end
-    end
-  end
-
-  -- the guess
-  local low = (r.pname or ''):lower()
-  local guess = 'knob'
-  if (ok and istoggle) or n == 2 or low:find('bypass', 1, true) or low:find('^enable') or low:find('on/off', 1, true)
-     or low:find('^mute') or low == 'on' or low:find('^power') then
-    guess = 'toggle'
-  elseif n and n >= 3 then
-    guess = numeric and 'steps' or 'list'
-  elseif low:find('width', 1, true) or low:find('range', 1, true) or low:find('spread', 1, true)
-         or low:find('knee', 1, true) or low == 'q' or low:find('^q[%s%-_]') or low:find('[%s%-_]q$') then
-    guess = 'band'
-  end
-
-  -- in dB: a smooth encoder with the marks of a fader, never one mark per step
-  local marks
-  if guess == 'steps' or guess == 'knob' or guess == 'band' then
-    marks = param_db_marks(tr, fxi, r.idx)
-    if marks and guess == 'steps' then guess = 'knob' end
-  end
-
-  -- a correction made by hand wins (a list or steps needs the values to be known)
-  local kind, overridden = guess, false
-  local ovr = PARAM_OVR[param_fx_key(tr, fxi) .. '\t' .. (r.pname or '')]
-  if ovr and PARAM_KIND_LABEL[ovr.kind] then
-    kind, overridden = ovr.kind, true
-    if (kind == 'steps' or kind == 'list') and not items then kind = 'knob' end
-  end
-  k = { kind = kind, guess = guess, overridden = overridden, label = PARAM_KIND_LABEL[kind], marks = marks }
-  if (kind == 'steps' or kind == 'list') and items then
-    k.steps, k.items = n, items
-    k.label = ('%s of %d'):format(kind == 'steps' and 'steps' or 'list', n)
-  end
-  PARAM_KIND[key] = k
-  return k
-end
-
--- Sets (or, with kind = nil, clears) the correction for a parameter and files what REAPER said about it.
-function param_set_override(tr, fxi, r, kind)
-  if not PARAM_OVR then param_ovr_load() end
-  local plug = param_fx_key(tr, fxi)
-  local key = plug .. '\t' .. (r.pname or '')
-  if kind then
-    local guess = param_kind(tr, fxi, r).guess
-    local f = param_facts(tr, fxi, r.idx)
-    PARAM_OVR[key] = { kind = kind, line = table.concat({
-      plug, r.pname or '', kind, guess, tostring(f.min), tostring(f.max), tostring(f.step),
-      tostring(f.toggle), f.t0 or '', f.t1 or '' }, '\t') }
-  else
-    PARAM_OVR[key] = nil
-  end
-  PARAM_KIND[r.guid .. ':' .. r.idx .. ':' .. (r.pname or '')] = nil
-  param_ovr_save()
-end
-
----------------------------------------------------------------- the parameter window (Edit mode)
---
--- A tree of the rack: the rack, its FX, and under each FX every parameter. Click selects, Cmd/Ctrl-click
--- adds to the selection, Shift-click selects a stretch. "Add to Performance" and "Remove from
--- Performance" work on the selection; selecting an FX means all of its parameters.
-
-function param_picker_open(tr)
-  PARAM_PICK = { tr = tr, filter = '', sel = {}, anchor = nil, order = {} }
-end
-
--- the parameters of an FX node or of one parameter, as { guid, idx, name }
-function param_pick_targets(P, fxs)
-  local out, seen = {}, {}
-  local function add(fx, p)
-    local key = fx.guid .. ':' .. p
-    if not seen[key] then seen[key] = true; out[#out + 1] = { guid = fx.guid, idx = p, name = fx.names[p + 1] } end
-  end
-  for _, fx in ipairs(fxs) do
-    if P.sel['P:' .. fx.guid] then
-      for p = 0, #fx.names - 1 do add(fx, p) end
-    end
-    for p = 0, #fx.names - 1 do
-      if P.sel['p:' .. fx.guid .. ':' .. p] then add(fx, p) end
-    end
-  end
-  return out
-end
-
-function param_pick_apply(P, fxs, adding)
-  params_apply(P.tr, param_pick_targets(P, fxs), adding)
-end
-
--- adds (or removes) parameters, { guid, idx, name } each, to the rack's Performance
-function params_apply(tr, targets, adding)
-  if #targets == 0 then return end
-  local gm = fx_guid_map(tr)
-  local rows, have = {}, {}
-  for _, r in ipairs(params_read(tr)) do
-    rows[#rows + 1] = r
-    have[r.guid .. ':' .. r.idx] = #rows
-  end
-  if adding then
-    for _, t in ipairs(targets) do
-      if not have[t.guid .. ':' .. t.idx] and gm[t.guid] then
-        -- the value it has now is remembered as its default (REAPER doesn't say what the plug-in's own is)
-        local def = reaper.TrackFX_GetParamNormalized(tr, gm[t.guid], t.idx)
-        rows[#rows + 1] = { guid = t.guid, idx = t.idx, pname = t.name, def = def }
-      end
-    end
-  else
-    local drop = {}
-    for _, t in ipairs(targets) do drop[t.guid .. ':' .. t.idx] = true end
-    local kept = {}
-    for _, r in ipairs(rows) do
-      if not drop[r.guid .. ':' .. r.idx] then kept[#kept + 1] = r end
-    end
-    rows = kept
-  end
-  with_undo(adding and 'Add parameters to Performance' or 'Remove parameters from Performance',
-            function() params_write(tr, rows) end)
-end
-
--- a check mark, drawn (the font may not have one)
-function draw_check(dl, x, y, h, col)
-  local u = h * 0.28
-  ig.DrawList_AddLine(dl, x, y + u * 0.2, x + u, y + u * 1.2, col, 2)
-  ig.DrawList_AddLine(dl, x + u, y + u * 1.2, x + u * 2.4, y - u * 0.9, col, 2)
-end
-
 -- the plug-in's name without its type ("VST3: Foo (Dev)" -> "Foo (Dev)") and the type
 function fx_name_type(name)
   local t, rest = name:match('^(%w+):%s*(.*)$')
   if t then return rest, t end
   return name, nil
 end
-
--- the controls a parameter can be given, and their names
-PARAM_CONTROL_OPTS = { { nil, 'Automatic' }, { 'knob', 'Encoder (smooth)' }, { 'band', 'Encoder with a width band' },
-                       { 'steps', 'Stepped encoder' }, { 'toggle', 'Toggle' }, { 'list', 'Drop-down' } }
 
 -- the right-hand section: pick and set up the control of the selected parameter(s)
 function draw_param_control_panel(P, fxs, gm, targets)
@@ -575,6 +391,34 @@ function draw_param_control_panel(P, fxs, gm, targets)
   ig.TextDisabled(ctx, 'Your choice is added to the training data.')
   if #targets ~= 1 then return end
 
+  -- how this row behaves (saved with the project: only for a parameter that is in the Performance)
+  local row = params_find(tr, first.guid, first.idx)
+  ig.Separator(ctx)
+  ig.Text(ctx, 'This row')
+  if not row then
+    ig.TextDisabled(ctx, 'Put the parameter in the Performance\nto set these.')
+  else
+    local inv = row.inv == true
+    local rv, v = ig.Checkbox(ctx, 'Invert (turns the other way)', inv)
+    if rv then params_update(tr, first.guid, first.idx, { inv = v }) end
+    local has_def = row.def ~= nil
+    local rv2, v2 = ig.Checkbox(ctx, 'Default mark', has_def)
+    if rv2 then
+      params_update(tr, first.guid, first.idx, { def = v2 and reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx) or false })
+    end
+    if has_def then
+      ig.TextDisabled(ctx, 'Put it at:')
+      local at = { { 'Now', nil }, { 'Minimum', 0 }, { 'Middle', 0.5 }, { 'Maximum', 1 } }
+      for i, a_ in ipairs(at) do
+        if i > 1 then ig.SameLine(ctx) end
+        if ig.SmallButton(ctx, a_[1] .. '##defat' .. i) then
+          params_update(tr, first.guid, first.idx,
+                        { def = a_[2] or reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx) })
+        end
+      end
+    end
+  end
+
   -- a preview of the control, and what REAPER says about the parameter
   ig.Separator(ctx)
   local norm = reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx)
@@ -592,8 +436,12 @@ function draw_param_control_panel(P, fxs, gm, targets)
     ig.DrawList_AddCircle(dl, cx, cy, r, ring, 0, 2)
     ig.DrawList_AddTriangleFilled(dl, cx - 6, cy - 3.5, cx + 6, cy - 3.5, cx, cy + 4, ring)
   else
-    draw_encoder('pv', cx, cy, r, norm, { body = body, col = ring, ptr = T.dots, s = 1, static = true,
-                 style = k.kind == 'band' and 'band' or 'line', steps = k.steps, marks = k.marks })
+    local inv = row and row.inv
+    local pm = nil
+    if k.marks then pm = {}; for i, m in ipairs(k.marks) do pm[i] = inv and 1 - m or m end end
+    local pd = row and row.def and (inv and 1 - row.def or row.def)
+    draw_encoder('pv', cx, cy, r, inv and 1 - norm or norm, { body = body, col = ring, ptr = T.dots, s = 1, static = true,
+                 style = k.kind == 'band' and 'band' or 'line', steps = k.steps, marks = pm, def = pd })
   end
   ig.Dummy(ctx, 1, 76)
   local f = param_facts(tr, fxi, first.idx)

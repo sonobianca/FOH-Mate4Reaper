@@ -33,7 +33,7 @@ An optional view, switched on and off with a toggle. Edit and Show keep working 
   controlling an FX of another rack. The storage must not forbid it.)
 - **Rows alternate sides:** name left / control right, then control left / name right.
 - **Controls** (no sliders): a rotary encoder (7:30 minimum to 4:30 maximum, clockwise raises it,
-  arrows around it mark minimum, maximum and the default in yellow; an arc inside it for a range or
+  short lines around it mark the minimum and maximum and a small yellow arrow the default (which can be moved or switched off per row; a row can also be inverted); an arc inside it for a range or
   width; one mark per value when there are only a few), a toggle (a plain circle) and a drop-down (a
   circle with an arrow, the values in a menu). How the encoder turns is a global setting (Settings >
   Controls): vertical drag, finer the farther the pointer is to the side, or dragging around it.

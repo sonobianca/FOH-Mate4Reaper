@@ -403,6 +403,13 @@ function enc_mark(dl, cx, cy, r, ang, col, s)
     cx + ux * base - px * hw, cy + uy * base - py * hw, col)
 end
 
+-- a short line just outside the circle, perpendicular to the circumference (min, max and value marks)
+function enc_tick(dl, cx, cy, r, ang, col, s)
+  local ux, uy = math.cos(ang), math.sin(ang)
+  ig.DrawList_AddLine(dl, cx + ux * (r + 2.5 * s), cy + uy * (r + 2.5 * s),
+                      cx + ux * (r + 6.5 * s), cy + uy * (r + 6.5 * s), col, 2 * s)
+end
+
 -- o: body (fill), col (ring and min/max marks, the encoder's color), ptr (pointer or arc color),
 --    s (scale), style ('line' pointer, or 'band' for a width: a band centered at the top, wider with the value),
 --    steps (n values: stepped, with a mark per value), marks (positions 0..1 of extra marks, like a fader's), def (default position 0..1, yellow mark),
@@ -450,13 +457,13 @@ function draw_encoder(id, cx, cy, r, norm, o)
   local v = changed or norm
   ig.DrawList_AddCircleFilled(dl, cx, cy, r, o.body, 0)
   ig.DrawList_AddCircle(dl, cx, cy, r, hover and mix(o.col, WHITE, 0.3) or o.col, 0, 2 * s)
-  enc_mark(dl, cx, cy, r, ENC_A0, o.col, s)
-  enc_mark(dl, cx, cy, r, ENC_A1, o.col, s)
+  enc_tick(dl, cx, cy, r, ENC_A0, o.col, s)
+  enc_tick(dl, cx, cy, r, ENC_A1, o.col, s)
   if o.steps and o.steps > 2 then
-    for i = 1, o.steps - 2 do enc_mark(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * i / (o.steps - 1), o.col, 0.6 * s) end
+    for i = 1, o.steps - 2 do enc_tick(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * i / (o.steps - 1), o.col, 0.6 * s) end
   end
   if o.marks then
-    for _, m in ipairs(o.marks) do enc_mark(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * m, o.col, 0.75 * s) end
+    for _, m in ipairs(o.marks) do enc_tick(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * m, o.col, 0.75 * s) end
   end
   if o.def then enc_mark(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * o.def, ENC_DEFAULT_COL, s) end
   local ang = ENC_A0 + (ENC_A1 - ENC_A0) * v
