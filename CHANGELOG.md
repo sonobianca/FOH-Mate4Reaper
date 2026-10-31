@@ -2,6 +2,15 @@
 
 Changes since the last public release, grouped by minor version (revisions are folded in).
 
+## 0.13
+
+- **"Don't show this again"** on popups that are not critical: creating a rack by double-click,
+  replacing or deleting one FX, an action on several selected racks, and the scan notes. Once hidden, a
+  question is answered yes without asking. On "new effects were found, scan now?" the checkbox turns
+  off **Latency > Ask to scan new FX**. Popups that delete a rack or a sidechain bus, reset the
+  settings or start a latency scan always show.
+- **Settings > Reset warning popups** shows every hidden popup again.
+
 ## 0.12
 
 - The code is split into modules: `FOHMate.lua` plus a `FOHMate` folder next to it holding the rest

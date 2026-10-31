@@ -117,12 +117,23 @@ function draw_confirm(host)
     local shown = ig.BeginPopupModal(ctx, 'Please confirm', nil, ig.WindowFlags_AlwaysAutoResize())
     if shown then
       type_text(confirm.text)
+      if confirm.id then
+        local label = (confirm.id == 'new_fx') and "Don't ask again (Latency > Ask to scan new FX)"
+                      or "Don't show this again"
+        local _, v = ig.Checkbox(ctx, label, confirm.dont_show)
+        confirm.dont_show = v
+        if ig.IsItemHovered(ctx) then
+          ig.SetTooltip(ctx, 'From now on this is answered "' .. confirm.label .. '" without asking.\n'
+                          .. 'Settings > Reset warning popups brings it back.')
+        end
+      end
       ig.Separator(ctx)
       local yes = ig.Button(ctx, confirm.label, 110, 0)
       ig.SameLine(ctx)
       local no = ig.Button(ctx, 'Cancel', 110, 0)
       if yes then
         local f = confirm.yes
+        if confirm.dont_show then hide_popup(confirm.id) end
         confirm = nil
         ig.CloseCurrentPopup(ctx)
         later[#later + 1] = function() f(); last_scan = -math.huge end   -- after the frame
@@ -295,7 +306,7 @@ function draw_rack_area(infos, M, dt, now, avail)
     if not over_rack and mx < limit then
       if ig.IsMouseClicked(ctx, 0) then deselect_racks() end
       if ig.IsMouseDoubleClicked(ctx, 0) and not is_locked() then
-        request_confirm('Create a new rack?', create_rack, 'Create')
+        request_confirm('Create a new rack?', create_rack, 'Create', 'new_rack')
       end
     end
   end
@@ -629,12 +640,25 @@ function draw_settings()
     if ig.Button(ctx, 'Reset to defaults', 150, 0) then
       request_confirm('Reset every setting in this window to its default?', reset_cfg, 'Reset')
     end
+    ig.SameLine(ctx)
+    local n_hidden = 0
+    for _ in pairs(S.hidden_popups) do n_hidden = n_hidden + 1 end
+    if ig.Button(ctx, 'Reset warning popups', 170, 0) then
+      local n = reset_popups()
+      popups_reset_msg = n == 0 and 'No popup was hidden.'
+                         or ('%d popup%s will show again.'):format(n, n == 1 and '' or 's')
+    end
+    if ig.IsItemHovered(ctx) then
+      ig.SetTooltip(ctx, ('Shows again every popup hidden with "Don\'t show this again" (%d hidden now).'):format(n_hidden))
+    end
+    if popups_reset_msg then ig.TextDisabled(ctx, popups_reset_msg) end
     draw_confirm('settings')
     CONFIRM_HOST = nil
     ig.End(ctx)
   end
   if not open then
     S.show_settings = false
+    popups_reset_msg = nil
     if confirm and confirm.host == 'settings' then confirm = nil end   -- closed while asking: Cancel
   end
 end

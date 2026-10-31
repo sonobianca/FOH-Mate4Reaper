@@ -20,7 +20,7 @@ end
 function start_scan(list)
   if SCAN.active or #list == 0 then return end
   if S.mode ~= 'edit' then
-    request_confirm('Switch to Edit mode to scan FX for latency.', function() end, 'OK')
+    request_confirm('Switch to Edit mode to scan FX for latency.', function() end, 'OK', 'scan_edit_mode')
     return
   end
   reaper.RecursiveCreateDirectory(LATDB_DIR, 0)
@@ -227,7 +227,8 @@ function ask_scan(which)
   else list = unscanned_fx() end
   if #list == 0 then
     request_confirm(which == 'failed' and 'No FX is marked as failed.'
-                    or 'Every installed effect is already in the latency list.', function() end, 'OK')
+                    or 'Every installed effect is already in the latency list.', function() end, 'OK',
+                    'scan_nothing')
     return
   end
   local what = (which == 'all' and 'Rescan all %d effects (failed ones left out)')

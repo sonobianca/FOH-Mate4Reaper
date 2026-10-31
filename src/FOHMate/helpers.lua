@@ -203,7 +203,13 @@ function floating_host()
   return best
 end
 
-function request_confirm(text, yes, label)
+-- id: only for popups that are not critical. The box then has a "Don't show this
+-- again" checkbox; once hidden, the popup is answered "yes" without showing.
+function request_confirm(text, yes, label, id)
+  if id and popup_hidden(id) then
+    later[#later + 1] = function() yes(); last_scan = -math.huge end
+    return
+  end
   local host, over_main = CONFIRM_HOST, false
   if not host then
     -- asked by Plugins Host: opened from a floating window when one would hide it, still centered
@@ -211,7 +217,32 @@ function request_confirm(text, yes, label)
     host = floating_host() or 'main'
     over_main = host ~= 'main'
   end
-  confirm = { text = text, yes = yes, label = label or 'Yes', host = host, over_main = over_main }
+  confirm = { text = text, yes = yes, label = label or 'Yes', host = host, over_main = over_main,
+              id = id, dont_show = false }
   confirm_open = true
+end
+
+-- popups hidden with "Don't show this again" (Settings > Reset warning popups brings them back)
+function popup_hidden(id)
+  return S.hidden_popups[id] ~= nil
+end
+
+function hide_popup(id)
+  if id == 'new_fx' then              -- that one already has its own switch: Latency > Ask to scan new FX
+    S.ask_scan = false
+    save_setting('askscan', '0')
+    return
+  end
+  S.hidden_popups[id] = true
+  save_hidden_popups()
+end
+
+-- returns how many came back
+function reset_popups()
+  local n = 0
+  for _ in pairs(S.hidden_popups) do n = n + 1 end
+  S.hidden_popups = {}
+  save_hidden_popups()
+  return n
 end
 

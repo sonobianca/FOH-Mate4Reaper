@@ -2,11 +2,16 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 77).
+New items get the next free number (next: 78).
 
 ## Open
 
-Nothing open.
+- [ ] 77. (0.13.0) "Don't show this again". Double-click empty space: the "Create a new rack?" box has
+  the checkbox (tooltip explains it); tick it and Create; double-click again: a rack is created with no
+  box. Same idea with Delete FX... and Replace FX on one FX. **Delete rack**, **Reset to defaults** and
+  **Scan... for latency** still show with no checkbox. Settings: **Reset warning popups** (next to Reset
+  to defaults) says how many come back; double-click asks again. Hidden popups stay hidden after
+  restarting FOH-Mate.
 
 ## Done
 

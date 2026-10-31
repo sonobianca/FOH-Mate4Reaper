@@ -200,12 +200,15 @@ function load_settings()
   local mode = reaper.GetExtState(EXT_SECTION, 'colormode')
   local hidden = {}
   for n in reaper.GetExtState(EXT_SECTION, 'hiddentypes'):gmatch('[^,]+') do hidden[n] = true end
+  local hidden_popups = {}
+  for n in reaper.GetExtState(EXT_SECTION, 'hiddenpopups'):gmatch('[^,]+') do hidden_popups[n] = true end
   return {
     daylight    = reaper.GetExtState(EXT_SECTION, 'daylight') == '1',
     color_mode  = (mode == 'default') and 'default' or 'auto',
     default_rgb = tonumber(reaper.GetExtState(EXT_SECTION, 'defcolor')) or 0x3D85C6,
     disconnect  = reaper.GetExtState(EXT_SECTION, 'disconnect') == '1',
     hidden      = hidden,           -- FX types left out of the menus
+    hidden_popups = hidden_popups,  -- popups hidden with "Don't show this again"
     mode        = (reaper.GetExtState(EXT_SECTION, 'mode') == 'show') and 'show' or 'edit',
     no_meters   = reaper.GetExtState(EXT_SECTION, 'nometers') == '1',   -- troubleshooting switch
     lat_alerts  = reaper.GetExtState(EXT_SECTION, 'latalerts') ~= '0',  -- latency watchdog on/off
@@ -239,5 +242,12 @@ end
 
 function save_hidden()
   save_setting('hiddentypes', table.concat(hidden_list(), ','))
+end
+
+function save_hidden_popups()
+  local t = {}
+  for n in pairs(S.hidden_popups) do t[#t + 1] = n end
+  table.sort(t)
+  save_setting('hiddenpopups', table.concat(t, ','))
 end
 

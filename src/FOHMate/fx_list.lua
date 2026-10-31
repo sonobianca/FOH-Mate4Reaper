@@ -308,6 +308,6 @@ function check_new_fx(now)
       .. 'Each one is loaded once on a hidden track and removed. Audio may glitch while\n'
       .. 'it runs, so do it when nothing is live. Save your project first: a plug-in that\n'
       .. 'crashes on load can take REAPER down (it is skipped next time).\n\nScan now?'
-  request_confirm(text:format(#list), function() start_scan(list) end, 'Scan')
+  request_confirm(text:format(#list), function() start_scan(list) end, 'Scan', 'new_fx')
 end
 

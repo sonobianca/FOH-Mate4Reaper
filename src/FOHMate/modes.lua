@@ -80,7 +80,7 @@ function rack_action(tr, what, fn, label)
     end
   end
   if #trs > 1 then
-    request_confirm(('%s\nfor the %d selected racks?'):format(what, #trs), go, label or 'Apply')
+    request_confirm(('%s\nfor the %d selected racks?'):format(what, #trs), go, label or 'Apply', 'multi_rack')
   else
     go()
   end

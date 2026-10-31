@@ -568,13 +568,13 @@ function draw_rack(info, x0, y0, H, M, dt, now)
       if ig.BeginMenu(ctx, 'Replace FX') then
         draw_add_menu(function(item)
           request_confirm(('Replace "%s" with "%s"?'):format(clean_fx_name(it.name), item.name),
-            function() replace_fx(tr, fx_guid, item.ident) end, 'Replace')
+            function() replace_fx(tr, fx_guid, item.ident) end, 'Replace', 'replace_fx')
         end)
         ig.EndMenu(ctx)
       end
       if ig.MenuItem(ctx, 'Delete FX...') then
         request_confirm(('Delete "%s" from this rack?'):format(clean_fx_name(it.name)),
-          function() delete_fx(tr, fx_guid) end, 'Delete')
+          function() delete_fx(tr, fx_guid) end, 'Delete', 'delete_fx')
       end
       ig.Separator(ctx)
       local fl = lat.fx[fx_guid] or 0
