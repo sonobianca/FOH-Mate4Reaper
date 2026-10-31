@@ -335,40 +335,53 @@ end
 ---------------------------------------- Show mode: FX over the limit go offline
 
 -- in every rack over the limit, the biggest offenders go offline (unloaded, so
--- their latency is really gone) until the rack is back under the limit
+-- their latency is really gone) until the rack is back under the limit. FX
+-- already offline are left as they are, so this can run again while in Show
+-- mode: the ones it adds join the list that Edit brings back.
 function offline_for_show()
+  -- first what goes offline (nothing changes yet, so no empty undo point)
+  local plan = {}
+  for _, tr in ipairs(racks) do
+    if valid(tr) then
+      local items, total = {}, 0
+      for _, it in ipairs(chain_info(tr).list) do
+        local nm = fx_orig_name(tr, it.fx)
+        local lat = (latency_counted(nm, fx_latency(tr, it.fx)))
+        if lat > 0 and not latdb_allowed(nm) and not reaper.TrackFX_GetOffline(tr, it.fx)
+           and reaper.TrackFX_GetEnabled(tr, it.fx) then
+          items[#items + 1] = { guid = reaper.TrackFX_GetFXGUID(tr, it.fx), lat = lat }
+          total = total + lat
+        end
+      end
+      table.sort(items, function(a, b) return a.lat > b.lat end)
+      local off = {}
+      for _, x in ipairs(items) do
+        if total <= LAT_RACK_LIMIT and x.lat <= LAT_LIMIT then break end
+        off[#off + 1] = x.guid
+        total = total - x.lat
+      end
+      if #off > 0 then plan[#plan + 1] = { tr = tr, off = off } end
+    end
+  end
+  if #plan == 0 then return 0 end
   local n = 0
   with_undo('Rack: FX offline for Show mode', function()
-    for _, tr in ipairs(racks) do
-      if valid(tr) then
-        local list = chain_info(tr).list
-        local items, total = {}, 0
-        for _, it in ipairs(list) do
-          local nm = fx_orig_name(tr, it.fx)
-          local lat = (latency_counted(nm, fx_latency(tr, it.fx)))
-          if lat > 0 and not latdb_allowed(nm) and not reaper.TrackFX_GetOffline(tr, it.fx)
-             and reaper.TrackFX_GetEnabled(tr, it.fx) then
-            items[#items + 1] = { guid = reaper.TrackFX_GetFXGUID(tr, it.fx), lat = lat }
-            total = total + lat
-          end
+    for _, p in ipairs(plan) do
+      local done = {}
+      for _, g in ipairs(p.off) do
+        local fx = fx_index_by_guid(p.tr, g)
+        if fx then
+          reaper.TrackFX_SetOffline(p.tr, fx, true)
+          done[#done + 1] = g
+          n = n + 1
         end
-        table.sort(items, function(a, b) return a.lat > b.lat end)
-        if total > LAT_RACK_LIMIT or (items[1] and items[1].lat > LAT_LIMIT) then
-          local off = {}
-          for _, x in ipairs(items) do
-            if total <= LAT_RACK_LIMIT and x.lat <= LAT_LIMIT then break end
-            local fx = fx_index_by_guid(tr, x.guid)
-            if fx then
-              reaper.TrackFX_SetOffline(tr, fx, true)
-              off[#off + 1] = x.guid
-              total = total - x.lat
-              n = n + 1
-            end
-          end
-          if #off > 0 then reaper.GetSetMediaTrackInfo_String(tr, EXT_SHOWOFF, table.concat(off, ';'), true) end
-        end
-        LAT[reaper.GetTrackGUID(tr)] = nil
       end
+      if #done > 0 then
+        local ok, s = reaper.GetSetMediaTrackInfo_String(p.tr, EXT_SHOWOFF, '', false)
+        if ok and s ~= '' then table.insert(done, 1, s) end
+        reaper.GetSetMediaTrackInfo_String(p.tr, EXT_SHOWOFF, table.concat(done, ';'), true)
+      end
+      LAT[reaper.GetTrackGUID(p.tr)] = nil
     end
   end)
   return n

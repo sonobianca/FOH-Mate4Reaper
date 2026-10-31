@@ -2,9 +2,16 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 79).
+New items get the next free number (next: 80).
 
 ## Open
+
+- [ ] 79. (0.13.0) Show mode re-check, with FX > **Take FX over the limit offline in Show mode** on.
+  Count every format... **off**, a rack with the AU of bx_limiter, switch to Show: it stays online.
+  Still in Show, turn Count every format... **on**: the AU goes offline (strike-through, "1 FX taken
+  offline for latency"). Back to Edit: it comes back online. Also in Show: raise the per-FX limit
+  above 304, lower it to 0 again: the FX goes offline again. A re-check that finds nothing leaves no
+  extra step in Edit > Undo.
 
 - [ ] 78. (0.13.0) Latency > **Count every format at its highest latency** (off at first). Turn it on.
   Plugin list, AU of bx_limiter: Latency shows `304*`, hover says the VST3 reports 304; with a per-FX

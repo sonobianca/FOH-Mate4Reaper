@@ -26,10 +26,25 @@ function set_mode(mode)
   S.mode = mode
   save_setting('mode', mode)
   if mode == 'show' and was ~= 'show' and S.show_off then
-    local n = offline_for_show()
-    if n > 0 then SHOWOFF_MSG = { text = ('%d FX taken offline for latency'):format(n), t = reaper.time_precise() } end
+    show_offline_now()
   elseif mode == 'edit' and was == 'show' then
     online_after_show()
+  end
+end
+
+function show_offline_now()
+  local n = offline_for_show()
+  if n > 0 then SHOWOFF_MSG = { text = ('%d FX taken offline for latency'):format(n), t = reaper.time_precise() } end
+end
+
+-- in Show mode, what counts as latency changed (Count every format..., the
+-- limits, or Take FX over the limit offline switched on): check again, after
+-- the frame (FX can't change while the racks are being drawn)
+function recheck_show_offline()
+  later[#later + 1] = function()
+    if S.mode ~= 'show' or not S.show_off then return end
+    apply_settings()                  -- a limit changed this frame: use it now
+    show_offline_now()
   end
 end
 

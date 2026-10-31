@@ -630,7 +630,10 @@ function draw_settings()
             rv, v = ig.SliderDouble(ctx, label, CFG[e.key], e.min, e.max, e.fmt)
           end
           if rv then CFG[e.key] = v end
-          if ig.IsItemDeactivatedAfterEdit(ctx) then save_cfg_value(e) end
+          if ig.IsItemDeactivatedAfterEdit(ctx) then
+            save_cfg_value(e)
+            if e.key == 'lat_limit' or e.key == 'lat_rack_limit' then recheck_show_offline() end
+          end
         end
         if e.tip and ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, e.tip) end
       end

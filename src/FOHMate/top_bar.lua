@@ -84,8 +84,10 @@ function draw_fx_menu()
   ig.Separator(ctx)
   toggle_setting('Hide FX over the latency limit', 'hide_over', 'hideover',
     'Leaves out of the FX menus every FX whose known latency is over the per-FX limit\n(not the ones marked "Allow latency"). Follows the limit when it changes.')
-  toggle_setting('Take FX over the limit offline in Show mode', 'show_off', 'showoff',
-    'Switching to Show takes offline every FX over the per-FX limit, then the FX adding\nthe most latency until each rack is under the per-rack limit.\nBack to Edit brings them back online.')
+  if toggle_setting('Take FX over the limit offline in Show mode', 'show_off', 'showoff',
+       'Switching to Show takes offline every FX over the per-FX limit, then the FX adding\nthe most latency until each rack is under the per-rack limit.\nBack to Edit brings them back online.') then
+    recheck_show_offline()
+  end
 end
 
 function draw_latency_menu()
@@ -105,6 +107,7 @@ function draw_latency_menu()
        .. 'another reports the real figure. Estimated figures are marked * in the Plugin list.\n'
        .. 'Only alerts, limits and figures use it: REAPER\'s compensation is not changed.') then
     LAT = {}                          -- every rack is counted again right away
+    recheck_show_offline()
   end
   ig.Separator(ctx)
   local can = not SCAN.active and S.mode == 'edit'
