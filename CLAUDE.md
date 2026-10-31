@@ -35,5 +35,7 @@ language and keep them small.
 5. Bianca tests in REAPER; the script can't be run here. After a change, say exactly what to check
    and add it to `docs/TESTING.md` as a numbered open item. When Bianca reports results by number,
    tick the item, move it to Done and note what was found.
-6. Never run git push, merge, rebase or delete branches. Work on a branch, commit in small steps,
-   and say when it is ready to push.
+6. Never run git merge, rebase or delete branches. Never run git push on my own: only when Bianca
+   tells me to in that moment (a branch, or a release tag), and only what she named. Work on a branch,
+   commit in small steps, and say when it is ready to push. Bianca merges in GitHub Desktop, in the
+   same working copy: check `git branch --show-current` before every commit.
