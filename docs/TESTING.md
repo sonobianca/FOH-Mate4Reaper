@@ -6,6 +6,10 @@ New items get the next free number (next: 92).
 
 ## Open
 
+- [ ] 91. (0.14.0) Settings (Options > Settings...), Plugin list and Performance parameters: each opens next to the
+  Plugins Host window every time (also with REAPER on a second screen, or after moving the windows),
+  and none of them has a fold arrow any more.
+
 - [ ] 90. (0.14.0) Parameter rows (Performance mode). (a) Edit mode: the + at the end of a column
   opens "Performance parameters": rack > FX (name, (TYPE) in its color, "n of m in the Performance")
   > parameters (kind of value and current value). Folding works; click / Cmd-click / Shift-click
