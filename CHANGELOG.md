@@ -2,6 +2,12 @@
 
 Changes since the last public release, grouped by minor version (revisions are folded in).
 
+## 0.12
+
+- The code is split into modules: `FOHMate.lua` plus a `FOHMate` folder next to it holding the rest
+  (racks, sidechain, latency, menus...). Nothing changes on screen or in the sound; the code is just
+  easier to read and maintain. Installing and updating now means copying the file and the folder.
+
 ## 0.11
 
 - Key dots show the width of the key's source: a mono sidechain into a stereo FX is one dot, not two.
