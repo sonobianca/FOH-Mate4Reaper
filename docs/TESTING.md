@@ -6,12 +6,6 @@ New items get the next free number (next: 83).
 
 ## Open
 
-- [ ] 82. (0.13.3) Same gap everywhere: the space between racks, between rows, and between the top
-  bar and the first row look equal (about 17 px). Scrolling (many racks), dragging a rack (the drop
-  preview lands in the right cell), the window at different widths, and Settings > Layout > **Extra
-  space between racks** at 0 and 24 (gaps change together, the latency tag on a first-row rack stays
-  whole). Fewer racks fit per row than before: check the layout still looks right docked.
-
 - [ ] 81. (0.13.2) A rack over its latency limit (rack limit, so the whole frame flashes): the red
   frame is thicker and hides the rack's own colored frame completely, corners included, with the rack
   selected and not selected.
@@ -45,6 +39,9 @@ New items get the next free number (next: 83).
   restarting FOH-Mate.
 
 ## Done
+
+- [x] 82. (0.13.3) Same gap everywhere (between racks, between rows, under the top bar, about 17 px):
+  works.
 
 - [x] 76. (0.12.0) ReaPack install from the repository's index (first release through ReaPack): the
   repository imports, FOH-Mate installs, and the installed copy runs v0.12.0 with racks and settings:
