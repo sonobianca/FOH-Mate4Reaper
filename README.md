@@ -434,6 +434,14 @@ FOH-Mate keeps an eye on the latency each rack adds (every FX reports its own, i
   Settings and holds even if FOH-Mate is restarted); **Resume latency alerts** ends it early.
   **Latency > Latency alerts** switches them off completely. While silenced or off, the status bar says
   so and the **Latency** button turns red.
+- **Latency > Count every format at its highest latency** (off by default) is for plugins installed in
+  several formats (AU, VST3, VST...). Some formats, often AU, report 0 where another format reports the
+  real figure, so the watchdog would never see it. With this on, a plugin counts with the highest
+  latency any of its formats reports: in the alerts, the limits, the rack latency box, the FX menus and
+  Show mode. In the Plugin list such figures are marked **\***, and hovering one says where it comes
+  from. It is a warning only: REAPER's own compensation is not changed. The formats are matched on
+  name and developer (the type, spaces, a channel count like "(4ch)" and the developer's name inside the
+  plugin's name are ignored). **Allow latency** stays per format: allowing one says so first.
 - Alerts show in both Edit and Show mode. FX that are switched off or offline don't count: REAPER
   drops their latency from its compensation too.
 - **Which limit?** When an FX is over the per-FX limit, that FX flashes **!!** and the rack tag reads
@@ -499,6 +507,12 @@ range and fall speed, Level match time and gate, latency limits and silence time
 copy and move keys, how many recently used FX to show, corner rounding, and the
 dimensions of the racks (grouped under *Layout*). Changes apply immediately and are saved. Ctrl+click
 a slider to type a value. **Reset to defaults** restores everything.
+
+Most confirmation boxes (creating a rack by double-click, replacing or deleting one FX, an action on
+several selected racks, and some notes) have a **Don't show this again** checkbox; once ticked, the
+question is answered "yes" without asking. **Reset warning popups**, next to Reset to defaults, brings
+them all back. Boxes that delete a rack or a sidechain bus, reset the settings or start a latency scan
+always show.
 
 ---
 
