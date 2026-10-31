@@ -432,7 +432,8 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     local cw, ch = ig.GetWindowSize(ctx)
     local colw = RACK_W - 2 * PAD - 6 - PAD                -- width of a column of rows: room for the position bar (the gap left of it equals the gap right of it, 1 px + PAD)
     local grid = e > 0                                     -- widened (or moving): rows flow in columns
-    local f = 1 + e                                        -- widened, every row is twice as wide and tall, with bigger text and controls
+    local f = 1 + 0.5 * e                                  -- widened, every row is 1.5 times as wide and tall, with bigger text and controls
+    local pad = 12 * e                                     -- and room around each row, to let it breathe
     local rw = colw * f
     local pushed = push_bold(name_font, NAME_FONT_SIZE)
     local blh0 = ig.GetTextLineHeight(ctx)                 -- bold line height: a name may take two lines
@@ -441,7 +442,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     local rh0 = math.floor(2 * blh0 + 12)
     local rh = math.floor(rh0 * f)
     local gy = select(2, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
-    local pitch = rh + gy                                  -- from one row to the next (the gap is the same stacked or in columns)
+    local pitch = rh + gy + pad                                  -- from one row to the next (the gap is the same stacked or in columns)
     local n = math.floor(CFG.perf_demo_rows)
     local names = { 'Threshold', 'Ratio', 'Attack time', 'Low band crossover frequency', 'Output gain',
                     'Mix', 'High shelf frequency', 'Sidechain high-pass filter' }
@@ -449,8 +450,8 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     local mx_in = ig.IsWindowHovered(ctx)
     ig.Dummy(ctx, 1, 3)                                    -- room for the glow of the first row
     local ox, oy = ig.GetCursorScreenPos(ctx)
-    local step_x = rw + 4                                -- widened: from one column of rows to the next
-    local rpc = math.max(1, math.floor((ch - 3 - 8) / (2 * rh0 + gy))) -- rows per column when widened, as it fits at full size (8: the sideways bar)
+    local step_x = rw + 4 + 2 * pad                                -- widened: from one column of rows to the next
+    local rpc = math.max(1, math.floor((ch - 3 - 8 - 12) / (math.floor(rh0 * 1.5) + gy + 12))) -- rows per column when widened, as it fits at full size (rows 1.5 times as tall, 12 px of room) (8: the sideways bar)
     if grid then
       if ig.GetScrollY(ctx) ~= 0 then ig.SetScrollY(ctx, 0) end
       if mx_in then                                        -- the wheel moves sideways here too
@@ -467,7 +468,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     for k = 1, n do
       local rx, ry
       if grid then
-        rx, ry = ox + math.floor((k - 1) / rpc) * step_x, oy + ((k - 1) % rpc) * pitch
+        rx, ry = ox + pad + math.floor((k - 1) / rpc) * step_x, oy + pad + ((k - 1) % rpc) * pitch
       else
         rx, ry = ig.GetCursorScreenPos(ctx)
       end
@@ -528,7 +529,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     -- (opens the parameter dialog in the next version). Only the circle and the + light up.
     local px, py
     if grid then
-      px, py = ox + math.floor(n / rpc) * step_x, oy + (n % rpc) * pitch
+      px, py = ox + pad + math.floor(n / rpc) * step_x, oy + pad + (n % rpc) * pitch
     else
       px, py = ig.GetCursorScreenPos(ctx)
     end
@@ -545,7 +546,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     if hov then ig.SetTooltip(ctx, 'Add a parameter (coming in the next version)') end
     if grid then                                           -- the area the columns take, for the sideways scroll
       ig.SetCursorScreenPos(ctx, ox, oy)
-      ig.Dummy(ctx, math.ceil((n + 1) / rpc) * step_x, rpc * pitch)
+      ig.Dummy(ctx, math.ceil((n + 1) / rpc) * step_x + pad, rpc * pitch + pad)
     else
       ig.Dummy(ctx, 1, 3)
     end
