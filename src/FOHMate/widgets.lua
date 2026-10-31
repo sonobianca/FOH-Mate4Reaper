@@ -404,7 +404,7 @@ function enc_mark(dl, cx, cy, r, ang, col, s)
 end
 
 -- o: body (fill), col (ring and min/max marks, the encoder's color), ptr (pointer or arc color),
---    s (scale), style ('line' pointer, or 'arc' for a range or width: an arc inside the encoder),
+--    s (scale), style ('line' pointer, or 'band' for a width: a band centered at the top, wider with the value),
 --    steps (n values: stepped, with a mark per value), def (default position 0..1, yellow mark),
 --    static (draw only, no mouse).
 -- Returns the new position 0..1 when the user changed it.
@@ -457,11 +457,12 @@ function draw_encoder(id, cx, cy, r, norm, o)
   end
   if o.def then enc_mark(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * o.def, ENC_DEFAULT_COL, s) end
   local ang = ENC_A0 + (ENC_A1 - ENC_A0) * v
-  if o.style == 'arc' then
-    if v > 0.005 then
-      ig.DrawList_PathArcTo(dl, cx, cy, r - 4 * s, ENC_A0, ang)
-      ig.DrawList_PathStroke(dl, o.ptr, 0, 3.5 * s)
-    end
+  if o.style == 'band' then
+    -- a width: a band centered at the top, as thin as it can be at the minimum and reaching from the
+    -- minimum mark to the maximum mark at the maximum
+    local mid, half = (ENC_A0 + ENC_A1) / 2, math.max(math.rad(1.5), (ENC_A1 - ENC_A0) / 2 * v)
+    ig.DrawList_PathArcTo(dl, cx, cy, r - 4 * s, mid - half, mid + half)
+    ig.DrawList_PathStroke(dl, o.ptr, 0, 3.5 * s)
   else
     ig.DrawList_AddLine(dl, cx + math.cos(ang) * r * 0.3, cy + math.sin(ang) * r * 0.3,
                         cx + math.cos(ang) * r * 0.85, cy + math.sin(ang) * r * 0.85, o.ptr, 3 * s)

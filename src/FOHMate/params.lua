@@ -81,22 +81,65 @@ function param_vtext(txt, norm)
   return ('%d%%'):format(math.floor(norm * 100 + 0.5))
 end
 
--- What control a parameter gets, from what REAPER says about it (found once, then kept):
+-- What control a parameter gets. REAPER says little about a parameter (its range, its step, whether
+-- it is a toggle, how it prints a value), so FOH-Mate guesses from that and from the name, and the
+-- guess can be corrected by hand: right-click a row in Edit mode. The corrections are kept in
+-- Data/FOHMate/param_controls.txt (for every project), together with what REAPER said about the
+-- parameter, so the guesses can be improved from them.
 --   toggle: on/off, or two values   list: a few named values (a drop-down)   steps: a few numeric
---   values (a stepped encoder)      arc: a range or a width (the encoder shows an arc)   knob: the rest
--- r: { guid, idx, pname }. Returns { kind, steps, items, label }.
+--   values (a stepped encoder)      band: a width or a range (a band centered at the top of the encoder)
+--   knob: a smooth encoder
+PARAM_OVR      = nil
+PARAM_OVR_FILE = LATDB_DIR .. '/param_controls.txt'
+PARAM_KIND_LABEL = { toggle = 'on/off', list = 'list', steps = 'steps', band = 'width', knob = 'continuous' }
+
+-- the plug-in's name without its type, the way the corrections are filed
+function param_plugin_key(fxname)
+  return (fx_name_type(fxname))
+end
+
+function param_ovr_load()
+  PARAM_OVR = {}
+  for _, ln in ipairs(read_lines(PARAM_OVR_FILE)) do
+    local f = {}
+    for x in (ln .. '\t'):gmatch('([^\t]*)\t') do f[#f + 1] = x end
+    if f[1] and f[2] and f[3] and f[3] ~= '' then PARAM_OVR[f[1] .. '\t' .. f[2]] = { kind = f[3], line = ln } end
+  end
+end
+
+function param_ovr_save()
+  local t = {}
+  for _, o in pairs(PARAM_OVR) do t[#t + 1] = o.line end
+  table.sort(t)
+  write_lines(PARAM_OVR_FILE, t)
+end
+
+-- what REAPER says about a parameter
+function param_facts(tr, fxi, idx)
+  local ok, step, _, _, istoggle = reaper.TrackFX_GetParameterStepSizes(tr, fxi, idx)
+  local _, mn, mx = reaper.TrackFX_GetParamEx(tr, fxi, idx)
+  local _, t0 = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, idx, 0, '')
+  local _, t1 = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, idx, 1, '')
+  return { ok = ok, step = step, toggle = ok and istoggle, min = mn, max = mx, t0 = t0, t1 = t1 }
+end
+
 function param_kind(tr, fxi, r)
   local key = r.guid .. ':' .. r.idx .. ':' .. (r.pname or '')
   local k = PARAM_KIND[key]
   if k then return k end
-  k = { kind = 'knob', label = 'continuous' }
+  if not PARAM_OVR then param_ovr_load() end
+
+  -- how many values there are, when there are few (the step is in the parameter's own units)
   local ok, step, _, _, istoggle = reaper.TrackFX_GetParameterStepSizes(tr, fxi, r.idx)
+  local _, mn, mx = reaper.TrackFX_GetParamEx(tr, fxi, r.idx)
   local n
-  if ok and step and step > 0 then n = math.floor(1 / step + 0.5) + 1 end
-  if ok and istoggle or n == 2 then
-    k.kind, k.label = 'toggle', 'on/off'
-  elseif n and n >= 3 and n <= 32 then
-    local items, numeric = {}, true
+  if ok and step and step > 0 and mn and mx and mx > mn then
+    local cnt = (mx - mn) / step
+    if cnt <= 31.5 then n = math.floor(cnt + 0.5) + 1 end
+  end
+  local items, numeric
+  if n and n >= 2 then
+    items, numeric = {}, true
     for i = 0, n - 1 do
       local v = i / (n - 1)
       local _, txt = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, r.idx, v, '')
@@ -104,18 +147,53 @@ function param_kind(tr, fxi, r)
       items[#items + 1] = { label = txt, norm = v }
       if not tonumber((txt:match('^%s*([%-%+]?[%d%.]+)'))) then numeric = false end
     end
+  end
+
+  -- the guess
+  local low = (r.pname or ''):lower()
+  local guess = 'knob'
+  if (ok and istoggle) or n == 2 or low:find('bypass', 1, true) or low:find('^enable') or low:find('on/off', 1, true)
+     or low:find('^mute') or low == 'on' or low:find('^power') then
+    guess = 'toggle'
+  elseif n and n >= 3 then
+    guess = numeric and 'steps' or 'list'
+  elseif low:find('width', 1, true) or low:find('range', 1, true) or low:find('spread', 1, true)
+         or low:find('knee', 1, true) or low == 'q' or low:find('^q[%s%-_]') or low:find('[%s%-_]q$') then
+    guess = 'band'
+  end
+
+  -- a correction made by hand wins (a list or steps needs the values to be known)
+  local kind, overridden = guess, false
+  local ovr = PARAM_OVR[param_plugin_key((reaper.TrackFX_GetFXName(tr, fxi, ''))) .. '\t' .. (r.pname or '')]
+  if ovr and PARAM_KIND_LABEL[ovr.kind] then
+    kind, overridden = ovr.kind, true
+    if (kind == 'steps' or kind == 'list') and not items then kind = 'knob' end
+  end
+  k = { kind = kind, guess = guess, overridden = overridden, label = PARAM_KIND_LABEL[kind] }
+  if kind == 'steps' or kind == 'list' then
     k.steps, k.items = n, items
-    if numeric then k.kind, k.label = 'steps', ('%d steps'):format(n)
-    else k.kind, k.label = 'list', ('list of %d'):format(n) end
-  else
-    local low = (r.pname or ''):lower()
-    if low:find('width', 1, true) or low:find('range', 1, true) or low:find('spread', 1, true)
-       or low == 'q' or low:find('^q[%s%-_]') or low:find('[%s%-_]q$') then
-      k.kind, k.label = 'arc', 'range'
-    end
+    k.label = ('%s of %d'):format(kind == 'steps' and 'steps' or 'list', n)
   end
   PARAM_KIND[key] = k
   return k
+end
+
+-- Sets (or, with kind = nil, clears) the correction for a parameter and files what REAPER said about it.
+function param_set_override(tr, fxi, r, kind)
+  if not PARAM_OVR then param_ovr_load() end
+  local plug = param_plugin_key((reaper.TrackFX_GetFXName(tr, fxi, '')))
+  local key = plug .. '\t' .. (r.pname or '')
+  if kind then
+    local guess = param_kind(tr, fxi, r).guess
+    local f = param_facts(tr, fxi, r.idx)
+    PARAM_OVR[key] = { kind = kind, line = table.concat({
+      plug, r.pname or '', kind, guess, tostring(f.min), tostring(f.max), tostring(f.step),
+      tostring(f.toggle), f.t0 or '', f.t1 or '' }, '\t') }
+  else
+    PARAM_OVR[key] = nil
+  end
+  PARAM_KIND[r.guid .. ':' .. r.idx .. ':' .. (r.pname or '')] = nil
+  param_ovr_save()
 end
 
 ---------------------------------------------------------------- the parameter window (Edit mode)
@@ -259,7 +337,7 @@ function draw_param_picker()
           local flags = ig.TreeNodeFlags_OpenOnArrow() | ig.TreeNodeFlags_SpanAvailWidth()
           if P.sel[pkey] then flags = flags | ig.TreeNodeFlags_Selected() end
           order[#order + 1] = pkey
-          local opened = ig.TreeNodeEx(ctx, '##' .. pkey, flags)
+          local opened = ig.TreeNodeEx(ctx, pkey, '', flags)
           local x1, y1 = ig.GetItemRectMin(ctx)
           if ig.IsItemClicked(ctx, 0) and not ig.IsItemToggledOpen(ctx) then
             click(pkey, has_mod('shift'), has_mod('ctrl'))

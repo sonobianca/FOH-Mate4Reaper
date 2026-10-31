@@ -504,6 +504,10 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         -- hover: the whole row (name box and control) glows
         local over = mx_in and mouse_in(rx, ry, rx + rw2, ry + rh)
         if over and ig.IsMouseClicked(ctx, 0) then ps.last = k end   -- the row touched last
+        if over and ig.IsMouseClicked(ctx, 1) and not is_locked() then      -- Edit mode: the row's menu
+          PARAM_MENU_ROW = k
+          ig.OpenPopup(ctx, 'prm_menu')
+        end
         if over then
           local base = T.glow & 0xFFFFFF00
           for i = 1, 3 do
@@ -550,7 +554,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           newv = draw_dropdown('k' .. k, kcx, kcy, kr, norm, kind.items, { body = c.sec_bg, col = c.border, ptr = T.dots, s = f })
         else
           newv = draw_encoder('k' .. k, kcx, kcy, kr, norm, { body = c.sec_bg, col = c.border, ptr = T.dots, s = f,
-                              style = kind.kind == 'arc' and 'arc' or 'line', steps = kind.steps, def = r.def })
+                              style = kind.kind == 'band' and 'band' or 'line', steps = kind.steps, def = r.def })
         end
         if newv then
           reaper.TrackFX_SetParamNormalized(tr, fxi, r.idx, newv)
@@ -591,6 +595,24 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
       ig.DrawList_AddLine(dl, pcx - pl, pcy, pcx + pl, pcy, pcol, hov and 3 or 2)
       ig.DrawList_AddLine(dl, pcx, pcy - pl, pcx, pcy + pl, pcol, hov and 3 or 2)
       if hov then ig.SetTooltip(ctx, 'Add or remove parameters') end
+    end
+    if ig.BeginPopup(ctx, 'prm_menu') then                  -- right-click on a row (Edit mode): its control, or remove it
+      local mr = rows[PARAM_MENU_ROW or 0]
+      local mfx = mr and gmap[mr.guid]
+      if mr and mfx then
+        local mk = param_kind(tr, mfx, mr)
+        ig.TextDisabled(ctx, 'Control for this parameter')
+        local opts = { { nil, 'Automatic' }, { 'knob', 'Encoder (smooth)' }, { 'band', 'Encoder with a width band' },
+                       { 'steps', 'Stepped encoder' }, { 'toggle', 'Toggle' }, { 'list', 'Drop-down' } }
+        for _, o in ipairs(opts) do
+          local on = (o[1] == nil and not mk.overridden) or (o[1] ~= nil and mk.overridden and mk.kind == o[1])
+          local label = o[2] .. ((o[1] == nil) and (' (now: ' .. PARAM_KIND_LABEL[mk.guess] .. ')') or '')
+          if ig.MenuItem(ctx, label, nil, on) then param_set_override(tr, mfx, mr, o[1]) end
+        end
+        ig.Separator(ctx)
+      end
+      if ig.MenuItem(ctx, 'Remove this row') and PARAM_MENU_ROW then params_remove(tr, PARAM_MENU_ROW) end
+      ig.EndPopup(ctx)
     end
     if grid then                                           -- the area the columns take, for the sideways scroll
       ig.SetCursorScreenPos(ctx, ox, oy)
