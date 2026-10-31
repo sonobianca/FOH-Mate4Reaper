@@ -2,6 +2,39 @@
 
 Accepted ideas. Nothing here is started unless noted. New ideas get added as they come up.
 
+## 0.12 plan
+Order: the modular refactor first, on its own branch, then the two features.
+- **Modular code.** The script split into modules so it is cleaner and easier to maintain. No
+  performance cost (modules load once at start). This lifts hard constraint 2 (one file): decided by
+  Bianca, CLAUDE.md and the install notes must be updated when it is done. Installed and updated with
+  ReaPack (index in the GitHub repo). The main file keeps its name, so existing actions, toolbar
+  buttons and shortcuts keep working.
+- **Latency mismatch safety option.** Opt-in setting: a plugin installed in several formats (AU, VST3)
+  counts with the highest latency reported by any of its formats, for alerts, limits and display
+  only. Estimated values marked in the Plugin list. REAPER's own compensation is not touched. Needs
+  name + developer matching across formats. See the AU vs VST3 open question below.
+- **Performance mode.** Bianca's description:
+  - Racks in a single row, scrolling left to right. The FX part of each rack (the boxes we already
+    have) lines up at the top of the screen.
+  - Below each rack, a parameter section in the same visual style. Each row is one parameter of any
+    FX, with its control, usable in both Show and Edit mode.
+  - There is always one empty row at the end of the list, with a + in a circle; clicking it opens a
+    dialog to pick an FX parameter.
+  - The control fits the parameter when REAPER can tell: on/off, a drop-down for a few fixed
+    values, a rotary knob for continuous values (lighter on screen; switchable to a slider per row,
+    and the default may be swapped to slider after trying it). Plugins that report nothing about
+    their steps get the continuous control.
+  - Rows are removed and reordered in Edit mode only, never in Show mode.
+  - Deleting an FX deletes its parameter rows too; the delete confirmation says so.
+  - Rows are saved with the project, on the rack.
+  - The name defaults to what the plugin reports, and can be renamed by the user.
+  - Color: the rack's color by default, changeable from a drop-down.
+  - Rows alternate sides (row 1 name left, control right; row 2 control left, name right), so a
+    control is harder to hit by mistake.
+  - Replaces the "Performance Panel" idea under Advanced view mode below; MIDI mapping stays a
+    later step.
+- Translations: dropped for now.
+
 ## Advanced view mode
 - Basic stays the default; the mode is saved per project.
 - Overview row of racks with small controls for exposed parameters.
