@@ -641,13 +641,16 @@ function perf_keys()
   return PERF_KEYS
 end
 
--- the last time the user did something: moved or clicked the mouse, used the wheel, pressed a key.
--- Keys are only looked at while an FX section is open, and every third frame.
+-- the last time the user did something in REAPER: moved the mouse (anywhere on screen, not only
+-- over this window), clicked, used the wheel, or pressed a key while this window has the focus.
+-- With the js_ReaScriptAPI extension installed, clicks anywhere count too. Keys are only looked
+-- at while a section is open, and every third frame.
 function perf_activity(now, any_open)
-  local mx, my = ig.GetMousePos(ctx)
+  local mx, my = reaper.GetMousePosition()                 -- the whole screen, so REAPER's other windows count
   local wv, wh = ig.GetMouseWheel(ctx)
   if mx ~= PERF_MX or my ~= PERF_MY or wv ~= 0 or wh ~= 0
-     or ig.IsMouseDown(ctx, 0) or ig.IsMouseDown(ctx, 1) then
+     or ig.IsMouseDown(ctx, 0) or ig.IsMouseDown(ctx, 1)
+     or (reaper.JS_Mouse_GetState and reaper.JS_Mouse_GetState(3) ~= 0) then
     PERF_ACT = now
   end
   PERF_MX, PERF_MY = mx, my
