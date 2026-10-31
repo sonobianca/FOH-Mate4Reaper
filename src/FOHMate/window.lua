@@ -445,6 +445,11 @@ function draw_perf_column(inf, x, y, w, h, M)
     if hov then ig.SetTooltip(ctx, 'Add a parameter (coming in the next version)') end
     ig.Dummy(ctx, 1, 3)
 
+    -- a bypassed rack: its parameters are greyed out too (still usable)
+    if inf.bypassed then
+      ig.DrawList_AddRectFilled(dl, cx, cy, cx + cw, cy + ch, (c.bg & 0xFFFFFF00) | 0x99, 0)
+    end
+
     -- fade at the edges and the position bar
     local sy, smax = ig.GetScrollY(ctx), ig.GetScrollMaxY(ctx)
     if smax > 1 then

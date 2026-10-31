@@ -92,6 +92,13 @@ function contrast_glow(tr)
   return (r << 24) | (g << 16) | (b << 8) | 0xFF
 end
 
+-- a button that stays lit in col, also under the pointer and while pressed (pop it with PopStyleColor(ctx, 3))
+function push_lit(col)
+  ig.PushStyleColor(ctx, ig.Col_Button(), col)
+  ig.PushStyleColor(ctx, ig.Col_ButtonHovered(), mix(col, WHITE, 0.2))
+  ig.PushStyleColor(ctx, ig.Col_ButtonActive(), mix(col, BLACK, 0.2))
+end
+
 -- a round "radio" checkbox: ring with a dot inside when on
 function circle_check(dl, id, x, y, d, checked)
   ig.SetCursorScreenPos(ctx, x, y)
@@ -271,12 +278,12 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
     ig.PushID(ctx, guid)
     local fs = perf_fold_state(guid)
     local hy = y0 + vh - PAD - HANDLE_H
-    ig.SetCursorScreenPos(ctx, x0 + RACK_W / 2 - 40, hy)
-    if ig.InvisibleButton(ctx, 'fold', 80, HANDLE_H) then
+    ig.SetCursorScreenPos(ctx, x0 + 2, hy)
+    if ig.InvisibleButton(ctx, 'fold', RACK_W - 4, HANDLE_H + PAD - 2) then
       fs.open = not fs.open
       PERF_ACT = now
     end
-    handle = { hov = ig.IsItemHovered(ctx), open = fs.open, y = hy + HANDLE_H / 2 }
+    handle = { hov = ig.IsItemHovered(ctx), open = fs.open, y = hy + HANDLE_H / 2 + 6 }   -- nearer the bottom edge than the name
     if handle.hov then ig.SetTooltip(ctx, fs.open and 'Fold the FX section' or 'Show the FX section') end
     hint_hovered('Click: show or fold the FX section of this rack')
     ig.PopID(ctx)
@@ -432,17 +439,17 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
     local bx_m = bx_b - spx - mb_w
     local muted_now = reaper.GetMediaTrackInfo_Value(tr, 'B_MUTE') == 1
     ig.SetCursorScreenPos(ctx, bx_m, name_y)
-    if muted_now then ig.PushStyleColor(ctx, ig.Col_Button(), T.mute) end
+    if muted_now then push_lit(T.mute) end
     if ig.Button(ctx, 'M##mute_s', mb_w, NH) then
       reaper.SetMediaTrackInfo_Value(tr, 'B_MUTE', muted_now and 0 or 1)
     end
-    if muted_now then ig.PopStyleColor(ctx) end
+    if muted_now then ig.PopStyleColor(ctx, 3) end
     if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Mute') end
     hint_hovered('Click: mute the rack')
     ig.SetCursorScreenPos(ctx, bx_b, name_y)
-    if bypassed then ig.PushStyleColor(ctx, ig.Col_Button(), T.byp) end
+    if bypassed then push_lit(T.byp) end
     if ig.Button(ctx, 'B##byp_s', mb_w, NH) then set_bypass(tr, not bypassed) end
-    if bypassed then ig.PopStyleColor(ctx) end
+    if bypassed then ig.PopStyleColor(ctx, 3) end
     if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Bypass') end
     hint_hovered('Click: bypass the whole rack (FX that were off stay off when it comes back)')
   end
@@ -804,19 +811,19 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
   if not compact then
     local hw = (WW - spx) / 2
     ig.SetCursorScreenPos(ctx, wx, btn_y)
-    if bypassed then ig.PushStyleColor(ctx, ig.Col_Button(), T.byp) end
+    if bypassed then push_lit(T.byp) end
     if ig.Button(ctx, 'BYPASS##byp', hw, M.btn_h) then set_bypass(tr, not bypassed) end
     hint_hovered('Click: bypass the whole rack (FX that were off stay off when it comes back)')
-    if bypassed then ig.PopStyleColor(ctx) end
+    if bypassed then ig.PopStyleColor(ctx, 3) end
 
     ig.SetCursorScreenPos(ctx, wx + hw + spx, btn_y)
     local muted = reaper.GetMediaTrackInfo_Value(tr, 'B_MUTE') == 1
-    if muted then ig.PushStyleColor(ctx, ig.Col_Button(), T.mute) end
+    if muted then push_lit(T.mute) end
     if ig.Button(ctx, 'MUTE##mute', hw, M.btn_h) then
       reaper.SetMediaTrackInfo_Value(tr, 'B_MUTE', muted and 0 or 1)
     end
     hint_hovered('Click: mute the rack')
-    if muted then ig.PopStyleColor(ctx) end
+    if muted then ig.PopStyleColor(ctx, 3) end
   end
 
   ------------------------------------------------ meters: from under the name to the bottom of the buttons
@@ -886,8 +893,8 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
     local hx = x0 + RACK_W / 2
     local hcol = (c.name_txt & 0xFFFFFF00) | (handle.hov and 0xFF or 0xA0)
     local dir = handle.open and -3 or 3
-    ig.DrawList_AddLine(dl, hx - 8, handle.y - dir * 0.5, hx, handle.y + dir * 0.5, hcol, 2.5)
-    ig.DrawList_AddLine(dl, hx, handle.y + dir * 0.5, hx + 8, handle.y - dir * 0.5, hcol, 2.5)
+    ig.DrawList_AddLine(dl, hx - 12, handle.y - dir * 0.5, hx, handle.y + dir * 0.5, hcol, 2.5)
+    ig.DrawList_AddLine(dl, hx, handle.y + dir * 0.5, hx + 12, handle.y - dir * 0.5, hcol, 2.5)
   end
 
   -- latency watchdog: flashing tag on the rack's top border

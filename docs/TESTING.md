@@ -27,9 +27,11 @@ New items get the next free number (next: 87).
   a. Switching to Show mode: every rack shrinks to its name box with M and B (rounded rectangles as
      tall as the name box) on the right and a handle (chevron) at the bottom of the rack; the columns
      move up. Nothing of the FX section peeks out under the name.
-  b. M mutes, B bypasses (they light up like MUTE/BYPASS in the full rack); the name still selects the
+  b. M mutes, B bypasses (they stay lit orange/red, also under the pointer; bypass greys out the
+     rack's whole column too); the name still selects the
      rack on click and drags to reorder.
-  c. Click the handle (it sits at the bottom of the rack and moves with it): that rack's FX section opens with a short smooth animation, the meters beside
+  c. Click anywhere along the bottom edge of the rack, under the FX (the chevron is nearer the bottom
+     edge than the name, and wider; the whole width is the click zone and lights the chevron): that rack's FX section opens with a short smooth animation, the meters beside
      it, and only that rack's column moves down. Click again: it folds back.
   d. Leave the mouse alone for 15 s (no click, no key): every open rack folds back. Moving the mouse,
      clicking or pressing a key restarts the 15 s. **Settings > Performance mode > Fold the FX section
