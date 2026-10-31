@@ -316,7 +316,7 @@ function draw_vtext(dl, text, bx, by, bw, bh, col, ccw)
   local units = 0
   for i = 1, #text do units = units + ((text:sub(i, i) == ' ') and 3 or 7) end
   units = units - 2
-  local s = math.min(1.5, (bh - 8) / units, (bw - 6) / 8)
+  local s = math.min(1.15, (bh - 12) / units, (bw - 6) / 8)      -- a bit smaller than the box allows
   if s <= 0 then return end
   local len, thick = units * s, 8 * s
   local cx, cy = bx + bw / 2, by + bh / 2

@@ -37,6 +37,10 @@ An optional view, switched on and off with a toggle. Edit and Show keep working 
   per row from a drop-down.
 - **Row look:** the name in bold in its own box (two lines allowed), the control outside the box,
   rows taller for that, the whole row (control included) glows under the pointer.
+- **Value box:** a small vertical box between the control and the name shows the parameter's value
+  as text, turned a quarter turn (counterclockwise with the control on the left, clockwise on the
+  right). Later: double-click the value to type one in; in Edit mode, double-click the name to rename
+  the parameter.
 - **Always one empty row** at the end with a + in a circle: it opens a dialog to pick a parameter.
 - **Edit mode only:** add, remove, reorder, rename, recolor, combine. Show mode only moves the controls.
 - **Deleting an FX** deletes its rows; the delete confirmation says so.
