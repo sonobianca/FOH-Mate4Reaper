@@ -405,7 +405,7 @@ end
 
 -- o: body (fill), col (ring and min/max marks, the encoder's color), ptr (pointer or arc color),
 --    s (scale), style ('line' pointer, or 'band' for a width: a band centered at the top, wider with the value),
---    steps (n values: stepped, with a mark per value), def (default position 0..1, yellow mark),
+--    steps (n values: stepped, with a mark per value), marks (positions 0..1 of extra marks, like a fader's), def (default position 0..1, yellow mark),
 --    static (draw only, no mouse).
 -- Returns the new position 0..1 when the user changed it.
 function draw_encoder(id, cx, cy, r, norm, o)
@@ -454,6 +454,9 @@ function draw_encoder(id, cx, cy, r, norm, o)
   enc_mark(dl, cx, cy, r, ENC_A1, o.col, s)
   if o.steps and o.steps > 2 then
     for i = 1, o.steps - 2 do enc_mark(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * i / (o.steps - 1), o.col, 0.6 * s) end
+  end
+  if o.marks then
+    for _, m in ipairs(o.marks) do enc_mark(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * m, o.col, 0.75 * s) end
   end
   if o.def then enc_mark(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * o.def, ENC_DEFAULT_COL, s) end
   local ang = ENC_A0 + (ENC_A1 - ENC_A0) * v

@@ -123,6 +123,36 @@ function param_facts(tr, fxi, idx)
   return { ok = ok, step = step, toggle = ok and istoggle, min = mn, max = mx, t0 = t0, t1 = t1 }
 end
 
+-- A parameter that is in dB gets the marks of a fader instead of one per step: where -60, -30, -10,
+-- -5, 0 and +5 dB lie on it. REAPER can only say what text a position prints, so the parameter is
+-- sampled at 41 positions (once) and the positions of those dB values are worked out from that.
+-- Returns a list of positions 0..1, or nil when the parameter is not in dB.
+FADER_DB = { -60, -30, -10, -5, 0, 5 }
+
+function param_db_marks(tr, fxi, idx)
+  local pts, is_db = {}, false
+  for i = 0, 40 do
+    local v = i / 40
+    local _, txt = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, idx, v, '')
+    if txt:lower():find('db', 1, true) then is_db = true end
+    local num = tonumber((txt:match('^%s*([%-%+]?%d+%.?%d*)')))
+    if num then pts[#pts + 1] = { v, num } end
+  end
+  if not is_db or #pts < 2 then return nil end
+  local marks = {}
+  for _, target in ipairs(FADER_DB) do
+    for i = 1, #pts - 1 do
+      local a, b = pts[i], pts[i + 1]
+      if (a[2] - target) * (b[2] - target) <= 0 and a[2] ~= b[2] then
+        local v = a[1] + (b[1] - a[1]) * (target - a[2]) / (b[2] - a[2])
+        if v > 0.02 and v < 0.98 then marks[#marks + 1] = v end
+        break
+      end
+    end
+  end
+  return marks
+end
+
 function param_kind(tr, fxi, r)
   local key = r.guid .. ':' .. r.idx .. ':' .. (r.pname or '')
   local k = PARAM_KIND[key]
@@ -162,6 +192,13 @@ function param_kind(tr, fxi, r)
     guess = 'band'
   end
 
+  -- in dB: a smooth encoder with the marks of a fader, never one mark per step
+  local marks
+  if guess == 'steps' or guess == 'knob' or guess == 'band' then
+    marks = param_db_marks(tr, fxi, r.idx)
+    if marks and guess == 'steps' then guess = 'knob' end
+  end
+
   -- a correction made by hand wins (a list or steps needs the values to be known)
   local kind, overridden = guess, false
   local ovr = PARAM_OVR[param_plugin_key((reaper.TrackFX_GetFXName(tr, fxi, ''))) .. '\t' .. (r.pname or '')]
@@ -169,8 +206,8 @@ function param_kind(tr, fxi, r)
     kind, overridden = ovr.kind, true
     if (kind == 'steps' or kind == 'list') and not items then kind = 'knob' end
   end
-  k = { kind = kind, guess = guess, overridden = overridden, label = PARAM_KIND_LABEL[kind] }
-  if kind == 'steps' or kind == 'list' then
+  k = { kind = kind, guess = guess, overridden = overridden, label = PARAM_KIND_LABEL[kind], marks = marks }
+  if (kind == 'steps' or kind == 'list') and items then
     k.steps, k.items = n, items
     k.label = ('%s of %d'):format(kind == 'steps' and 'steps' or 'list', n)
   end

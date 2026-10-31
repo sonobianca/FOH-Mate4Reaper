@@ -20,7 +20,7 @@ Changes since the last public release, grouped by minor version (revisions are f
   check mark. A row shows the plug-in's name for it, its real value in the vertical box and a
   control that fits the parameter: a **rotary encoder** (7:30 = minimum, 4:30 = maximum, with small
   arrows for min, max and the default, which is yellow; a band centered at the top for a width (as thin as possible at the minimum, reaching from the minimum mark to the maximum mark at the maximum: bandwidth, stereo width, knee); marks for each value
-  when there are only a few), a **toggle** (a circle) or a **drop-down** (a circle with an arrow). The default
+  when there are only a few; a parameter in dB gets a fader's marks instead: -60, -30, -10, -5, 0 and +5 dB where they fall), a **toggle** (a circle) or a **drop-down** (a circle with an arrow). The default
   is the value the parameter had when it was added; double-click an encoder to go back to it. **Settings > Controls >
   Rotary encoder** picks how it turns: up and down (finer the farther the pointer is to the side) or around the
   encoder. FOH-Mate guesses which control a parameter gets; in Edit mode, right-click a row to correct it (encoder, width band, stepped, toggle, drop-down, or automatic). Corrections are kept for every project in Data/FOHMate/param_controls.txt, with what REAPER said about the parameter, so the guesses can be improved from them. Rows are saved on the rack; one whose FX is gone is greyed out. In Performance mode the

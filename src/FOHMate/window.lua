@@ -554,7 +554,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           newv = draw_dropdown('k' .. k, kcx, kcy, kr, norm, kind.items, { body = c.sec_bg, col = c.border, ptr = T.dots, s = f })
         else
           newv = draw_encoder('k' .. k, kcx, kcy, kr, norm, { body = c.sec_bg, col = c.border, ptr = T.dots, s = f,
-                              style = kind.kind == 'band' and 'band' or 'line', steps = kind.steps, def = r.def })
+                              style = kind.kind == 'band' and 'band' or 'line', steps = kind.steps, marks = kind.marks, def = r.def })
         end
         if newv then
           reaper.TrackFX_SetParamNormalized(tr, fxi, r.idx, newv)
