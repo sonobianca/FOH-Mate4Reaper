@@ -2,46 +2,32 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 83).
+New items get the next free number (next: 84).
 
 ## Open
 
-- [ ] 81. (0.13.2) A rack over its latency limit (rack limit, so the whole frame flashes): the red
-  frame is thicker and hides the rack's own colored frame completely, corners included, with the rack
-  selected and not selected.
-
-- [ ] 80. (0.13.1) The flashing "!! RACK ... ms" / "!! FX" tag on a rack of the first row shows whole
-  (nothing cut off at the top). The racks sit a few pixels lower than before; selection glow and
-  dragging racks unchanged.
-
-- [ ] 79. (0.13.0) Show mode re-check. Checked by Claude in REAPER: with an FX over the limit, in Show
-  mode, ticking FX > **Take FX over the limit offline in Show mode** takes it offline right away
-  (strike-through, "1 FX taken offline for latency"); back to Edit brings it online; Edit -> Show with
-  the option on takes it offline too. Left for Bianca: in Show, raise the per-FX limit above the FX's
-  latency, then lower it again: the FX goes offline; and turning **Count every format...** on in Show
-  with an AU that really stays at 0 (not bx_limiter: see the note below). A re-check that finds
-  nothing leaves no extra step in Edit > Undo.
-  Note: the AU of bx_limiter reports its real 304 samples once it has been loaded for a moment; the 0
-  in the latency list comes from the scan reading it too early (like Spec Craft, items 16-19).
-
-- [ ] 78. (0.13.0) Latency > **Count every format at its highest latency** (off at first). Turn it on.
-  Plugin list, AU of bx_limiter: Latency shows `304*`, hover says the VST3 reports 304; with a per-FX
-  limit under 304 its name turns red. A rack with the AU bx_limiter: rack latency box and FX hover show
-  304 "(estimated from VST3)", the watchdog alerts. Turn the option off: back to 0, no alert. Plugin
-  list Allowed on the AU: a note says only the AU is allowed and lists the VST3 (has "Don't show this
-  again"); Allow ticks it, Cancel doesn't. With the option off, no note.
-
-- [ ] 77. (0.13.0) "Don't show this again". Double-click empty space: the "Create a new rack?" box has
-  the checkbox (tooltip explains it); tick it and Create; double-click again: a rack is created with no
-  box. Same idea with Delete FX... and Replace FX on one FX. **Delete rack**, **Reset to defaults** and
-  **Scan... for latency** still show with no checkbox. Settings: **Reset warning popups** (next to Reset
-  to defaults) says how many come back; double-click asks again. Hidden popups stay hidden after
-  restarting FOH-Mate.
+- [ ] 83. (0.13.3) Update through ReaPack, after the `v0.13.3` tag is pushed: Extensions > ReaPack >
+  Synchronize packages offers FOH-Mate 0.13.3; apply it; the ReaPack copy of FOH-Mate runs v0.13.3 and
+  everything works as in the repo copy (the 22 module files updated, nothing left from 0.12.0).
 
 ## Done
 
 - [x] 82. (0.13.3) Same gap everywhere (between racks, between rows, under the top bar, about 17 px):
   works.
+- [x] 81. (0.13.2) A rack over its rack latency limit: the thicker red frame hides the rack's own
+  frame completely, selected or not: ok.
+- [x] 80. (0.13.1) The latency alert tag on a first-row rack shows whole, selection glow and rack
+  dragging unchanged: ok.
+- [x] 79. (0.13.0) Show mode re-check: with an FX over the limit, turning on Take FX over the limit
+  offline in Show mode (or Count every format..., or changing a limit) takes it offline right away; Edit
+  brings it back: ok. Found while testing: the AU of bx_limiter reports its real 304 samples once it
+  has been loaded a moment; the 0 in the latency list comes from the scan reading it too early (like
+  Spec Craft, items 16-19).
+- [x] 78. (0.13.0) Latency > Count every format at its highest latency: Plugin list marks estimated
+  figures with *, racks and FX hover show "(estimated from VST3)", the watchdog alerts; off puts it
+  back; Allow stays per format with the note (and its "Don't show this again"): ok.
+- [x] 77. (0.13.0) "Don't show this again" on the non-critical popups and Settings > Reset warning
+  popups; critical popups (delete rack, reset, scans) still always show: ok.
 
 - [x] 76. (0.12.0) ReaPack install from the repository's index (first release through ReaPack): the
   repository imports, FOH-Mate installs, and the installed copy runs v0.12.0 with racks and settings:

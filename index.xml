@@ -5,35 +5,54 @@
       <metadata>
         <link rel="website">https://github.com/sonobianca/FOH-Mate4Reaper</link>
       </metadata>
-      <version name="0.12.0" author="Bianca" time="2026-10-31T06:05:32Z">
-        <changelog><![CDATA[- The code is split into modules: `FOHMate.lua` plus a `FOHMate` folder next to it holding the rest
-  (racks, sidechain, latency, menus...). Nothing changes on screen or in the sound; the code is just
-  easier to read and maintain.
-- FOH-Mate can be installed and updated with ReaPack (see the README). A manual install now means
-  copying the file and the folder.]]></changelog>
-        <source main="main">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate.lua</source>
-        <source file="FOHMate/settings.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/settings.lua</source>
-        <source file="FOHMate/context.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/context.lua</source>
-        <source file="FOHMate/jsfx.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/jsfx.lua</source>
-        <source file="FOHMate/state.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/state.lua</source>
-        <source file="FOHMate/helpers.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/helpers.lua</source>
-        <source file="FOHMate/modes.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/modes.lua</source>
-        <source file="FOHMate/colors.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/colors.lua</source>
-        <source file="FOHMate/chain.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/chain.lua</source>
-        <source file="FOHMate/tracks.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/tracks.lua</source>
-        <source file="FOHMate/sidechain.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/sidechain.lua</source>
-        <source file="FOHMate/stereo.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/stereo.lua</source>
-        <source file="FOHMate/latency.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/latency.lua</source>
-        <source file="FOHMate/fx_list.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/fx_list.lua</source>
-        <source file="FOHMate/scan.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/scan.lua</source>
-        <source file="FOHMate/plugin_list.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/plugin_list.lua</source>
-        <source file="FOHMate/add_fx_menu.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/add_fx_menu.lua</source>
-        <source file="FOHMate/setup.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/setup.lua</source>
-        <source file="FOHMate/widgets.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/widgets.lua</source>
-        <source file="FOHMate/sidechain_ui.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/sidechain_ui.lua</source>
-        <source file="FOHMate/racks.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/racks.lua</source>
-        <source file="FOHMate/top_bar.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/top_bar.lua</source>
-        <source file="FOHMate/window.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.12.0/src/FOHMate/window.lua</source>
+      <version name="0.13.3" author="Bianca" time="2026-10-31T07:55:10Z">
+        <changelog><![CDATA[- **Latency > Count every format at its highest latency** (off by default). A plugin installed in
+  several formats (AU, VST3, VST...) counts with the highest latency any of its formats reports: some
+  formats, often AU, report 0 where another reports the real figure. Alerts, limits, the rack latency
+  box, the FX menus and Show mode's offline step use it; REAPER's own compensation is not changed. The
+  Plugin list marks estimated figures with * (hover for where they come from). Formats are matched on
+  name and developer, ignoring the type, spaces, a channel count like "(4ch)" and the developer's name
+  inside the plugin's name.
+- **Take FX over the limit offline in Show mode** now also acts while already in Show mode: turning on
+  Count every format..., changing a latency limit, or turning this option on checks the racks again.
+  The FX it adds come back online with the others when you go back to Edit.
+- The latency alert tag on the first row of racks is no longer cut off at the top.
+- The flashing red frame of a rack over its latency limit covers the rack's own frame completely
+  (thicker, same corners), so the rack's color no longer shows through.
+- One gap everywhere: between racks (sideways and down) it is now the same as between the top bar and
+  the first row (the room the latency tag needs plus the setting, 8 px by default: about 17 px
+  instead of 8). The setting is now called **Extra space between racks**.
+- **Allow latency** stays per format. With the option on, allowing an FX that has other formats
+  installed first says that only this format is allowed (that note can be hidden).
+- **"Don't show this again"** on popups that are not critical: creating a rack by double-click,
+  replacing or deleting one FX, an action on several selected racks, and the scan notes. Once hidden, a
+  question is answered yes without asking. On "new effects were found, scan now?" the checkbox turns
+  off **Latency > Ask to scan new FX**. Popups that delete a rack or a sidechain bus, reset the
+  settings or start a latency scan always show.
+- **Settings > Reset warning popups** shows every hidden popup again.]]></changelog>
+        <source main="main">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate.lua</source>
+        <source file="FOHMate/settings.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/settings.lua</source>
+        <source file="FOHMate/context.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/context.lua</source>
+        <source file="FOHMate/jsfx.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/jsfx.lua</source>
+        <source file="FOHMate/state.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/state.lua</source>
+        <source file="FOHMate/helpers.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/helpers.lua</source>
+        <source file="FOHMate/modes.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/modes.lua</source>
+        <source file="FOHMate/colors.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/colors.lua</source>
+        <source file="FOHMate/chain.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/chain.lua</source>
+        <source file="FOHMate/tracks.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/tracks.lua</source>
+        <source file="FOHMate/sidechain.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/sidechain.lua</source>
+        <source file="FOHMate/stereo.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/stereo.lua</source>
+        <source file="FOHMate/latency.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/latency.lua</source>
+        <source file="FOHMate/fx_list.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/fx_list.lua</source>
+        <source file="FOHMate/scan.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/scan.lua</source>
+        <source file="FOHMate/plugin_list.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/plugin_list.lua</source>
+        <source file="FOHMate/add_fx_menu.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/add_fx_menu.lua</source>
+        <source file="FOHMate/setup.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/setup.lua</source>
+        <source file="FOHMate/widgets.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/widgets.lua</source>
+        <source file="FOHMate/sidechain_ui.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/sidechain_ui.lua</source>
+        <source file="FOHMate/racks.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/racks.lua</source>
+        <source file="FOHMate/top_bar.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/top_bar.lua</source>
+        <source file="FOHMate/window.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.13.3/src/FOHMate/window.lua</source>
       </version>
     </reapack>
   </category>
