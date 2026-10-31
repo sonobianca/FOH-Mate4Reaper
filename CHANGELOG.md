@@ -2,6 +2,16 @@
 
 Changes since the last public release, grouped by minor version (revisions are folded in).
 
+## 0.14
+
+- **Performance mode** (first step, the view): **Display > Performance mode** puts every rack in one
+  row that scrolls sideways, with an empty column under each rack. Each column scrolls on its own: the
+  rows fade out at the top or bottom edge while there is more beyond, and a slim bar on the right shows
+  where you are. **Display > Slim racks** (in Performance mode) hides In/Out, the routing button and the
+  level; the name, FX, BYPASS, MUTE and the meters stay. Edit and Show mode work as before. The
+  parameter rows come in the next steps; until then **Settings > Performance mode > Placeholder rows**
+  fills the columns with empty rows to try the scrolling.
+
 ## 0.13
 
 - **Latency > Count every format at its highest latency** (off by default). A plugin installed in

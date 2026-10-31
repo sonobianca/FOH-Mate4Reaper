@@ -262,6 +262,23 @@ function rack_gap()
   return RACK_SPACE + math.max(GLOW_M, math.ceil((ig.GetTextLineHeight(ctx) + 2) / 2) + 1)
 end
 
+-- empty space: a click deselects the racks, a double-click offers a new rack
+function empty_space_click(rects, limit)
+  if ig.IsWindowHovered(ctx) then
+    local mx, my = ig.GetMousePos(ctx)
+    local over_rack = false
+    for _, r in ipairs(rects) do
+      if mx >= r[1] and mx <= r[3] and my >= r[2] and my <= r[4] then over_rack = true; break end
+    end
+    if not over_rack and mx < limit then
+      if ig.IsMouseClicked(ctx, 0) then deselect_racks() end
+      if ig.IsMouseDoubleClicked(ctx, 0) and not is_locked() then
+        request_confirm('Create a new rack?', create_rack, 'Create', 'new_rack')
+      end
+    end
+  end
+end
+
 -- the scrolling part: every rack, tiled
 function draw_rack_area(infos, M, dt, now, avail)
   local x_left, y_top = ig.GetCursorScreenPos(ctx)
@@ -305,20 +322,7 @@ function draw_rack_area(infos, M, dt, now, avail)
     y = y - gap
   end
 
-  -- empty space: a click deselects the racks, a double-click offers a new rack
-  if ig.IsWindowHovered(ctx) then
-    local mx, my = ig.GetMousePos(ctx)
-    local over_rack = false
-    for _, r in ipairs(rects) do
-      if mx >= r[1] and mx <= r[3] and my >= r[2] and my <= r[4] then over_rack = true; break end
-    end
-    if not over_rack and mx < limit then
-      if ig.IsMouseClicked(ctx, 0) then deselect_racks() end
-      if ig.IsMouseDoubleClicked(ctx, 0) and not is_locked() then
-        request_confirm('Create a new rack?', create_rack, 'Create', 'new_rack')
-      end
-    end
-  end
+  empty_space_click(rects, limit)
 
   -- a rack dropped in the empty space around or below the racks goes to the last position
   if drag_prev_rack and not is_locked() and #infos > 0 then
@@ -354,6 +358,102 @@ function draw_rack_area(infos, M, dt, now, avail)
   -- extend the scrollable area to the bottom of the last row
   ig.SetCursorScreenPos(ctx, wx, y)
   ig.Dummy(ctx, 1, GLOW_M + 2)
+end
+
+-- Performance mode: a column under a rack, scrolling on its own. The rows will be the
+-- rack's parameters; for now it holds the "+" row and, for testing, placeholder rows.
+-- Where you are in the column shows twice: the rows fade out at an edge while there is
+-- more beyond it, and a slim bar on the right marks the position.
+function draw_perf_column(inf, x, y, w, h, M)
+  local tr = inf.tr
+  local c = rack_colors(track_color(tr), inf.bypassed)
+  local pdl = ig.GetWindowDrawList(ctx)
+  ig.DrawList_AddRectFilled(pdl, x, y, x + w, y + h, c.bg, ROUNDING + 2)
+  ig.DrawList_AddRect(pdl, x, y, x + w, y + h, c.border, ROUNDING + 2, 0, 2)
+
+  ig.SetCursorScreenPos(ctx, x + PAD, y + PAD)
+  local no_bar = ig.WindowFlags_NoScrollbar()
+  if begin_child('col' .. reaper.GetTrackGUID(tr), w - 2 * PAD, h - 2 * PAD, no_bar) then
+    local dl = ig.GetWindowDrawList(ctx)
+    local cx, cy = ig.GetWindowPos(ctx)
+    local cw, ch = ig.GetWindowSize(ctx)
+    local rw = cw - 8                                      -- room for the position bar
+    local rh = math.floor(M.fh * 1.6)
+    local d = M.fh
+    local n = math.floor(CFG.perf_demo_rows)
+    for k = 1, n do
+      local rx, ry = ig.GetCursorScreenPos(ctx)
+      ig.DrawList_AddRectFilled(dl, rx, ry, rx + rw, ry + rh, c.sec_bg, ROUNDING)
+      ig.DrawList_AddRect(dl, rx, ry, rx + rw, ry + rh, c.sec_bd, ROUNDING, 0, 1)
+      ig.DrawList_AddText(dl, rx + 8, ry + (rh - M.tlh) / 2, T.dim, ('Row %d'):format(k))
+      ig.Dummy(ctx, rw, rh)
+    end
+    -- the empty row at the end: a "+" in a circle (opens the parameter dialog in the next version)
+    local px, py = ig.GetCursorScreenPos(ctx)
+    ig.SetCursorScreenPos(ctx, px + (rw - d) / 2, py)
+    ig.PushStyleVar(ctx, ig.StyleVar_FrameRounding(), d / 2)
+    ig.Button(ctx, '+##addparam', d, d)
+    ig.PopStyleVar(ctx)
+    if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Add a parameter (coming in the next version)') end
+
+    -- fade at the edges and the position bar
+    local sy, smax = ig.GetScrollY(ctx), ig.GetScrollMaxY(ctx)
+    if smax > 1 then
+      local fh_ = math.min(M.fh * 1.8, ch / 3)
+      local solid, clear = c.bg, c.bg & 0xFFFFFF00
+      if sy > 1 then
+        ig.DrawList_AddRectFilledMultiColor(dl, cx, cy, cx + cw, cy + fh_, solid, solid, clear, clear)
+      end
+      if sy < smax - 1 then
+        ig.DrawList_AddRectFilledMultiColor(dl, cx, cy + ch - fh_, cx + cw, cy + ch, clear, clear, solid, solid)
+      end
+      local bx = cx + cw - 5
+      local thumb = math.max(16, ch * ch / (ch + smax))
+      local ty = cy + (ch - thumb) * (sy / smax)
+      ig.DrawList_AddRectFilled(dl, bx, cy, bx + 4, cy + ch, (T.dim & 0xFFFFFF00) | 0x40, 2)
+      ig.DrawList_AddRectFilled(dl, bx, ty, bx + 4, ty + thumb, (T.dim & 0xFFFFFF00) | 0xE0, 2)
+    end
+    ig.EndChild(ctx)
+  end
+end
+
+-- Performance mode: every rack in one row (it scrolls sideways), a column under each
+function draw_perf_area(infos, M, dt, now)
+  local x_left, y_top = ig.GetCursorScreenPos(ctx)
+  local gap = rack_gap()
+  local wx = x_left + GLOW_M
+  local y = y_top + gap
+  local rects = {}
+
+  if #infos == 0 then
+    ig.SetCursorScreenPos(ctx, wx, y)
+    ig.Text(ctx, ('No tracks named "%s ..." found. Double-click here or use + to create a rack.'):format(PREFIX))
+    empty_space_click(rects, math.huge)
+    return
+  end
+
+  local row_h = 0
+  for _, inf in ipairs(infos) do row_h = math.max(row_h, inf.nat) end
+  local total_w = 2 * GLOW_M + #infos * RACK_W + (#infos - 1) * gap
+  local win_x, win_y = ig.GetWindowPos(ctx)
+  local win_w, win_h = ig.GetWindowSize(ctx)
+  local sbw = ig.GetStyleVar(ctx, ig.StyleVar_ScrollbarSize())
+  local bottom = win_y + win_h - (total_w > win_w and sbw or 0) - 2     -- above the sideways scrollbar
+  local col_y = y + row_h + GLOW_M + 2
+  local col_h = math.max(60, bottom - col_y)
+
+  for i, inf in ipairs(infos) do
+    local x = wx + (i - 1) * (RACK_W + gap)
+    draw_rack(inf, x, y, row_h, M, dt, now)
+    rects[#rects + 1] = { x, y, x + RACK_W, y + row_h }
+    draw_perf_column(inf, x, col_y, RACK_W, col_h, M)
+  end
+
+  empty_space_click(rects, math.huge)
+
+  -- make the area as wide as the racks (the sideways scrollbar follows), as tall as the columns
+  ig.SetCursorScreenPos(ctx, x_left, col_y + col_h)
+  ig.Dummy(ctx, total_w, 1)
 end
 
 -- the grey help line: what the mouse can do with what is under it, or with what is being dragged
@@ -392,13 +492,13 @@ end
 -- BeginChild takes a number (child flags) in recent ReaImGui and a boolean
 -- (border) in older ones; try the number first and remember what works.
 child_old_api = false
-function begin_child(id, w, h)
+function begin_child(id, w, h, wflags)
   if not child_old_api then
-    local ok, vis = pcall(ig.BeginChild, ctx, id, w, h, 0, 0)
+    local ok, vis = pcall(ig.BeginChild, ctx, id, w, h, 0, wflags or 0)
     if ok then return vis end
     child_old_api = true
   end
-  return ig.BeginChild(ctx, id, w, h, false, 0)
+  return ig.BeginChild(ctx, id, w, h, false, wflags or 0)
 end
 
 function draw(dt, now)
@@ -426,7 +526,7 @@ function draw(dt, now)
       info.slot = i - 1
       info.bypassed = is_bypassed(tr, info.list)
       info.box = latbox_on(S.lat_box == 'auto' and rack_latency(tr, reaper.GetTrackGUID(tr), info.list, now).total or 0)
-      info.nat = natural_height(#info.list, M, info.box)
+      info.nat = natural_height(#info.list, M, info.box, slim_racks())
       nfx = nfx + #info.list
       infos[#infos + 1] = info
     end
@@ -571,7 +671,12 @@ function draw(dt, now)
   local child_h = math.max(40, sb_y - RACK_SPACE - hint_h - top)
 
   ig.SetCursorScreenPos(ctx, wx, top)
-  if begin_child('racks', bar_w, child_h) then
+  if S.perf then
+    if begin_child('racks_perf', bar_w, child_h, ig.WindowFlags_HorizontalScrollbar()) then
+      draw_perf_area(infos, M, dt, now)
+      ig.EndChild(ctx)
+    end
+  elseif begin_child('racks', bar_w, child_h) then
     draw_rack_area(infos, M, dt, now, bar_w - sbw)
     ig.EndChild(ctx)
   end

@@ -2,10 +2,26 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 85).
+New items get the next free number (next: 86).
 
 ## Open
 
+- [ ] 85. (0.14.0, branch performance-mode) Performance mode, step 1 (the view). In REAPER with a few
+  racks:
+  a. **Display > Performance mode** on: the racks line up in one row, an empty column (with a round +)
+     under each; off: the normal grid comes back. Both choices are still there after closing and
+     reopening FOH-Mate.
+  b. Many racks (more than fit): a sideways scrollbar appears and works (drag it, or two-finger swipe
+     / Shift+wheel). The columns reach the bottom of the window without a second scrollbar.
+  c. **Display > Slim racks** (greyed out unless Performance mode is on): the racks lose In/Out, the R
+     button and the level row, and keep name, "...", FX, BYPASS, MUTE and the meters. Racks get
+     shorter, columns taller. Off: full racks again.
+  d. **Settings > Performance mode > Placeholder rows**: set 20. Each column scrolls by itself (mouse
+     wheel over it, other columns stay put). The rows fade at the top once scrolled and at the bottom
+     while more is below, and the slim bar on the right moves with the position.
+  e. Edit and Show mode inside Performance mode: the cue light, bypass/mute, FX on/off, dragging a rack
+     onto another rack to reorder, selection glow, latency alert tag on the first row (not cropped).
+  f. Docked and floating, narrow and wide window, Daylight mode (column colors and fades).
 - [ ] 84. ReaPack About text, after `index.xml` is merged to `main`: Extensions > ReaPack > Manage
   repositories, right-click **FOH-Mate**, **About this repository**: the overview shows with headings
   and bullets. Extensions > ReaPack > Browse packages, right-click **FOH-Mate**, **About this

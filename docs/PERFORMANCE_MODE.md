@@ -21,7 +21,7 @@ An optional view, switched on and off with a toggle. Edit and Show keep working 
  └──────────────────────────┴──────────────────────────┴───────────────┴─────────┘   edges + position bar)
 ```
 
-- **The toggle** switches the whole window; the choice is saved per project like the other view settings.
+- **The toggle** switches the whole window; the choice is saved like the other view settings (for REAPER, not per project).
 - **Full or slim rack** is a second toggle. Slim keeps the name, the FX boxes, BYPASS, MUTE **and the
   meters**; routing and level are hidden.
 - **A column belongs to its rack.** Each row is one parameter of an FX of that rack. (Later: rows

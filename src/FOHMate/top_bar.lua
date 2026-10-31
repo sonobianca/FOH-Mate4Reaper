@@ -23,6 +23,11 @@ end
 
 function draw_display_menu()
   toggle_setting('Daylight mode', 'daylight', 'daylight')
+  toggle_setting('Performance mode', 'perf', 'perfmode',
+    'One row of racks that scrolls sideways, with a column of parameters under each rack.\nEdit and Show mode work as usual.')
+  toggle_setting('   Slim racks', 'perf_slim', 'perfslim',
+    'In Performance mode: racks without In/Out, routing and level (name, FX, BYPASS, MUTE and meters stay).',
+    S.perf)
   ig.TextDisabled(ctx, 'Rack latency box')
   for _, o in ipairs({ { 'off', 'Off' }, { 'always', 'Always' }, { 'auto', 'Only when a rack has latency' } }) do
     if ig.MenuItem(ctx, '   ' .. o[2] .. '##latbox', nil, S.lat_box == o[1]) then

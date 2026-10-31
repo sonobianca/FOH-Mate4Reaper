@@ -24,12 +24,18 @@ function metrics()
   }
 end
 
+-- Performance mode with slim racks: no In/Out, no routing button, no level (name, FX,
+-- BYPASS, MUTE and the meters stay)
+function slim_racks()
+  return S.perf and S.perf_slim
+end
+
 -- the three sections of a rack: header, FX, controls
-function section_heights(n_fx, M)
+function section_heights(n_fx, M, slim)
   local rows = math.max(n_fx, 1)
-  local hdr = SI + M.name_h + M.spy + M.fh + SI
+  local hdr = slim and (SI + M.name_h + SI) or (SI + M.name_h + M.spy + M.fh + SI)
   local fxs = SI + rows * M.rowp + M.sm + SI
-  local ctl = SI + M.fh + M.spy + M.btn_h + SI
+  local ctl = slim and (SI + M.btn_h + SI) or (SI + M.fh + M.spy + M.btn_h + SI)
   return hdr, fxs, ctl
 end
 
@@ -45,8 +51,8 @@ function latbox_h(M, on)
   return on and (M.fh + SG) or 0
 end
 
-function natural_height(n_fx, M, box)
-  local hdr, fxs, ctl = section_heights(n_fx, M)
+function natural_height(n_fx, M, box, slim)
+  local hdr, fxs, ctl = section_heights(n_fx, M, slim)
   return PAD + hdr + SG + fxs + SG + ctl + latbox_h(M, box) + PAD
 end
 
@@ -184,7 +190,8 @@ function draw_rack(info, x0, y0, H, M, dt, now)
 
   ------------------------------------------------ geometry
   local fh, spx, spy, sm = M.fh, M.spx, M.spy, M.sm
-  local hdr_h, fxs_h, ctl_h = section_heights(#list, M)
+  local slim = slim_racks()
+  local hdr_h, fxs_h, ctl_h = section_heights(#list, M, slim)
 
   local cx  = x0 + PAD + METER_W + GAP         -- middle area
   local wx  = cx + SI                          -- widgets inside a section
@@ -200,7 +207,7 @@ function draw_rack(info, x0, y0, H, M, dt, now)
   local name_y = hdr_top + SI
   local io_y   = name_y + M.name_h + spy
   local lvl_y  = ctl_top + SI
-  local btn_y  = lvl_y + fh + spy
+  local btn_y  = slim and lvl_y or (lvl_y + fh + spy)
   local add_y  = fxs_bot - SI - sm
 
   if mouse_in(x0, y0, x0 + RACK_W, y0 + H) then hover_now_rack = guid end
@@ -254,14 +261,16 @@ function draw_rack(info, x0, y0, H, M, dt, now)
   local by = name_y + (M.name_h - METER_W) / 2
 
   lock_begin(locked)
-  ig.SetCursorScreenPos(ctx, x0 + PAD, by)
-  push_native()
-  ig.PushStyleVar(ctx, ig.StyleVar_FrameRounding(), METER_W / 2)
-  if ig.Button(ctx, 'R##route', METER_W, METER_W) then open_routing(tr) end
-  ig.PopStyleVar(ctx)
-  pop_native()
-  if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Routing window') end
-  hint_hovered('Click: REAPER\'s routing window for this rack')
+  if not slim then
+    ig.SetCursorScreenPos(ctx, x0 + PAD, by)
+    push_native()
+    ig.PushStyleVar(ctx, ig.StyleVar_FrameRounding(), METER_W / 2)
+    if ig.Button(ctx, 'R##route', METER_W, METER_W) then open_routing(tr) end
+    ig.PopStyleVar(ctx)
+    pop_native()
+    if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Routing window') end
+    hint_hovered('Click: REAPER\'s routing window for this rack')
+  end
 
   ig.SetCursorScreenPos(ctx, x0 + RACK_W - PAD - METER_W, by)
   ig.PushStyleVar(ctx, ig.StyleVar_FrameRounding(), METER_W / 2)
@@ -365,77 +374,79 @@ function draw_rack(info, x0, y0, H, M, dt, now)
   if pushed then ig.PopFont(ctx) end
 
   ------------------------------------------------ In / Out
-  local iow = (WW - spx) / 2
-  lock_begin(locked)
-  ig.SetCursorScreenPos(ctx, wx, io_y)
-  if ig.Button(ctx, 'In: ' .. in_text(tr) .. '##in', iow, fh) then ig.OpenPopup(ctx, 'in_pop') end
-  if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Input: ' .. in_text(tr) .. ' (' .. width_text(io_in) .. ')') end
-  hint_hovered('Click: choose the input (mono, stereo or MIDI); mono in makes the rack mono')
+  if not slim then
+    local iow = (WW - spx) / 2
+    lock_begin(locked)
+    ig.SetCursorScreenPos(ctx, wx, io_y)
+    if ig.Button(ctx, 'In: ' .. in_text(tr) .. '##in', iow, fh) then ig.OpenPopup(ctx, 'in_pop') end
+    if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Input: ' .. in_text(tr) .. ' (' .. width_text(io_in) .. ')') end
+    hint_hovered('Click: choose the input (mono, stereo or MIDI); mono in makes the rack mono')
 
-  ig.SetCursorScreenPos(ctx, wx + iow + spx, io_y)
-  if ig.Button(ctx, 'Out: ' .. out_text(tr) .. '##out', iow, fh) then ig.OpenPopup(ctx, 'out_pop') end
-  if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Output: ' .. out_text(tr) .. ' (' .. width_text(io_out) .. ')') end
-  hint_hovered('Click: choose the hardware output (stereo pair or mono)')
-  lock_end(locked)
+    ig.SetCursorScreenPos(ctx, wx + iow + spx, io_y)
+    if ig.Button(ctx, 'Out: ' .. out_text(tr) .. '##out', iow, fh) then ig.OpenPopup(ctx, 'out_pop') end
+    if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Output: ' .. out_text(tr) .. ' (' .. width_text(io_out) .. ')') end
+    hint_hovered('Click: choose the hardware output (stereo pair or mono)')
+    lock_end(locked)
 
-  if ig.BeginPopup(ctx, 'in_pop') then
-    local cur   = math.floor(reaper.GetMediaTrackInfo_Value(tr, 'I_RECINPUT'))
-    local armed = reaper.GetMediaTrackInfo_Value(tr, 'I_RECARM') == 1
-    local n = audio_device_header(false)
-    if ig.MenuItem(ctx, 'None (receives only)', nil, (not armed) or cur < 0) then set_input(tr, -1) end
-    if n >= 1 and ig.BeginMenu(ctx, 'Mono input') then
-      for i = 0, n - 1 do
-        local nm = reaper.GetInputChannelName(i) or ''
-        if ig.MenuItem(ctx, ('%d  %s'):format(i + 1, nm), nil, armed and cur == i) then set_input(tr, i) end
+    if ig.BeginPopup(ctx, 'in_pop') then
+      local cur   = math.floor(reaper.GetMediaTrackInfo_Value(tr, 'I_RECINPUT'))
+      local armed = reaper.GetMediaTrackInfo_Value(tr, 'I_RECARM') == 1
+      local n = audio_device_header(false)
+      if ig.MenuItem(ctx, 'None (receives only)', nil, (not armed) or cur < 0) then set_input(tr, -1) end
+      if n >= 1 and ig.BeginMenu(ctx, 'Mono input') then
+        for i = 0, n - 1 do
+          local nm = reaper.GetInputChannelName(i) or ''
+          if ig.MenuItem(ctx, ('%d  %s'):format(i + 1, nm), nil, armed and cur == i) then set_input(tr, i) end
+        end
+        ig.EndMenu(ctx)
       end
-      ig.EndMenu(ctx)
+      if n >= 2 and ig.BeginMenu(ctx, 'Stereo input') then
+        for i = 0, n - 2, pair_step() do
+          local nm = reaper.GetInputChannelName(i) or ''
+          if ig.MenuItem(ctx, ('%d/%d  %s'):format(i + 1, i + 2, nm), nil, armed and cur == (i | 1024)) then
+            set_input(tr, i | 1024)
+          end
+        end
+        ig.EndMenu(ctx)
+      end
+      local midi_all = 4096 | (63 << 5)
+      if ig.MenuItem(ctx, 'MIDI (all devices, all channels)', nil, armed and cur == midi_all) then
+        set_input(tr, midi_all)
+      end
+      ig.EndPopup(ctx)
     end
-    if n >= 2 and ig.BeginMenu(ctx, 'Stereo input') then
-      for i = 0, n - 2, pair_step() do
-        local nm = reaper.GetInputChannelName(i) or ''
-        if ig.MenuItem(ctx, ('%d/%d  %s'):format(i + 1, i + 2, nm), nil, armed and cur == (i | 1024)) then
-          set_input(tr, i | 1024)
+
+    if ig.BeginPopup(ctx, 'out_pop') then
+      local nh = reaper.GetTrackNumSends(tr, 1)
+      local d0 = (nh == 1) and math.floor(reaper.GetTrackSendInfo_Value(tr, 1, 0, 'I_DSTCHAN')) or nil
+      local n = audio_device_header(true)
+      -- an output kept from another interface that this one does not have
+      for i = 0, nh - 1 do
+        local d = math.floor(reaper.GetTrackSendInfo_Value(tr, 1, i, 'I_DSTCHAN'))
+        local last = (d & 1023) + ((d & 1024 ~= 0) and 1 or 2)
+        if n > 0 and last > n then
+          ig.TextDisabled(ctx, ('Current output %s is not on this device.'):format(
+            (d & 1024 ~= 0) and tostring((d & 1023) + 1) or ('%d/%d'):format((d & 1023) + 1, (d & 1023) + 2)))
+          break
         end
       end
-      ig.EndMenu(ctx)
-    end
-    local midi_all = 4096 | (63 << 5)
-    if ig.MenuItem(ctx, 'MIDI (all devices, all channels)', nil, armed and cur == midi_all) then
-      set_input(tr, midi_all)
-    end
-    ig.EndPopup(ctx)
-  end
-
-  if ig.BeginPopup(ctx, 'out_pop') then
-    local nh = reaper.GetTrackNumSends(tr, 1)
-    local d0 = (nh == 1) and math.floor(reaper.GetTrackSendInfo_Value(tr, 1, 0, 'I_DSTCHAN')) or nil
-    local n = audio_device_header(true)
-    -- an output kept from another interface that this one does not have
-    for i = 0, nh - 1 do
-      local d = math.floor(reaper.GetTrackSendInfo_Value(tr, 1, i, 'I_DSTCHAN'))
-      local last = (d & 1023) + ((d & 1024 ~= 0) and 1 or 2)
-      if n > 0 and last > n then
-        ig.TextDisabled(ctx, ('Current output %s is not on this device.'):format(
-          (d & 1024 ~= 0) and tostring((d & 1023) + 1) or ('%d/%d'):format((d & 1023) + 1, (d & 1023) + 2)))
-        break
+      if ig.MenuItem(ctx, 'No hardware output', nil, nh == 0) then set_hw_out(tr, nil) end
+      if n >= 2 and ig.BeginMenu(ctx, 'Hardware out: stereo pair') then
+        for i = 0, n - 2, pair_step() do
+          local nm = reaper.GetOutputChannelName(i) or ''
+          if ig.MenuItem(ctx, ('%d/%d  %s'):format(i + 1, i + 2, nm), nil, d0 == i) then set_hw_out(tr, i) end
+        end
+        ig.EndMenu(ctx)
       end
-    end
-    if ig.MenuItem(ctx, 'No hardware output', nil, nh == 0) then set_hw_out(tr, nil) end
-    if n >= 2 and ig.BeginMenu(ctx, 'Hardware out: stereo pair') then
-      for i = 0, n - 2, pair_step() do
-        local nm = reaper.GetOutputChannelName(i) or ''
-        if ig.MenuItem(ctx, ('%d/%d  %s'):format(i + 1, i + 2, nm), nil, d0 == i) then set_hw_out(tr, i) end
+      if n >= 1 and ig.BeginMenu(ctx, 'Hardware out: mono') then
+        for i = 0, n - 1 do
+          local nm = reaper.GetOutputChannelName(i) or ''
+          if ig.MenuItem(ctx, ('%d  %s'):format(i + 1, nm), nil, d0 == (i | 1024)) then set_hw_out(tr, i | 1024) end
+        end
+        ig.EndMenu(ctx)
       end
-      ig.EndMenu(ctx)
+      ig.EndPopup(ctx)
     end
-    if n >= 1 and ig.BeginMenu(ctx, 'Hardware out: mono') then
-      for i = 0, n - 1 do
-        local nm = reaper.GetOutputChannelName(i) or ''
-        if ig.MenuItem(ctx, ('%d  %s'):format(i + 1, nm), nil, d0 == (i | 1024)) then set_hw_out(tr, i | 1024) end
-      end
-      ig.EndMenu(ctx)
-    end
-    ig.EndPopup(ctx)
   end
 
   ------------------------------------------------ FX section
@@ -670,48 +681,50 @@ function draw_rack(info, x0, y0, H, M, dt, now)
   end
 
   ------------------------------------------------ controls section
-  local vol = reaper.GetMediaTrackInfo_Value(tr, 'D_VOL')
-  local txt = (vol > 0.000001) and ('%.1f'):format(amp_to_db(vol)) or '-inf'
-  local sbw = fh                                 -- round "send to sidechain bus" button
-  ig.SetCursorScreenPos(ctx, wx, lvl_y)
-  local lv = text_edit(guid .. ':lvl', txt, WW - 30 - spx - sbw - spx)
-  -- Shift + double-click resets the level to 0 dB
-  if ig.IsItemHovered(ctx) and ig.IsMouseDoubleClicked(ctx, 0) and has_mod('shift') then
-    reaper.SetMediaTrackInfo_Value(tr, 'D_VOL', 1.0)
-    local st = edit_state[guid .. ':lvl']
-    if st then st.skip = true; st.active = false end
-    lv = nil
-  end
-  -- Alt-click: 0 dB, or -inf when it already is at 0 dB
-  if ig.IsItemHovered(ctx) and ig.IsMouseClicked(ctx, 0) and has_mod('alt') then
-    local v = reaper.GetMediaTrackInfo_Value(tr, 'D_VOL')
-    reaper.SetMediaTrackInfo_Value(tr, 'D_VOL', (math.abs(v - 1.0) < 0.0001) and 0.0 or 1.0)
-    local st = edit_state[guid .. ':lvl']
-    if st then st.skip = true; st.active = false end
-    lv = nil
-  end
-  hint_hovered(('Click: type a level in dB, Enter to apply  \194\183  %s+click: 0 dB, again: -inf  \194\183  Shift+double-click: 0 dB')
-               :format(mod_label('alt')))
-  if lv then apply_level(tr, lv) end
-  ig.SetCursorScreenPos(ctx, wx + WW - 30 - sbw - spx, lvl_y + M.fpy)
-  ig.Text(ctx, 'dB')
+  if not slim then
+    local vol = reaper.GetMediaTrackInfo_Value(tr, 'D_VOL')
+    local txt = (vol > 0.000001) and ('%.1f'):format(amp_to_db(vol)) or '-inf'
+    local sbw = fh                                 -- round "send to sidechain bus" button
+    ig.SetCursorScreenPos(ctx, wx, lvl_y)
+    local lv = text_edit(guid .. ':lvl', txt, WW - 30 - spx - sbw - spx)
+    -- Shift + double-click resets the level to 0 dB
+    if ig.IsItemHovered(ctx) and ig.IsMouseDoubleClicked(ctx, 0) and has_mod('shift') then
+      reaper.SetMediaTrackInfo_Value(tr, 'D_VOL', 1.0)
+      local st = edit_state[guid .. ':lvl']
+      if st then st.skip = true; st.active = false end
+      lv = nil
+    end
+    -- Alt-click: 0 dB, or -inf when it already is at 0 dB
+    if ig.IsItemHovered(ctx) and ig.IsMouseClicked(ctx, 0) and has_mod('alt') then
+      local v = reaper.GetMediaTrackInfo_Value(tr, 'D_VOL')
+      reaper.SetMediaTrackInfo_Value(tr, 'D_VOL', (math.abs(v - 1.0) < 0.0001) and 0.0 or 1.0)
+      local st = edit_state[guid .. ':lvl']
+      if st then st.skip = true; st.active = false end
+      lv = nil
+    end
+    hint_hovered(('Click: type a level in dB, Enter to apply  \194\183  %s+click: 0 dB, again: -inf  \194\183  Shift+double-click: 0 dB')
+                 :format(mod_label('alt')))
+    if lv then apply_level(tr, lv) end
+    ig.SetCursorScreenPos(ctx, wx + WW - 30 - sbw - spx, lvl_y + M.fpy)
+    ig.Text(ctx, 'dB')
 
-  local nsend = n_bus_sends(tr)
-  lock_begin(locked)
-  if round_button(dl, '##scsend', wx + WW - sbw, lvl_y, sbw, nsend > 0,
-                  function(kx, ky, ink)
-                    local tw, th = ig.CalcTextSize(ctx, 'SC')
-                    ig.DrawList_AddText(dl, kx - tw / 2, ky - th / 2, ink, 'SC')
-                  end,
-                  nsend > 0 and ('Sends to %d sidechain bus%s'):format(nsend, nsend > 1 and 'ses' or '')
-                             or 'Send to a sidechain bus') then
-    ig.OpenPopup(ctx, 'sc_send')
-  end
-  hint_hovered('Click: send this rack to sidechain busses, with a send level')
-  lock_end(locked)
-  if ig.BeginPopup(ctx, 'sc_send') then
-    draw_bus_sends(tr)
-    ig.EndPopup(ctx)
+    local nsend = n_bus_sends(tr)
+    lock_begin(locked)
+    if round_button(dl, '##scsend', wx + WW - sbw, lvl_y, sbw, nsend > 0,
+                    function(kx, ky, ink)
+                      local tw, th = ig.CalcTextSize(ctx, 'SC')
+                      ig.DrawList_AddText(dl, kx - tw / 2, ky - th / 2, ink, 'SC')
+                    end,
+                    nsend > 0 and ('Sends to %d sidechain bus%s'):format(nsend, nsend > 1 and 'ses' or '')
+                               or 'Send to a sidechain bus') then
+      ig.OpenPopup(ctx, 'sc_send')
+    end
+    hint_hovered('Click: send this rack to sidechain busses, with a send level')
+    lock_end(locked)
+    if ig.BeginPopup(ctx, 'sc_send') then
+      draw_bus_sends(tr)
+      ig.EndPopup(ctx)
+    end
   end
 
   local hw = (WW - spx) / 2
