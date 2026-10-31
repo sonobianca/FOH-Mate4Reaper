@@ -525,6 +525,16 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
       end
       if not grid then ig.Dummy(ctx, rw, rh) end
     end
+    -- widened: a divider between the columns of rows, fading in with the widening
+    if grid then
+      local dcol = (c.border & 0xFFFFFF00) | math.floor(0x90 * e)
+      for col = 0, math.ceil((n + 1) / rpc) - 2 do
+        local dx = ox + pad + col * step_x + rw + 2 + pad
+        if dx > cx - 2 and dx < cx + cw + 2 then
+          ig.DrawList_AddLine(dl, dx, oy + pad, dx, oy + pad + rpc * pitch - gy, dcol, 2)
+        end
+      end
+    end
     -- the empty row at the end: a "+" in a circle as tall as a row, in the color of the names
     -- (opens the parameter dialog in the next version). Only the circle and the + light up.
     local px, py

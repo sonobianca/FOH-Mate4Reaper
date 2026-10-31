@@ -23,7 +23,7 @@ New items get the next free number (next: 89).
   opening an FX section while widened folds the columns back. (d) Widening another rack's column
   folds the first. (e) Settings > Fold ... after: a widened column folds back by itself after the
   pause. (f) Smooth and snappy? Band the same size and look as the chevron under the FX section?
-  (h) Widening: every row grows to 1.5 times its width and height, with room around it, while the column widens, with a
+  (h) Widening: every row grows to 1.5 times its width and height, with room around it and a divider between the columns, while the column widens, with a
   bigger control, value and name; back to normal when folded. Smooth? Readable? Rows reflow per
   column as designed? (Experiment: roll back with the tag `perf-widen-checkpoint`.)
   (g) Both triangles the same size; the same gap between rows widened and folded; placeholder rows
