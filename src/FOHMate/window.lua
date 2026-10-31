@@ -363,21 +363,57 @@ end
 -- Performance mode: a column under a rack, scrolling on its own. The rows will be the
 -- rack's parameters; for now it holds the "+" row and, for testing, placeholder rows.
 -- Where you are in the column shows twice: the rows fade out at an edge while there is
--- more beyond it, and a slim bar on the right marks the position.
-function draw_perf_column(inf, x, y, w, h, M)
+-- more beyond it, and a slim bar marks the position.
+-- The band at the top widens the column over its neighbours (e = how far, 0 .. 1): the rows
+-- then flow in several columns, top to bottom, that scroll sideways. Folded again, it is one
+-- column that scrolls up and down, showing the row that was touched last.
+function draw_perf_column(inf, x, y, w, h, M, ps, e)
   local tr = inf.tr
+  local guid = reaper.GetTrackGUID(tr)
   local c = rack_colors(track_color(tr), inf.bypassed)
   local pdl = ig.GetWindowDrawList(ctx)
   ig.DrawList_AddRectFilled(pdl, x, y, x + w, y + h, c.bg, ROUNDING + 2)
   ig.DrawList_AddRect(pdl, x, y, x + w, y + h, c.border, ROUNDING + 2, 0, 2)
 
-  ig.SetCursorScreenPos(ctx, x + PAD, y + PAD)
+  -- the band at the top, like the handle under the FX section: two small triangles, back to
+  -- back to widen, face to face to fold back. The whole width is the button.
+  local bh = HANDLE_H + PAD
+  ig.PushID(ctx, guid)
+  ig.SetCursorScreenPos(ctx, x + 2, y + 2)
+  if ig.InvisibleButton(ctx, 'widen', w - 4, bh - 2) then
+    ps.open = not ps.open
+    PERF_ACT = reaper.time_precise()
+    if ps.open then
+      for g, o in pairs(PERF_PARAMS) do if g ~= guid then o.open = false end end   -- one at a time
+      for _, f in pairs(PERF_FOLD) do f.open = false end                            -- FX sections fold first
+    end
+  end
+  local band_hov = ig.IsItemHovered(ctx)
+  if band_hov then ig.SetTooltip(ctx, ps.open and 'Fold the parameters back' or 'Widen the parameters') end
+  hint_hovered('Click: widen the parameters over the other columns, or fold them back')
+  ig.PopID(ctx)
+  do
+    local bx, by = x + w / 2, y + bh / 2 + 1
+    local bcol = (c.name_txt & 0xFFFFFF00) | (band_hov and 0xFF or 0xA0)
+    local tw, th, tg = 7, 4.5, 2.5
+    if ps.open then       -- face to face: tips toward the middle
+      ig.DrawList_AddTriangleFilled(pdl, bx - tg - tw, by - th, bx - tg - tw, by + th, bx - tg, by, bcol)
+      ig.DrawList_AddTriangleFilled(pdl, bx + tg + tw, by - th, bx + tg + tw, by + th, bx + tg, by, bcol)
+    else                  -- back to back: tips away from the middle
+      ig.DrawList_AddTriangleFilled(pdl, bx - tg, by - th, bx - tg, by + th, bx - tg - tw, by, bcol)
+      ig.DrawList_AddTriangleFilled(pdl, bx + tg, by - th, bx + tg, by + th, bx + tg + tw, by, bcol)
+    end
+  end
+
+  ig.SetCursorScreenPos(ctx, x + PAD, y + bh)
   local no_bar = ig.WindowFlags_NoScrollbar()
-  if begin_child('col' .. reaper.GetTrackGUID(tr), w - 2 * PAD, h - 2 * PAD, no_bar) then
+  if begin_child('col' .. guid, w - 2 * PAD, h - bh - PAD, no_bar) then
     local dl = ig.GetWindowDrawList(ctx)
     local cx, cy = ig.GetWindowPos(ctx)
     local cw, ch = ig.GetWindowSize(ctx)
-    local rw = cw - 6 - PAD                                -- room for the position bar: the gap left of it equals the gap right of it (1 px + PAD)
+    local colw = RACK_W - 2 * PAD - 6 - PAD                -- width of a column of rows: room for the position bar (the gap left of it equals the gap right of it, 1 px + PAD)
+    local rw = colw
+    local grid = e > 0                                     -- widened (or moving): rows flow in columns
     local pushed = push_bold(name_font, NAME_FONT_SIZE)
     local blh = ig.GetTextLineHeight(ctx)                  -- bold line height: a name may take two lines
     if pushed then ig.PopFont(ctx) end
@@ -388,59 +424,89 @@ function draw_perf_column(inf, x, y, w, h, M)
     local values = { '-18 dB', '4:1', '12 ms', '250 Hz', '+3 dB', '50%', '8 kHz', '80 Hz' }   -- placeholders
     local mx_in = ig.IsWindowHovered(ctx)
     ig.Dummy(ctx, 1, 3)                                    -- room for the glow of the first row
+    local ox, oy = ig.GetCursorScreenPos(ctx)
+    local step_x = colw + 4                                -- widened: from one column of rows to the next
+    local rpc = math.max(1, math.floor((ch - 3 - 8) / rh)) -- rows per column when widened (8: the sideways bar)
+    if grid then
+      if ig.GetScrollY(ctx) ~= 0 then ig.SetScrollY(ctx, 0) end
+      if mx_in then                                        -- the wheel moves sideways here too
+        local wv, wh = ig.GetMouseWheel(ctx)
+        if wv ~= 0 and wh == 0 then ig.SetScrollX(ctx, ig.GetScrollX(ctx) - wv * 60) end
+      end
+    else
+      if ig.GetScrollX(ctx) ~= 0 then ig.SetScrollX(ctx, 0) end
+      if ps.reveal > 0 then                                -- just folded back: show the row touched last
+        if ps.last then ig.SetScrollY(ctx, math.max(0, 3 + (ps.last - 1) * rh - (ch - rh) / 2)) end
+        ps.reveal = ps.reveal - 1
+      end
+    end
     for k = 1, n do
-      local rx, ry = ig.GetCursorScreenPos(ctx)
-      rx = rx + 3; local rw2 = rw - 6                      -- a little room for the hover glow
-      local cd = rh - 8                                    -- the control, outside the name box
-      local vw, vg = 22, 4                                 -- the value box between control and name, and the gaps
-      local box_w = rw2 - cd - vw - 2 * vg
-      local left = (k % 2 == 1)                            -- odd rows: name left; even rows: name right
-      local bx = left and rx or (rx + rw2 - box_w)
-      local kx = left and (rx + rw2 - cd) or rx
-      local vx = left and (bx + box_w + vg) or (kx + cd + vg)
-      -- hover: the whole row (name box and control) glows
-      if mx_in and mouse_in(rx, ry, rx + rw2, ry + rh) then
-        local base = T.glow & 0xFFFFFF00
-        for i = 1, 3 do
-          local a = math.floor(170 * (1 - (i - 1) / 3) ^ 2)
-          ig.DrawList_AddRect(dl, rx - i, ry - i, rx + rw2 + i, ry + rh + i, base | a, ROUNDING + i, 0, 1)
+      local rx, ry
+      if grid then
+        rx, ry = ox + math.floor((k - 1) / rpc) * step_x, oy + ((k - 1) % rpc) * rh
+      else
+        rx, ry = ig.GetCursorScreenPos(ctx)
+      end
+      if rx + rw > cx and rx < cx + cw then                -- rows outside the column's view aren't drawn
+        rx = rx + 3; local rw2 = rw - 6                      -- a little room for the hover glow
+        local cd = rh - 8                                    -- the control, outside the name box
+        local vw, vg = 22, 4                                 -- the value box between control and name, and the gaps
+        local box_w = rw2 - cd - vw - 2 * vg
+        local left = (k % 2 == 1)                            -- odd rows: name left; even rows: name right
+        local bx = left and rx or (rx + rw2 - box_w)
+        local kx = left and (rx + rw2 - cd) or rx
+        local vx = left and (bx + box_w + vg) or (kx + cd + vg)
+        -- hover: the whole row (name box and control) glows
+        local over = mx_in and mouse_in(rx, ry, rx + rw2, ry + rh)
+        if over and ig.IsMouseClicked(ctx, 0) then ps.last = k end   -- the row touched last (the real controls will set it)
+        if over then
+          local base = T.glow & 0xFFFFFF00
+          for i = 1, 3 do
+            local a = math.floor(170 * (1 - (i - 1) / 3) ^ 2)
+            ig.DrawList_AddRect(dl, rx - i, ry - i, rx + rw2 + i, ry + rh + i, base | a, ROUNDING + i, 0, 1)
+          end
         end
-      end
-      ig.DrawList_AddRectFilled(dl, bx, ry, bx + box_w, ry + rh, c.name_bg, ROUNDING)
-      ig.DrawList_AddRect(dl, bx, ry, bx + box_w, ry + rh, c.sec_bd, ROUNDING, 0, 1)
-      -- the name: bold, up to two lines
-      local pb = push_bold(name_font, NAME_FONT_SIZE)
-      local l1, l2 = names[(k - 1) % #names + 1], nil
-      if ig.CalcTextSize(ctx, l1) > box_w - 8 then
-        local cut = l1
-        while #cut > 1 and ig.CalcTextSize(ctx, cut) > box_w - 8 do
-          cut = cut:match('^(.*)%s+%S*$') or cut:sub(1, #cut - 1)
+        ig.DrawList_AddRectFilled(dl, bx, ry, bx + box_w, ry + rh, c.name_bg, ROUNDING)
+        ig.DrawList_AddRect(dl, bx, ry, bx + box_w, ry + rh, c.sec_bd, ROUNDING, 0, 1)
+        -- the name: bold, up to two lines
+        local pb = push_bold(name_font, NAME_FONT_SIZE)
+        local l1, l2 = names[(k - 1) % #names + 1], nil
+        if ig.CalcTextSize(ctx, l1) > box_w - 8 then
+          local cut = l1
+          while #cut > 1 and ig.CalcTextSize(ctx, cut) > box_w - 8 do
+            cut = cut:match('^(.*)%s+%S*$') or cut:sub(1, #cut - 1)
+          end
+          l2 = fit_text((l1:sub(#cut + 1):gsub('^%s+', '')), box_w - 8)
+          l1 = cut
         end
-        l2 = fit_text((l1:sub(#cut + 1):gsub('^%s+', '')), box_w - 8)
-        l1 = cut
+        local ty = ry + (rh - blh * (l2 and 2 or 1)) / 2
+        ig.DrawList_AddText(dl, bx + (box_w - ig.CalcTextSize(ctx, l1)) / 2, ty, c.name_txt, l1)
+        if l2 then ig.DrawList_AddText(dl, bx + (box_w - ig.CalcTextSize(ctx, l2)) / 2, ty + blh, c.name_txt, l2) end
+        if pb then ig.PopFont(ctx) end
+        -- the value, a quarter turn: counterclockwise when the control is on the left, clockwise on the right
+        if ry + rh > cy and ry < cy + ch then
+          ig.DrawList_AddRectFilled(dl, vx, ry, vx + vw, ry + rh, c.sec_bg, ROUNDING)
+          ig.DrawList_AddRect(dl, vx, ry, vx + vw, ry + rh, c.sec_bd, ROUNDING, 0, 1)
+          draw_vtext(dl, values[(k - 1) % #values + 1], vx, ry, vw, rh, contrast_text(c.sec_bg, track_color(tr)), not left)
+        end
+        -- placeholder control: a knob
+        local kcx, kcy, kr = kx + cd / 2, ry + rh / 2, cd / 2 - 1
+        ig.DrawList_AddCircleFilled(dl, kcx, kcy, kr, c.sec_bg, 0)
+        ig.DrawList_AddCircle(dl, kcx, kcy, kr, c.border, 0, 2)
+        local ang = math.rad(135 + 270 * (((k * 37) % 100) / 100))
+        ig.DrawList_AddLine(dl, kcx + math.cos(ang) * kr * 0.3, kcy + math.sin(ang) * kr * 0.3,
+                            kcx + math.cos(ang) * kr * 0.85, kcy + math.sin(ang) * kr * 0.85, T.dots, 3)
       end
-      local ty = ry + (rh - blh * (l2 and 2 or 1)) / 2
-      ig.DrawList_AddText(dl, bx + (box_w - ig.CalcTextSize(ctx, l1)) / 2, ty, c.name_txt, l1)
-      if l2 then ig.DrawList_AddText(dl, bx + (box_w - ig.CalcTextSize(ctx, l2)) / 2, ty + blh, c.name_txt, l2) end
-      if pb then ig.PopFont(ctx) end
-      -- the value, a quarter turn: counterclockwise when the control is on the left, clockwise on the right
-      if ry + rh > cy and ry < cy + ch then
-        ig.DrawList_AddRectFilled(dl, vx, ry, vx + vw, ry + rh, c.sec_bg, ROUNDING)
-        ig.DrawList_AddRect(dl, vx, ry, vx + vw, ry + rh, c.sec_bd, ROUNDING, 0, 1)
-        draw_vtext(dl, values[(k - 1) % #values + 1], vx, ry, vw, rh, contrast_text(c.sec_bg, track_color(tr)), not left)
-      end
-      -- placeholder control: a knob
-      local kcx, kcy, kr = kx + cd / 2, ry + rh / 2, cd / 2 - 1
-      ig.DrawList_AddCircleFilled(dl, kcx, kcy, kr, c.sec_bg, 0)
-      ig.DrawList_AddCircle(dl, kcx, kcy, kr, c.border, 0, 2)
-      local ang = math.rad(135 + 270 * (((k * 37) % 100) / 100))
-      ig.DrawList_AddLine(dl, kcx + math.cos(ang) * kr * 0.3, kcy + math.sin(ang) * kr * 0.3,
-                          kcx + math.cos(ang) * kr * 0.85, kcy + math.sin(ang) * kr * 0.85, T.dots, 3)
-      ig.Dummy(ctx, rw, rh)
+      if not grid then ig.Dummy(ctx, rw, rh) end
     end
     -- the empty row at the end: a "+" in a circle as tall as a row, in the color of the names
     -- (opens the parameter dialog in the next version). Only the circle and the + light up.
-    local px, py = ig.GetCursorScreenPos(ctx)
+    local px, py
+    if grid then
+      px, py = ox + math.floor(n / rpc) * step_x, oy + (n % rpc) * rh
+    else
+      px, py = ig.GetCursorScreenPos(ctx)
+    end
     ig.SetCursorScreenPos(ctx, px + (rw - rh) / 2, py)
     ig.InvisibleButton(ctx, '##addparam', rh, rh)
     local hov = ig.IsItemHovered(ctx)
@@ -452,7 +518,12 @@ function draw_perf_column(inf, x, y, w, h, M)
     ig.DrawList_AddLine(dl, pcx - pl, pcy, pcx + pl, pcy, pcol, hov and 3 or 2)
     ig.DrawList_AddLine(dl, pcx, pcy - pl, pcx, pcy + pl, pcol, hov and 3 or 2)
     if hov then ig.SetTooltip(ctx, 'Add a parameter (coming in the next version)') end
-    ig.Dummy(ctx, 1, 3)
+    if grid then                                           -- the area the columns take, for the sideways scroll
+      ig.SetCursorScreenPos(ctx, ox, oy)
+      ig.Dummy(ctx, math.ceil((n + 1) / rpc) * step_x, rpc * rh)
+    else
+      ig.Dummy(ctx, 1, 3)
+    end
 
     -- a bypassed rack: its parameters are greyed out too (still usable)
     if inf.bypassed then
@@ -461,7 +532,24 @@ function draw_perf_column(inf, x, y, w, h, M)
 
     -- fade at the edges and the position bar
     local sy, smax = ig.GetScrollY(ctx), ig.GetScrollMaxY(ctx)
-    if smax > 1 then
+    if grid then
+      local sx, smx = ig.GetScrollX(ctx), ig.GetScrollMaxX(ctx)
+      if smx > 1 then
+        local fw = math.min(M.fh * 1.8, cw / 3)
+        local solid, clear = c.bg, c.bg & 0xFFFFFF00
+        if sx > 1 then
+          ig.DrawList_AddRectFilledMultiColor(dl, cx, cy, cx + fw, cy + ch, solid, clear, clear, solid)
+        end
+        if sx < smx - 1 then
+          ig.DrawList_AddRectFilledMultiColor(dl, cx + cw - fw, cy, cx + cw, cy + ch, clear, solid, solid, clear)
+        end
+        local by = cy + ch - 5
+        local thumb = math.max(16, cw * cw / (cw + smx))
+        local tx = cx + (cw - thumb) * (sx / smx)
+        ig.DrawList_AddRectFilled(dl, cx, by, cx + cw, by + 4, (T.dim & 0xFFFFFF00) | 0x40, 2)
+        ig.DrawList_AddRectFilled(dl, tx, by, tx + thumb, by + 4, (T.dim & 0xFFFFFF00) | 0xE0, 2)
+      end
+    elseif smax > 1 then
       local fh_ = math.min(M.fh * 1.8, ch / 3)
       local solid, clear = c.bg, c.bg & 0xFFFFFF00
       if sy > 1 then
@@ -483,6 +571,16 @@ end
 -- Performance mode, Show mode: each rack folds its FX section under the name. The state per
 -- rack: open (what was asked) and t (0 folded .. 1 open, moving toward it so it animates).
 PERF_FOLD, PERF_ACT, PERF_MX, PERF_MY, PERF_FRAME, PERF_FOLD_SECS = {}, 0, 0, 0, 0, 0.2
+
+-- the same for a rack's parameter column: open = widened (asked for), t = how far it is,
+-- last = the row touched last, reveal = frames left to scroll to it after folding back
+PERF_PARAMS = {}
+
+function perf_param_state(guid)
+  local st = PERF_PARAMS[guid]
+  if not st then st = { open = false, t = 0, last = nil, reveal = 0 }; PERF_PARAMS[guid] = st end
+  return st
+end
 
 function perf_fold_state(guid)
   local st = PERF_FOLD[guid]
@@ -547,11 +645,13 @@ function draw_perf_area(infos, M, dt, now)
       if perf_fold_state(reaper.GetTrackGUID(inf.tr)).open then any_open = true; break end
     end
   end
+  for _, ps in pairs(PERF_PARAMS) do if ps.open then any_open = true; break end end
   perf_activity(now, any_open)
   -- no activity for a while: every FX section folds back (Settings > Performance mode)
   local after = CFG.perf_fold_after
   if any_open and after > 0 and now - PERF_ACT >= after then
     for _, st in pairs(PERF_FOLD) do st.open = false end
+    for _, ps in pairs(PERF_PARAMS) do ps.open = false end
   end
 
   local row_h = 0                                  -- Edit mode: full racks, all as tall as the tallest
@@ -563,6 +663,10 @@ function draw_perf_area(infos, M, dt, now)
   local bottom = win_y + win_h - (total_w > win_w and sbw or 0) - 2     -- above the sideways scrollbar
   local folded = folded_height(M)
   local deepest = y
+  local wide = {}                                  -- widened columns are drawn last, over the others
+  local fx_folded = true                           -- parameters widen only once every FX section is folded
+  for _, st in pairs(PERF_FOLD) do if st.t > 0 then fx_folded = false; break end end
+  local vis_w = math.max(RACK_W, win_w - 2 * GLOW_M)
 
   for i, inf in ipairs(infos) do
     local x = wx + (i - 1) * (RACK_W + gap)
@@ -582,8 +686,28 @@ function draw_perf_area(infos, M, dt, now)
     draw_rack(inf, x, y, H, M, dt, now, vh)
     rects[#rects + 1] = { x, y, x + RACK_W, y + vh }
     local col_y = y + vh + gap                     -- the same gap as between racks
-    draw_perf_column(inf, x, col_y, RACK_W, math.max(60, bottom - col_y), M)
-    deepest = math.max(deepest, col_y + math.max(60, bottom - col_y))
+    local ps = perf_param_state(reaper.GetTrackGUID(inf.tr))
+    if ps.open and not fx_folded then
+      -- wait for the FX sections to finish folding
+    elseif ps.open then
+      ps.t = math.min(1, ps.t + math.min(dt, 0.05) / PERF_FOLD_SECS)
+    elseif ps.t > 0 then
+      ps.t = math.max(0, ps.t - math.min(dt, 0.05) / PERF_FOLD_SECS)
+      if ps.t == 0 then ps.reveal = 2 end
+    end
+    local pe = ps.t * ps.t * (3 - 2 * ps.t)
+    local col_h = math.max(60, bottom - col_y)
+    if pe > 0 then
+      wide[#wide + 1] = { inf, x, col_y, col_h, ps, pe }
+    else
+      draw_perf_column(inf, x, col_y, RACK_W, col_h, M, ps, 0)
+    end
+    deepest = math.max(deepest, col_y + col_h)
+  end
+  for _, wd in ipairs(wide) do
+    local inf, x, col_y, col_h, ps, pe = table.unpack(wd)
+    local left = win_x + GLOW_M
+    draw_perf_column(inf, x + (left - x) * pe, col_y, RACK_W + (vis_w - RACK_W) * pe, col_h, M, ps, pe)
   end
 
   empty_space_click(rects, math.huge)

@@ -282,6 +282,7 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
     if ig.InvisibleButton(ctx, 'fold', RACK_W - 4, HANDLE_H + PAD - 2) then
       fs.open = not fs.open
       PERF_ACT = now
+      if fs.open then for _, ps in pairs(PERF_PARAMS) do ps.open = false end end   -- widened parameters fold back first
     end
     handle = { hov = ig.IsItemHovered(ctx), open = fs.open, y = hy + (HANDLE_H + PAD) / 2 }   -- centered between the section above and the bottom edge
     if handle.hov then ig.SetTooltip(ctx, fs.open and 'Fold the FX section' or 'Show the FX section') end

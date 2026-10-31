@@ -2,7 +2,7 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 88).
+New items get the next free number (next: 89).
 
 ## Open
 
@@ -12,6 +12,18 @@ New items get the next free number (next: 88).
   (clockwise quarter turn), with the control on the left it reads bottom to top (counterclockwise).
   Legible at a glance? Right size, thickness and distance from the name? Also in Daylight mode and
   with many rows (CPU gauge while scrolling 40 placeholder rows in two or three columns).
+
+- [ ] 88. (0.14.0) Widening a parameter column (turn on Performance mode, Settings > Placeholder rows, e.g.
+  20). The band at the top of a column has two small triangles back to back. (a) Click it: the
+  column widens over the neighbouring columns to the full window width and the rows flow in columns
+  (top to bottom, then the next column) that scroll sideways (trackpad, or the mouse wheel); the
+  triangles now face each other; edges fade and a slim bar at the bottom shows where you are.
+  (b) Click again: it folds back to one column, scrolled so the last row you clicked is visible.
+  (c) In Show mode with an FX section open: widening folds the FX section first, then widens;
+  opening an FX section while widened folds the columns back. (d) Widening another rack's column
+  folds the first. (e) Settings > Fold ... after: a widened column folds back by itself after the
+  pause. (f) Smooth and snappy? Band the same size and look as the chevron under the FX section?
+  Also Edit mode, a bypassed rack, Daylight mode, a narrow window, CPU while scrolling sideways.
 
 ## Done
 

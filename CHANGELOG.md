@@ -10,12 +10,16 @@ Changes since the last public release, grouped by minor version (revisions are f
   where you are. In **Edit mode** the racks are full racks. In **Show mode** a rack is just its name
   with **M** (mute) and **B** (bypass) buttons on the right; the handle at the bottom of the rack opens
   its FX section (with the meters beside it) and pushes that rack's column down, and clicking it again
-  folds it back, both animated. **Settings > Performance mode > Fold the FX section after** folds open
+  folds it back, both animated. **Settings > Performance mode > Fold the FX and parameter sections after** folds open
   racks back after that many seconds without a mouse move, click or key press (15 by default, 0 =
   never). The parameter rows come in the next steps; until then **Placeholder rows** fills the columns
   with example rows (names in bold, controls outside the name box, alternating sides, the whole row
   glows under the pointer). Each row shows its value in a small vertical box between the control and
-  the name, turned a quarter turn (placeholder values for now).
+  the name, turned a quarter turn (placeholder values for now). A band at the top of every column
+  (two small triangles) **widens the column** over the neighbouring ones: the rows then flow in
+  columns that scroll sideways. Clicking the band again, or a pause in your activity (same setting
+  as the FX sections), folds it back to one column showing the row you touched last. Open FX
+  sections fold first; all animated.
 
 - Fixed: **BYPASS** (and the new B) did nothing in Show mode on a rack with an FX that Show mode had
   taken offline for latency: the offline FX counted as "switched on again by hand" and cancelled the

@@ -41,6 +41,12 @@ An optional view, switched on and off with a toggle. Edit and Show keep working 
   as text, turned a quarter turn (counterclockwise with the control on the left, clockwise on the
   right). Later: double-click the value to type one in; in Edit mode, double-click the name to rename
   the parameter.
+- **Widening a column:** a band at the top of every column (two small triangles, back to back to widen,
+  face to face to fold back; same size and behaviour as the chevron under the FX section) widens the
+  column over the neighbouring ones, to the width of the window. The rows then flow in columns, top
+  to bottom, that scroll sideways. Folding back (the band again, or the inactivity time) returns to
+  one column showing the row touched last. One column is widened at a time; open FX sections fold
+  first. Animated.
 - **Always one empty row** at the end with a + in a circle: it opens a dialog to pick a parameter.
 - **Edit mode only:** add, remove, reorder, rename, recolor, combine. Show mode only moves the controls.
 - **Deleting an FX** deletes its rows; the delete confirmation says so.
