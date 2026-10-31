@@ -13,7 +13,8 @@
 -- kept and drawn greyed out, never silently dropped.
 
 PARAM_CACHE = {}   -- per rack: the saved text and the rows parsed from it
-PARAM_PICK  = nil  -- the "Add a parameter" window: { tr, guid, filter, fx = { { guid, name, params } } }
+PARAM_PICK  = nil  -- the parameter window (Edit mode): { tr, filter, sel, anchor, order, fx }
+PARAM_KIND  = {}   -- what kind of control a parameter gets, found once per parameter
 
 function param_esc(s)
   return (s:gsub('[%%|;\n\r]', function(ch) return ('%%%02X'):format(ch:byte()) end))
@@ -23,46 +24,35 @@ function param_unesc(s)
   return (s:gsub('%%(%x%x)', function(h) return string.char(tonumber(h, 16)) end))
 end
 
--- the rows of a rack (the same table is returned while the saved text is unchanged)
+-- The rows of a rack. The saved text is only read again every 20 frames (a third of a second), so
+-- an undo still shows up; our own writes drop the copy at once.
 function params_read(tr)
   local guid = reaper.GetTrackGUID(tr)
+  local c = PARAM_CACHE[guid]
+  if c and FRAME - c.frame < 20 then return c.rows end
   local ok, s = reaper.GetSetMediaTrackInfo_String(tr, EXT_PARAMS, '', false)
   if not ok then s = '' end
-  local c = PARAM_CACHE[guid]
-  if c and c.raw == s then return c.rows end
+  if c and c.raw == s then c.frame = FRAME; return c.rows end
   local rows = {}
   for rec in s:gmatch('[^;]+') do
-    local g, i, pn, nm = rec:match('^([^|]*)|(%d+)|([^|]*)|([^|]*)$')
+    local g, i, pn, nm, df = rec:match('^([^|]*)|(%d+)|([^|]*)|([^|]*)|?([^|]*)$')
     if g then
       rows[#rows + 1] = { guid = g, idx = tonumber(i), pname = param_unesc(pn),
-                          name = nm ~= '' and param_unesc(nm) or nil }
+                          name = nm ~= '' and param_unesc(nm) or nil, def = tonumber(df) }
     end
   end
-  PARAM_CACHE[guid] = { raw = s, rows = rows }
+  PARAM_CACHE[guid] = { raw = s, rows = rows, frame = FRAME }
   return rows
 end
 
 function params_write(tr, rows)
   local t = {}
   for _, r in ipairs(rows) do
-    t[#t + 1] = ('%s|%d|%s|%s'):format(r.guid, r.idx, param_esc(r.pname or ''), param_esc(r.name or ''))
+    t[#t + 1] = ('%s|%d|%s|%s|%s'):format(r.guid, r.idx, param_esc(r.pname or ''), param_esc(r.name or ''),
+                                          r.def and ('%.6f'):format(r.def) or '')
   end
   reaper.GetSetMediaTrackInfo_String(tr, EXT_PARAMS, table.concat(t, ';'), true)
-end
-
-function params_add(tr, fxguid, idx, pname)
-  local rows = {}
-  for _, r in ipairs(params_read(tr)) do rows[#rows + 1] = r end
-  rows[#rows + 1] = { guid = fxguid, idx = idx, pname = pname }
-  params_write(tr, rows)
-end
-
-function params_remove(tr, k)
-  local rows = {}
-  for i, r in ipairs(params_read(tr)) do
-    if i ~= k then rows[#rows + 1] = r end
-  end
-  params_write(tr, rows)
+  PARAM_CACHE[reaper.GetTrackGUID(tr)] = nil
 end
 
 -- FX guid -> index, for the FX of a rack
@@ -70,6 +60,11 @@ function fx_guid_map(tr)
   local m = {}
   for i = 0, reaper.TrackFX_GetCount(tr) - 1 do m[reaper.TrackFX_GetFXGUID(tr, i)] = i end
   return m
+end
+
+-- how many parameters of the rack are in the Performance
+function params_count(tr)
+  return #params_read(tr)
 end
 
 -- the value as the vertical box can write it: what the plug-in says when the little stroke font
@@ -86,57 +81,246 @@ function param_vtext(txt, norm)
   return ('%d%%'):format(math.floor(norm * 100 + 0.5))
 end
 
----------------------------------------------------------------- the "Add a parameter" window
+-- What control a parameter gets, from what REAPER says about it (found once, then kept):
+--   toggle: on/off, or two values   list: a few named values (a drop-down)   steps: a few numeric
+--   values (a stepped encoder)      arc: a range or a width (the encoder shows an arc)   knob: the rest
+-- r: { guid, idx, pname }. Returns { kind, steps, items, label }.
+function param_kind(tr, fxi, r)
+  local key = r.guid .. ':' .. r.idx .. ':' .. (r.pname or '')
+  local k = PARAM_KIND[key]
+  if k then return k end
+  k = { kind = 'knob', label = 'continuous' }
+  local ok, step, _, _, istoggle = reaper.TrackFX_GetParameterStepSizes(tr, fxi, r.idx)
+  local n
+  if ok and step and step > 0 then n = math.floor(1 / step + 0.5) + 1 end
+  if ok and istoggle or n == 2 then
+    k.kind, k.label = 'toggle', 'on/off'
+  elseif n and n >= 3 and n <= 32 then
+    local items, numeric = {}, true
+    for i = 0, n - 1 do
+      local v = i / (n - 1)
+      local _, txt = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, r.idx, v, '')
+      if txt == '' then txt = ('%d%%'):format(math.floor(v * 100 + 0.5)) end
+      items[#items + 1] = { label = txt, norm = v }
+      if not tonumber((txt:match('^%s*([%-%+]?[%d%.]+)'))) then numeric = false end
+    end
+    k.steps, k.items = n, items
+    if numeric then k.kind, k.label = 'steps', ('%d steps'):format(n)
+    else k.kind, k.label = 'list', ('list of %d'):format(n) end
+  else
+    local low = (r.pname or ''):lower()
+    if low:find('width', 1, true) or low:find('range', 1, true) or low:find('spread', 1, true)
+       or low == 'q' or low:find('^q[%s%-_]') or low:find('[%s%-_]q$') then
+      k.kind, k.label = 'arc', 'range'
+    end
+  end
+  PARAM_KIND[key] = k
+  return k
+end
+
+---------------------------------------------------------------- the parameter window (Edit mode)
+--
+-- A tree of the rack: the rack, its FX, and under each FX every parameter. Click selects, Cmd/Ctrl-click
+-- adds to the selection, Shift-click selects a stretch. "Add to Performance" and "Remove from
+-- Performance" work on the selection; selecting an FX means all of its parameters.
 
 function param_picker_open(tr)
-  local fxs = {}
-  for _, it in ipairs(chain_info(tr).list) do
-    local names = {}
-    for p = 0, reaper.TrackFX_GetNumParams(tr, it.fx) - 1 do
-      local _, nm = reaper.TrackFX_GetParamName(tr, it.fx, p, '')
-      names[p + 1] = nm
-    end
-    fxs[#fxs + 1] = { guid = reaper.TrackFX_GetFXGUID(tr, it.fx), name = it.name, names = names }
+  PARAM_PICK = { tr = tr, filter = '', sel = {}, anchor = nil, order = {} }
+end
+
+-- the parameters of an FX node or of one parameter, as { guid, idx, name }
+function param_pick_targets(P, fxs)
+  local out, seen = {}, {}
+  local function add(fx, p)
+    local key = fx.guid .. ':' .. p
+    if not seen[key] then seen[key] = true; out[#out + 1] = { guid = fx.guid, idx = p, name = fx.names[p + 1] } end
   end
-  PARAM_PICK = { tr = tr, filter = '', fx = fxs }
+  for _, fx in ipairs(fxs) do
+    if P.sel['P:' .. fx.guid] then
+      for p = 0, #fx.names - 1 do add(fx, p) end
+    end
+    for p = 0, #fx.names - 1 do
+      if P.sel['p:' .. fx.guid .. ':' .. p] then add(fx, p) end
+    end
+  end
+  return out
+end
+
+function param_pick_apply(P, fxs, adding)
+  local tr = P.tr
+  local targets = param_pick_targets(P, fxs)
+  if #targets == 0 then return end
+  local gm = fx_guid_map(tr)
+  local rows, have = {}, {}
+  for _, r in ipairs(params_read(tr)) do
+    rows[#rows + 1] = r
+    have[r.guid .. ':' .. r.idx] = #rows
+  end
+  if adding then
+    for _, t in ipairs(targets) do
+      if not have[t.guid .. ':' .. t.idx] and gm[t.guid] then
+        -- the value it has now is remembered as its default (REAPER doesn't say what the plug-in's own is)
+        local def = reaper.TrackFX_GetParamNormalized(tr, gm[t.guid], t.idx)
+        rows[#rows + 1] = { guid = t.guid, idx = t.idx, pname = t.name, def = def }
+      end
+    end
+  else
+    local drop = {}
+    for _, t in ipairs(targets) do drop[t.guid .. ':' .. t.idx] = true end
+    local kept = {}
+    for _, r in ipairs(rows) do
+      if not drop[r.guid .. ':' .. r.idx] then kept[#kept + 1] = r end
+    end
+    rows = kept
+  end
+  with_undo(adding and 'Add parameters to Performance' or 'Remove parameters from Performance',
+            function() params_write(tr, rows) end)
+end
+
+-- a check mark, drawn (the font may not have one)
+function draw_check(dl, x, y, h, col)
+  local u = h * 0.28
+  ig.DrawList_AddLine(dl, x, y + u * 0.2, x + u, y + u * 1.2, col, 2)
+  ig.DrawList_AddLine(dl, x + u, y + u * 1.2, x + u * 2.4, y - u * 0.9, col, 2)
+end
+
+-- the plug-in's name without its type ("VST3: Foo (Dev)" -> "Foo (Dev)") and the type
+function fx_name_type(name)
+  local t, rest = name:match('^(%w+):%s*(.*)$')
+  if t then return rest, t end
+  return name, nil
 end
 
 function draw_param_picker()
   local P = PARAM_PICK
   if not P then return end
-  if not valid(P.tr) then PARAM_PICK = nil; return end
-  local vis, open = begin_window('parampick', 'Add a parameter###parampick', 420, 520, true)
+  if not valid(P.tr) or is_locked() then PARAM_PICK = nil; return end
+  local tr = P.tr
+  local vis, open = begin_window('parampick', 'Performance parameters###parampick', 480, 560, true)
   if vis then
-    ig.TextDisabled(ctx, 'Click a parameter to add it to the column. The window stays open for more.')
-    ig.SetNextItemWidth(ctx, -1)
-    local rv, f = ig.InputTextWithHint(ctx, '##pf', 'Search', P.filter)
-    if rv then P.filter = f end
-    local low = P.filter:lower()
-    local taken = {}
-    for _, r in ipairs(params_read(P.tr)) do taken[r.guid .. ':' .. r.idx] = true end
-    if ig.BeginChild(ctx, 'pplist', 0, 0) then
-      if #P.fx == 0 then ig.TextDisabled(ctx, 'This rack has no FX yet.') end
-      for _, fx in ipairs(P.fx) do
-        if low ~= '' then ig.SetNextItemOpen(ctx, true, ig.Cond_Always()) end
-        if ig.CollapsingHeader(ctx, fx.name .. '##h' .. fx.guid) then
-          local shown = 0
-          for p, nm in ipairs(fx.names) do
-            if low == '' or nm:lower():find(low, 1, true) then
-              shown = shown + 1
-              if shown > 300 then ig.TextDisabled(ctx, 'More... type in the search to narrow it down.'); break end
-              local used = taken[fx.guid .. ':' .. (p - 1)]
-              if used then ig.PushStyleColor(ctx, ig.Col_Text(), T.dim) end
-              if ig.Selectable(ctx, (used and '(added)  ' or '') .. nm .. '##p' .. fx.guid .. p) and not used then
-                params_add(P.tr, fx.guid, p - 1, nm)
-              end
-              if used then ig.PopStyleColor(ctx) end
-            end
-          end
-          if shown == 0 then ig.TextDisabled(ctx, 'Nothing matches.') end
+    -- the rack's FX and the names of their parameters, read once per FX
+    local fxs = {}
+    for _, it in ipairs(chain_info(tr).list) do
+      local g = reaper.TrackFX_GetFXGUID(tr, it.fx)
+      local f = P.cache and P.cache[g]
+      if not f or f.fx ~= it.fx or f.name ~= it.name then
+        local names = {}
+        for p = 0, reaper.TrackFX_GetNumParams(tr, it.fx) - 1 do
+          local _, nm = reaper.TrackFX_GetParamName(tr, it.fx, p, '')
+          names[p + 1] = nm
         end
+        f = { guid = g, fx = it.fx, name = it.name, names = names }
+        P.cache = P.cache or {}
+        P.cache[g] = f
+      end
+      fxs[#fxs + 1] = f
+    end
+
+    ig.SetNextItemWidth(ctx, -1)
+    local rv, ftxt = ig.InputTextWithHint(ctx, '##pf', 'Search parameters', P.filter)
+    if rv then P.filter = ftxt end
+    local low = P.filter:lower()
+
+    local have = {}
+    for _, r in ipairs(params_read(tr)) do have[r.guid .. ':' .. r.idx] = true end
+    local gm = fx_guid_map(tr)
+    local lh = ig.GetTextLineHeightWithSpacing(ctx)
+    local TXT = ig.GetStyleColor(ctx, ig.Col_Text())
+    local order = {}
+    local function click(key, shift, ctrl)
+      if shift and P.anchor then
+        local a, b
+        for i, k in ipairs(P.order) do
+          if k == P.anchor then a = i end
+          if k == key then b = i end
+        end
+        if a and b then
+          if a > b then a, b = b, a end
+          for i = a, b do P.sel[P.order[i]] = true end
+          return
+        end
+      end
+      if not ctrl then P.sel = {} end
+      if ctrl and P.sel[key] then P.sel[key] = nil else P.sel[key] = true end
+      P.anchor = key
+    end
+
+    if ig.BeginChild(ctx, 'pptree', 0, -ig.GetFrameHeightWithSpacing(ctx) - 4) then
+      local rname = track_name(tr)
+      ig.SetNextItemOpen(ctx, true, ig.Cond_Once())
+      if ig.TreeNode(ctx, rname .. '##rack') then
+        if #fxs == 0 then ig.TextDisabled(ctx, 'This rack has no FX yet.') end
+        for _, fx in ipairs(fxs) do
+          local pname, ptype = fx_name_type(fx.name)
+          local pkey = 'P:' .. fx.guid
+          local n_have = 0
+          for p = 0, #fx.names - 1 do if have[fx.guid .. ':' .. p] then n_have = n_have + 1 end end
+          if low ~= '' then ig.SetNextItemOpen(ctx, true, ig.Cond_Always()) end
+          local flags = ig.TreeNodeFlags_OpenOnArrow() | ig.TreeNodeFlags_SpanAvailWidth()
+          if P.sel[pkey] then flags = flags | ig.TreeNodeFlags_Selected() end
+          order[#order + 1] = pkey
+          local opened = ig.TreeNodeEx(ctx, '##' .. pkey, flags)
+          local x1, y1 = ig.GetItemRectMin(ctx)
+          if ig.IsItemClicked(ctx, 0) and not ig.IsItemToggledOpen(ctx) then
+            click(pkey, has_mod('shift'), has_mod('ctrl'))
+          end
+          -- the label, drawn over the node: name, then (TYPE) in its color, and a check when every parameter is in
+          local lx = x1 + ig.GetTreeNodeToLabelSpacing(ctx)
+          local dl = ig.GetWindowDrawList(ctx)
+          local tx = lx
+          if n_have > 0 and n_have == #fx.names then draw_check(dl, lx, y1 + lh * 0.45, lh, TXT); tx = lx + 20 end
+          ig.DrawList_AddText(dl, tx, y1, TXT, pname)
+          local nx = tx + ig.CalcTextSize(ctx, pname) + 6
+          if ptype then
+            local ttxt = '(' .. ptype .. ')'
+            ig.DrawList_AddText(dl, nx, y1, type_color(ptype), ttxt)
+            nx = nx + ig.CalcTextSize(ctx, ttxt) + 8
+          end
+          ig.DrawList_AddText(dl, nx, y1, T.dim, ('%d of %d in the Performance'):format(n_have, #fx.names))
+          if opened then
+            local fxi = gm[fx.guid]
+            for p = 0, #fx.names - 1 do
+              local nm = fx.names[p + 1]
+              if low == '' or nm:lower():find(low, 1, true) then
+                local key = 'p:' .. fx.guid .. ':' .. p
+                order[#order + 1] = key
+                if ig.IsRectVisible(ctx, 1, lh) then
+                  local selected = P.sel[key] == true
+                  if ig.Selectable(ctx, '##' .. key, selected, 0, 0, lh - 2) then
+                    click(key, has_mod('shift'), has_mod('ctrl'))
+                  end
+                  local ix, iy = ig.GetItemRectMin(ctx)
+                  local iw = ig.GetItemRectSize(ctx)
+                  local dl2 = ig.GetWindowDrawList(ctx)
+                  if have[fx.guid .. ':' .. p] then draw_check(dl2, ix + 4, iy + lh * 0.4, lh, TXT) end
+                  ig.DrawList_AddText(dl2, ix + 24, iy, TXT, fit_text(nm, iw * 0.45))
+                  -- the kind of value and its value now
+                  local kind = param_kind(tr, fxi, { guid = fx.guid, idx = p, pname = nm })
+                  local _, txt = reaper.TrackFX_GetFormattedParamValue(tr, fxi, p)
+                  local right = ('%s:  %s'):format(kind.label, txt or '')
+                  ig.DrawList_AddText(dl2, ix + iw * 0.5, iy, T.dim, fit_text(right, iw * 0.5 - 6))
+                else
+                  ig.Dummy(ctx, 1, lh)
+                end
+              end
+            end
+            ig.TreePop(ctx)
+          end
+        end
+        ig.TreePop(ctx)
       end
       ig.EndChild(ctx)
     end
+    P.order = order
+
+    local any = next(P.sel) ~= nil
+    if not any and ig.BeginDisabled then ig.BeginDisabled(ctx, true) end
+    if ig.Button(ctx, 'Add to Performance') then param_pick_apply(P, fxs, true) end
+    ig.SameLine(ctx)
+    if ig.Button(ctx, 'Remove from Performance') then param_pick_apply(P, fxs, false) end
+    if not any and ig.EndDisabled then ig.EndDisabled(ctx) end
+    ig.SameLine(ctx)
+    ig.TextDisabled(ctx, ('%d selected'):format((function() local c = 0 for _ in pairs(P.sel) do c = c + 1 end return c end)()))
     ig.End(ctx)
   end
   if not open then PARAM_PICK = nil end

@@ -12,12 +12,19 @@ Changes since the last public release, grouped by minor version (revisions are f
   its FX section (with the meters beside it) and pushes that rack's column down, and clicking it again
   folds it back, both animated. **Settings > Performance mode** has a checkbox to turn the automatic folding
   off, and the time to wait (**Fold them after**, 15 s by default): open FX sections and widened
-  parameter sections then fold back after that long without activity in the Plugins Host window (the mouse moving over it, a click, a drag, scrolling or a key). In Show mode the meters are thin horizontal bars either side of the chevron (input left, output right, mirrored so the tops and the clip lights are both next to the chevron), always visible, and the FX section uses the full width of the rack. **Parameter rows** (first version): in Edit mode the **+** at the end of a column opens an "Add a
-  parameter" window listing the rack's FX and their parameters, with a search; a click adds the
-  parameter as a row. The row shows the plug-in's name for it, its real value (in the vertical box) and a
-  knob that moves the real parameter (drag up and down, Shift for fine). Rows are saved on the rack;
-  one whose FX is gone is greyed out. Right-click a row in Edit mode to remove it. **Placeholder rows**
-  still fills the columns with example rows (names in bold, controls outside the name box, alternating sides, the whole row
+  parameter sections then fold back after that long without activity in the Plugins Host window (the mouse moving over it, a click, a drag, scrolling or a key). In Show mode the meters are thin horizontal bars either side of the chevron (input left, output right, mirrored so the tops and the clip lights are both next to the chevron), always visible, and the FX section uses the full width of the rack. **Parameter rows**: in Edit mode the **+** at the end of a column (it is not there in Show mode) opens
+  the **Performance parameters** window: a tree of the rack, its FX (name and type in its color) and
+  every parameter (kind of value and current value), foldable, with groups selectable (click,
+  Cmd/Ctrl-click, Shift-click); **Add to Performance** and **Remove from Performance** work on the
+  selection, and selecting an FX means all of its parameters. A parameter in the Performance has a
+  check mark. A row shows the plug-in's name for it, its real value in the vertical box and a
+  control that fits the parameter: a **rotary encoder** (7:30 = minimum, 4:30 = maximum, with small
+  arrows for min, max and the default, which is yellow; an arc inside for a range or width; marks for each value
+  when there are only a few), a **toggle** (a circle) or a **drop-down** (a circle with an arrow). The default
+  is the value the parameter had when it was added; double-click an encoder to go back to it. **Settings > Controls >
+  Rotary encoder** picks how it turns: up and down (finer the farther the pointer is to the side) or around the
+  encoder. Rows are saved on the rack; one whose FX is gone is greyed out. In Performance mode the
+  status bar also shows how many parameters the selected rack has. The placeholder rows are gone. Rows look like this (names in bold, controls outside the name box, alternating sides, the whole row
   glows under the pointer). Each row shows its value in a small vertical box between the control and
   the name, turned a quarter turn. A band at the top of every column
   (two small triangles) **widens the column** over the neighbouring ones: the rows then flow in

@@ -6,17 +6,21 @@ New items get the next free number (next: 91).
 
 ## Open
 
-- [ ] 90. (0.14.0) Parameter rows, first version (Performance mode, Settings > Placeholder rows = 0).
-  (a) Edit mode: click the + at the end of a rack's column: the "Add a parameter" window lists the
-  rack's FX; open one, click a parameter: a row appears (plug-in's name, real value in the vertical
-  box, knob). Search narrows the list; added ones show "(added)". Try a plug-in with many parameters
-  (a few hundred): any lag opening the window? (b) Drag the knob up/down: the real parameter moves
-  (check in the FX window), Shift = fine, the value box follows. Moving it in the FX window moves the
-  knob too. Works in Show mode as well; the + says to switch to Edit mode. (c) Right-click a row in
-  Edit mode > Remove this row. (d) Save, close and reopen the project: rows are back. (e) Remove the
-  FX: its rows are greyed out (hover says why), not lost. (f) Values with words (a drop-down "Peak")
-  show as a percentage for now; is that OK until there are real drop-downs? (g) CPU with several
-  racks of 10-20 rows. (Rollback point before this: tag `perf-checkpoint-3`.)
+- [ ] 90. (0.14.0) Parameter rows (Performance mode). (a) Edit mode: the + at the end of a column
+  opens "Performance parameters": rack > FX (name, (TYPE) in its color, "n of m in the Performance")
+  > parameters (kind of value and current value). Folding works; click / Cmd-click / Shift-click
+  select; Add / Remove to Performance work on the selection; an FX selected = all its parameters (a
+  plug-in with several hundred: lag?); the check marks follow. Search narrows the tree. The window
+  closes when you switch to Show mode, and the + is gone in Show mode. (b) Controls: a continuous
+  parameter gets an encoder (7:30 to 4:30, stops at the ends, clockwise = up; yellow default mark;
+  min/max marks in the encoder's color); a width or Q gets an arc; a few numeric values get a stepped
+  encoder with a mark per value (an 1176 ratio?); on/off gets a circle toggle; named values get a
+  drop-down circle with a menu. Each moves the real parameter, and follows it when it is moved in the
+  FX window. (c) Settings > Controls > Rotary encoder: up and down (finer the farther to the side)
+  and around the encoder; Shift = finer; double-click = back to the default mark. (d) Save, close
+  and reopen the project: rows are back. (e) Remove an FX: its rows grey out. (f) Performance mode
+  status bar: "n parameter(s) in the selected rack". (g) CPU with several racks of 20+ rows, and
+  with a plug-in whose rows were all added. (Rollback point before this: tag `perf-checkpoint-3`.)
 
 ## Done
 

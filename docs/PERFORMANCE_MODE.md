@@ -32,9 +32,12 @@ An optional view, switched on and off with a toggle. Edit and Show keep working 
 - **A column belongs to its rack.** Each row is one parameter of an FX of that rack. (Later: rows
   controlling an FX of another rack. The storage must not forbid it.)
 - **Rows alternate sides:** name left / control right, then control left / name right.
-- **Controls:** rotary knob by default (switchable to a slider per row; the default may change after
-  trying it), a toggle for on/off, a drop-down for a few fixed values. Plugins that don't say what
-  their parameter is get the knob/slider.
+- **Controls** (no sliders): a rotary encoder (7:30 minimum to 4:30 maximum, clockwise raises it,
+  arrows around it mark minimum, maximum and the default in yellow; an arc inside it for a range or
+  width; one mark per value when there are only a few), a toggle (a plain circle) and a drop-down (a
+  circle with an arrow, the values in a menu). How the encoder turns is a global setting (Settings >
+  Controls): vertical drag, finer the farther the pointer is to the side, or dragging around it.
+  The default mark is the value the parameter had when it was added to the Performance.
 - **Name** defaults to what the plugin reports and can be renamed. **Color** is the rack's, changeable
   per row from a drop-down.
 - **Row look:** the name in bold in its own box (two lines allowed), the control outside the box,

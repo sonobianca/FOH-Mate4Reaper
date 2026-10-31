@@ -382,3 +382,111 @@ function draw_vtext(dl, text, bx, by, bw, bh, col, ccw, zoom)
     u = u + ((ch == ' ') and 3 or 7) * s
   end
 end
+
+---------------------------------------------------------------- rotary encoder, drop-down
+
+-- Controls for the parameter rows of Performance mode, drawn by hand (ReaImGui has none). They know
+-- nothing about REAPER, so another module can use them. The encoder turns from the 7:30 mark
+-- (minimum) clockwise to the 4:30 mark (maximum), 270 degrees, and stops there.
+
+ENC = {}                    -- per encoder: what the current drag started from
+ENC_DEFAULT_COL = 0xFFD21EFF   -- the default value's mark: yellow
+ENC_A0, ENC_A1 = math.rad(135), math.rad(405)   -- screen angles of 7:30 and 4:30 (y points down)
+
+-- a tiny arrow just outside the circle, pointing at it (perpendicular to the circumference)
+function enc_mark(dl, cx, cy, r, ang, col, s)
+  local ux, uy = math.cos(ang), math.sin(ang)
+  local px, py = -uy, ux
+  local tip, base, hw = r + 2 * s, r + 6.5 * s, 2.6 * s
+  ig.DrawList_AddTriangleFilled(dl, cx + ux * tip, cy + uy * tip,
+    cx + ux * base + px * hw, cy + uy * base + py * hw,
+    cx + ux * base - px * hw, cy + uy * base - py * hw, col)
+end
+
+-- o: body (fill), col (ring and min/max marks, the encoder's color), ptr (pointer or arc color),
+--    s (scale), style ('line' pointer, or 'arc' for a range or width: an arc inside the encoder),
+--    steps (n values: stepped, with a mark per value), def (default position 0..1, yellow mark),
+--    static (draw only, no mouse).
+-- Returns the new position 0..1 when the user changed it.
+function draw_encoder(id, cx, cy, r, norm, o)
+  local s = o.s or 1
+  local dl = ig.GetWindowDrawList(ctx)
+  local changed
+  local hover = false
+  if not o.static then
+    local R = r + 6 * s
+    ig.SetCursorScreenPos(ctx, cx - R, cy - R)
+    ig.InvisibleButton(ctx, id, 2 * R, 2 * R)
+    hover = ig.IsItemHovered(ctx)
+    local st = ENC[id]
+    if not st then st = {}; ENC[id] = st end
+    if ig.IsItemActivated(ctx) then st.raw, st.a = norm, nil end
+    if hover and ig.IsMouseDoubleClicked(ctx, 0) and o.def then
+      changed, st.raw = o.def, o.def
+    elseif ig.IsItemActive(ctx) then
+      local mx, my = ig.GetMousePos(ctx)
+      local raw = st.raw or norm
+      if CFG.enc_mode == 'circle' then
+        local a = math.atan(my - cy, mx - cx)
+        if st.a then
+          local d = a - st.a
+          if d > math.pi then d = d - 2 * math.pi elseif d < -math.pi then d = d + 2 * math.pi end
+          raw = raw + d / (ENC_A1 - ENC_A0)
+        end
+        st.a = a
+      else
+        local _, dy = ig.GetMouseDelta(ctx)
+        local k = 0.006 / (1 + math.abs(mx - cx) / (40 * s))   -- farther to the side = finer
+        if has_mod('shift') then k = k * 0.25 end
+        raw = raw - dy * k
+      end
+      raw = math.max(0, math.min(1, raw))
+      st.raw = raw
+      local v = raw
+      if o.steps and o.steps > 1 then v = math.floor(raw * (o.steps - 1) + 0.5) / (o.steps - 1) end
+      if v ~= norm then changed = v end
+    end
+  end
+  local v = changed or norm
+  ig.DrawList_AddCircleFilled(dl, cx, cy, r, o.body, 0)
+  ig.DrawList_AddCircle(dl, cx, cy, r, hover and mix(o.col, WHITE, 0.3) or o.col, 0, 2 * s)
+  enc_mark(dl, cx, cy, r, ENC_A0, o.col, s)
+  enc_mark(dl, cx, cy, r, ENC_A1, o.col, s)
+  if o.steps and o.steps > 2 then
+    for i = 1, o.steps - 2 do enc_mark(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * i / (o.steps - 1), o.col, 0.6 * s) end
+  end
+  if o.def then enc_mark(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * o.def, ENC_DEFAULT_COL, s) end
+  local ang = ENC_A0 + (ENC_A1 - ENC_A0) * v
+  if o.style == 'arc' then
+    if v > 0.005 then
+      ig.DrawList_PathArcTo(dl, cx, cy, r - 4 * s, ENC_A0, ang)
+      ig.DrawList_PathStroke(dl, o.ptr, 0, 3.5 * s)
+    end
+  else
+    ig.DrawList_AddLine(dl, cx + math.cos(ang) * r * 0.3, cy + math.sin(ang) * r * 0.3,
+                        cx + math.cos(ang) * r * 0.85, cy + math.sin(ang) * r * 0.85, o.ptr, 3 * s)
+  end
+  return changed
+end
+
+-- a circle with a small arrow pointing down; a click opens a menu of the values.
+-- items: { { label, norm }, ... }. Returns the norm of the one picked.
+function draw_dropdown(id, cx, cy, r, norm, items, o)
+  local s = o.s or 1
+  local dl = ig.GetWindowDrawList(ctx)
+  ig.SetCursorScreenPos(ctx, cx - r, cy - r)
+  if ig.InvisibleButton(ctx, id, 2 * r, 2 * r) then ig.OpenPopup(ctx, id .. '_dd') end
+  local hover = ig.IsItemHovered(ctx)
+  ig.DrawList_AddCircleFilled(dl, cx, cy, r, o.body, 0)
+  ig.DrawList_AddCircle(dl, cx, cy, r, hover and mix(o.col, WHITE, 0.3) or o.col, 0, 2 * s)
+  local w, h = 5.5 * s, 3.5 * s
+  ig.DrawList_AddTriangleFilled(dl, cx - w, cy - h, cx + w, cy - h, cx, cy + h, o.ptr)
+  local picked
+  if ig.BeginPopup(ctx, id .. '_dd') then
+    for _, it in ipairs(items) do
+      if ig.Selectable(ctx, it.label .. '##' .. it.norm, math.abs(it.norm - norm) < 1e-4) then picked = it.norm end
+    end
+    ig.EndPopup(ctx)
+  end
+  return picked
+end

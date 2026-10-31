@@ -91,8 +91,10 @@ SCHEMA = {
     tip = 'On: an open FX section (Show mode) and a widened parameter section fold back after the time below\nwithout you using FOH-Mate. Off: they stay open until you fold them.' },
   { group = 'Performance mode', key = 'perf_fold_after', label = 'Fold them after', kind = 'i', min = 0, max = 120, def = 15, fmt = '%d s',
     tip = 'An open FX section (Show mode) and a widened parameter column fold back after this long\nwithout activity in the Plugins Host window (the mouse moving over it, a click, a drag, scrolling\nor a key). Nothing outside the window counts. Only when the option above is on.' },
-  { group = 'Performance mode', key = 'perf_demo_rows', label = 'Placeholder rows (test only)', kind = 'i', min = 0, max = 40, def = 0, fmt = '%d rows',
-    tip = 'Fills every column with empty rows so the scrolling can be tried before parameter rows exist.\nGoes away in the next version.' },
+
+  { group = 'Controls', key = 'enc_mode', label = 'Rotary encoder: drag', kind = 'choice', def = 'vertical',
+    options = { { 'vertical', 'up and down' }, { 'circle', 'around the encoder' } },
+    tip = 'How a rotary encoder is turned with the mouse (the parameter rows of Performance mode, and any\nother FOH-Mate module that uses encoders).\nUp and down: drag vertically; the farther the pointer is to the side of the encoder, the finer it is.\nAround the encoder: drag the pointer in a circle around it. Shift = finer in both.' },
 }
 
 CFG = {}
@@ -108,6 +110,9 @@ function load_cfg()
     local raw = reaper.GetExtState(EXT_SECTION, 'cfg_' .. e.key)
     if e.kind == 'mod' then
       CFG[e.key] = (raw == 'shift' or raw == 'ctrl' or raw == 'alt') and raw or e.def
+    elseif e.kind == 'choice' then
+      CFG[e.key] = e.def
+      for _, o in ipairs(e.options) do if o[1] == raw then CFG[e.key] = raw end end
     elseif e.kind == 'color' then
       CFG[e.key] = tonumber(raw) or e.def
     else
