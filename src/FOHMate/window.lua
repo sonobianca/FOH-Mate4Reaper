@@ -255,13 +255,20 @@ function draw_status_bar(dl, x, y, w, h, M, nracks, nfx)
   end
 end
 
+-- The one gap between racks (sideways and down) and between the top bar and the
+-- first row: the room the latency alert tag needs (it is centered on a rack's top
+-- edge, so its top half sits in the gap above) plus Settings > Space between racks.
+function rack_gap()
+  return RACK_SPACE + math.max(GLOW_M, math.ceil((ig.GetTextLineHeight(ctx) + 2) / 2) + 1)
+end
+
 -- the scrolling part: every rack, tiled
 function draw_rack_area(infos, M, dt, now, avail)
   local x_left, y_top = ig.GetCursorScreenPos(ctx)
   local limit = x_left + avail                       -- the scrollbar starts here
   local wx = x_left + GLOW_M                         -- room around the racks for the selection glow
-  -- above the first row, also room for the top half of the latency alert tag (centered on the rack's top edge)
-  local y = y_top + math.max(GLOW_M, math.ceil((ig.GetTextLineHeight(ctx) + 2) / 2) + 1)
+  local gap = rack_gap()
+  local y = y_top + gap                              -- the area starts right under the top bar
   local rects = {}
   local grid_x, last_row_y, last_row_h, grid_cols_n = wx, y, 0, 1
 
@@ -270,7 +277,7 @@ function draw_rack_area(infos, M, dt, now, avail)
     ig.Text(ctx, ('No tracks named "%s ..." found. Double-click here or use + to create a rack.'):format(PREFIX))
   else
     -- each row is as tall as its tallest rack
-    local cols = math.max(1, math.floor((avail - 2 * GLOW_M + RACK_SPACE) / (RACK_W + RACK_SPACE)))
+    local cols = math.max(1, math.floor((avail - 2 * GLOW_M + gap) / (RACK_W + gap)))
     local i = 1
     while i <= #infos do
       local row_h = 0
@@ -281,21 +288,21 @@ function draw_rack_area(infos, M, dt, now, avail)
       -- the grid is centered as a whole: every row starts at the same left edge,
       -- so a shorter last row stays aligned with the row above it
       local grid_cols = math.min(cols, #infos)
-      local grid_w = grid_cols * RACK_W + (grid_cols - 1) * RACK_SPACE
+      local grid_w = grid_cols * RACK_W + (grid_cols - 1) * gap
       local row_x = math.max(wx, x_left + math.floor((avail - grid_w) / 2))
       grid_x, last_row_y, last_row_h, grid_cols_n = row_x, y, row_h, cols
       for c = 0, cols - 1 do
         local inf = infos[i + c]
         if inf then
-          local x = row_x + c * (RACK_W + RACK_SPACE)
+          local x = row_x + c * (RACK_W + gap)
           draw_rack(inf, x, y, row_h, M, dt, now)
           rects[#rects + 1] = { x, y, x + RACK_W, y + row_h }
         end
       end
-      y = y + row_h + RACK_SPACE
+      y = y + row_h + gap
       i = i + cols
     end
-    y = y - RACK_SPACE
+    y = y - gap
   end
 
   -- empty space: a click deselects the racks, a double-click offers a new rack
@@ -331,9 +338,9 @@ function draw_rack_area(infos, M, dt, now, avail)
       local used = (#infos - 1) % grid_cols_n + 1
       local sx, sy
       if used < grid_cols_n then
-        sx, sy = grid_x + used * (RACK_W + RACK_SPACE), last_row_y
+        sx, sy = grid_x + used * (RACK_W + gap), last_row_y
       else
-        sx, sy = grid_x, last_row_y + last_row_h + RACK_SPACE
+        sx, sy = grid_x, last_row_y + last_row_h + gap
       end
       local gdl = ig.GetWindowDrawList(ctx)
       ig.DrawList_AddRectFilled(gdl, sx, sy, sx + RACK_W, sy + last_row_h, (T.glow & 0xFFFFFF00) | 0x28, ROUNDING + 2)
@@ -558,7 +565,7 @@ function draw(dt, now)
   if ig.BeginPopup(ctx, 'opts_pop') then draw_options_menu(); ig.EndPopup(ctx) end
 
   ------------------------------------------------ racks (the only part that scrolls)
-  local top = wy + top_h + RACK_SPACE
+  local top = wy + top_h                              -- the gap under the top bar is inside the area (rack_gap)
   local sb_y = win_y + wh - pady - tb_h               -- status bar top
   local hint_h = M.tlh + 4                            -- the help line, right above the status bar
   local child_h = math.max(40, sb_y - RACK_SPACE - hint_h - top)

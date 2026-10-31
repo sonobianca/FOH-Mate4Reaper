@@ -82,8 +82,8 @@ SCHEMA = {
     tip = 'Space inside the three boxes of a rack.' },
   { group = 'Layout', key = 'sg', label = 'Section gap', kind = 'i', min = 0, max = 16, def = 6, fmt = '%d px',
     tip = 'Space between the three boxes of a rack.' },
-  { group = 'Layout', key = 'rack_space', label = 'Space between racks', kind = 'i', min = 0, max = 24, def = 8, fmt = '%d px',
-    tip = 'Also the space under the top bar and above the status bar.' },
+  { group = 'Layout', key = 'rack_space', label = 'Extra space between racks', kind = 'i', min = 0, max = 24, def = 8, fmt = '%d px',
+    tip = 'Added to the room the latency alert tag needs (about 9 px). The same gap is used between racks,\nbetween rows and under the top bar. Also the space above the status bar.' },
   { group = 'Layout', key = 'clip_h', label = 'Clip marker height', kind = 'i', min = 2, max = 12, def = 6, fmt = '%d px',
     tip = 'Height of the clip markers above the meters.' },
 }

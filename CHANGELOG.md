@@ -17,6 +17,9 @@ Changes since the last public release, grouped by minor version (revisions are f
 - The latency alert tag on the first row of racks is no longer cut off at the top.
 - The flashing red frame of a rack over its latency limit covers the rack's own frame completely
   (thicker, same corners), so the rack's color no longer shows through.
+- One gap everywhere: between racks (sideways and down) it is now the same as between the top bar and
+  the first row (the room the latency tag needs plus the setting, 8 px by default: about 17 px
+  instead of 8). The setting is now called **Extra space between racks**.
 - **Allow latency** stays per format. With the option on, allowing an FX that has other formats
   installed first says that only this format is allowed (that note can be hidden).
 - **"Don't show this again"** on popups that are not critical: creating a rack by double-click,

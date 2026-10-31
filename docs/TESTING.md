@@ -2,9 +2,15 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 82).
+New items get the next free number (next: 83).
 
 ## Open
+
+- [ ] 82. (0.13.3) Same gap everywhere: the space between racks, between rows, and between the top
+  bar and the first row look equal (about 17 px). Scrolling (many racks), dragging a rack (the drop
+  preview lands in the right cell), the window at different widths, and Settings > Layout > **Extra
+  space between racks** at 0 and 24 (gaps change together, the latency tag on a first-row rack stays
+  whole). Fewer racks fit per row than before: check the layout still looks right docked.
 
 - [ ] 81. (0.13.2) A rack over its latency limit (rack limit, so the whole frame flashes): the red
   frame is thicker and hides the rack's own colored frame completely, corners included, with the rack
