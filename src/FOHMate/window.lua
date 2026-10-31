@@ -431,12 +431,15 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     local cx, cy = ig.GetWindowPos(ctx)
     local cw, ch = ig.GetWindowSize(ctx)
     local colw = RACK_W - 2 * PAD - 6 - PAD                -- width of a column of rows: room for the position bar (the gap left of it equals the gap right of it, 1 px + PAD)
-    local rw = colw
     local grid = e > 0                                     -- widened (or moving): rows flow in columns
+    local f = 1 + e                                        -- widened, every row is twice as wide and tall, with bigger text and controls
+    local rw = colw * f
     local pushed = push_bold(name_font, NAME_FONT_SIZE)
-    local blh = ig.GetTextLineHeight(ctx)                  -- bold line height: a name may take two lines
+    local blh0 = ig.GetTextLineHeight(ctx)                 -- bold line height: a name may take two lines
     if pushed then ig.PopFont(ctx) end
-    local rh = math.floor(2 * blh + 12)
+    local blh = blh0 * f
+    local rh0 = math.floor(2 * blh0 + 12)
+    local rh = math.floor(rh0 * f)
     local gy = select(2, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
     local pitch = rh + gy                                  -- from one row to the next (the gap is the same stacked or in columns)
     local n = math.floor(CFG.perf_demo_rows)
@@ -446,8 +449,8 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     local mx_in = ig.IsWindowHovered(ctx)
     ig.Dummy(ctx, 1, 3)                                    -- room for the glow of the first row
     local ox, oy = ig.GetCursorScreenPos(ctx)
-    local step_x = colw + 4                                -- widened: from one column of rows to the next
-    local rpc = math.max(1, math.floor((ch - 3 - 8) / pitch)) -- rows per column when widened (8: the sideways bar)
+    local step_x = rw + 4                                -- widened: from one column of rows to the next
+    local rpc = math.max(1, math.floor((ch - 3 - 8) / (2 * rh0 + gy))) -- rows per column when widened, as it fits at full size (8: the sideways bar)
     if grid then
       if ig.GetScrollY(ctx) ~= 0 then ig.SetScrollY(ctx, 0) end
       if mx_in then                                        -- the wheel moves sideways here too
@@ -470,8 +473,8 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
       end
       if rx + rw > cx and rx < cx + cw then                -- rows outside the column's view aren't drawn
         rx = rx + 3; local rw2 = rw - 6                      -- a little room for the hover glow
-        local cd = rh - 8                                    -- the control, outside the name box
-        local vw, vg = 22, 4                                 -- the value box between control and name, and the gaps
+        local cd = rh - 8 * f                                    -- the control, outside the name box
+        local vw, vg = 22 * f, 4 * f                                 -- the value box between control and name, and the gaps
         local box_w = rw2 - cd - vw - 2 * vg
         local left = (k % 2 == 1)                            -- odd rows: name left; even rows: name right
         local bx = left and rx or (rx + rw2 - box_w)
@@ -491,7 +494,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         ig.DrawList_AddRect(dl, bx, ry, bx + box_w, ry + rh, c.sec_bd, ROUNDING, 0, 1)
         ig.DrawList_AddText(dl, bx + 4, ry + 2, (c.name_txt & 0xFFFFFF00) | 0xA0, tostring(k))   -- placeholder row number, to see how the rows spread
         -- the name: bold, up to two lines
-        local pb = push_bold(name_font, NAME_FONT_SIZE)
+        local pb = push_bold(name_font, NAME_FONT_SIZE * f)
         local l1, l2 = names[(k - 1) % #names + 1], nil
         if ig.CalcTextSize(ctx, l1) > box_w - 8 then
           local cut = l1
@@ -509,15 +512,15 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         if ry + rh > cy and ry < cy + ch then
           ig.DrawList_AddRectFilled(dl, vx, ry, vx + vw, ry + rh, c.sec_bg, ROUNDING)
           ig.DrawList_AddRect(dl, vx, ry, vx + vw, ry + rh, c.sec_bd, ROUNDING, 0, 1)
-          draw_vtext(dl, values[(k - 1) % #values + 1], vx, ry, vw, rh, contrast_text(c.sec_bg, track_color(tr)), not left)
+          draw_vtext(dl, values[(k - 1) % #values + 1], vx, ry, vw, rh, contrast_text(c.sec_bg, track_color(tr)), not left, f)
         end
         -- placeholder control: a knob
         local kcx, kcy, kr = kx + cd / 2, ry + rh / 2, cd / 2 - 1
         ig.DrawList_AddCircleFilled(dl, kcx, kcy, kr, c.sec_bg, 0)
-        ig.DrawList_AddCircle(dl, kcx, kcy, kr, c.border, 0, 2)
+        ig.DrawList_AddCircle(dl, kcx, kcy, kr, c.border, 0, 2 * f)
         local ang = math.rad(135 + 270 * (((k * 37) % 100) / 100))
         ig.DrawList_AddLine(dl, kcx + math.cos(ang) * kr * 0.3, kcy + math.sin(ang) * kr * 0.3,
-                            kcx + math.cos(ang) * kr * 0.85, kcy + math.sin(ang) * kr * 0.85, T.dots, 3)
+                            kcx + math.cos(ang) * kr * 0.85, kcy + math.sin(ang) * kr * 0.85, T.dots, 3 * f)
       end
       if not grid then ig.Dummy(ctx, rw, rh) end
     end

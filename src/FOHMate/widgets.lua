@@ -312,11 +312,12 @@ VFONT = {
 
 -- Draws `text` rotated a quarter turn inside the box (bx, by, bw, bh), centered, as big as fits.
 -- ccw: reads from bottom to top (a control on the left); otherwise top to bottom (control on the right).
-function draw_vtext(dl, text, bx, by, bw, bh, col, ccw)
+function draw_vtext(dl, text, bx, by, bw, bh, col, ccw, zoom)
+  zoom = zoom or 1
   local units = 0
   for i = 1, #text do units = units + ((text:sub(i, i) == ' ') and 3 or 7) end
   units = units - 2
-  local s = math.min(1.15, (bh - 12) / units, (bw - 6) / 8)      -- a bit smaller than the box allows
+  local s = math.min(1.15 * zoom, (bh - 12) / units, (bw - 6) / 8)      -- a bit smaller than the box allows
   if s <= 0 then return end
   local len, thick = units * s, 8 * s
   local cx, cy = bx + bw / 2, by + bh / 2
@@ -336,7 +337,7 @@ function draw_vtext(dl, text, bx, by, bw, bh, col, ccw)
         for j = 1, #st, 2 do
           local gu, gv = u + st[j] * s, st[j + 1] * s
           local x, y = ox + dux * gu + dvx * gv, oy + duy * gu + dvy * gv
-          if px then ig.DrawList_AddLine(dl, px, py, x, y, col, 1.5) end
+          if px then ig.DrawList_AddLine(dl, px, py, x, y, col, 1.5 * zoom) end
           px, py = x, y
         end
       end

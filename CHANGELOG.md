@@ -17,7 +17,8 @@ Changes since the last public release, grouped by minor version (revisions are f
   glows under the pointer). Each row shows its value in a small vertical box between the control and
   the name, turned a quarter turn (placeholder values for now). A band at the top of every column
   (two small triangles) **widens the column** over the neighbouring ones: the rows then flow in
-  columns that scroll sideways. Clicking the band again, or a pause in your activity (same setting
+  columns that scroll sideways, and every row grows to twice its width and height with bigger text
+  and controls (an experiment). Clicking the band again, or a pause in your activity (same setting
   as the FX sections), folds it back to one column showing the row you touched last. Open FX
   sections fold first; all animated.
 
