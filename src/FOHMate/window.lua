@@ -259,7 +259,9 @@ end
 function draw_rack_area(infos, M, dt, now, avail)
   local x_left, y_top = ig.GetCursorScreenPos(ctx)
   local limit = x_left + avail                       -- the scrollbar starts here
-  local wx, y = x_left + GLOW_M, y_top + GLOW_M      -- room around the racks for the selection glow
+  local wx = x_left + GLOW_M                         -- room around the racks for the selection glow
+  -- above the first row, also room for the top half of the latency alert tag (centered on the rack's top edge)
+  local y = y_top + math.max(GLOW_M, math.ceil((ig.GetTextLineHeight(ctx) + 2) / 2) + 1)
   local rects = {}
   local grid_x, last_row_y, last_row_h, grid_cols_n = wx, y, 0, 1
 

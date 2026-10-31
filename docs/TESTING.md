@@ -2,9 +2,13 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 80).
+New items get the next free number (next: 81).
 
 ## Open
+
+- [ ] 80. (0.13.1) The flashing "!! RACK ... ms" / "!! FX" tag on a rack of the first row shows whole
+  (nothing cut off at the top). The racks sit a few pixels lower than before; selection glow and
+  dragging racks unchanged.
 
 - [ ] 79. (0.13.0) Show mode re-check. Checked by Claude in REAPER: with an FX over the limit, in Show
   mode, ticking FX > **Take FX over the limit offline in Show mode** takes it offline right away
