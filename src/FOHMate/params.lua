@@ -292,6 +292,11 @@ end
 -- adds to the selection, Shift-click selects a stretch. "Add to Performance" and "Remove from
 -- Performance" work on the selection; selecting an FX means all of its parameters.
 
+-- parameters a plug-in only keeps as placeholders ("Reserved", "Reserved 2"...) are left out of the window
+function param_hidden(name)
+  return name:lower():find('^%s*reserved') ~= nil
+end
+
 function param_picker_open(tr)
   PARAM_PICK = { tr = tr, filter = '', sel = {}, anchor = nil, order = {} }
 end
@@ -305,7 +310,7 @@ function param_pick_targets(P, fxs)
   end
   for _, fx in ipairs(fxs) do
     if P.sel['P:' .. fx.guid] then
-      for p = 0, #fx.names - 1 do add(fx, p) end
+      for p = 0, #fx.names - 1 do if not fx.hide[p] then add(fx, p) end end
     end
     for p = 0, #fx.names - 1 do
       if P.sel['p:' .. fx.guid .. ':' .. p] then add(fx, p) end
@@ -478,12 +483,13 @@ function draw_param_picker()
       local g = reaper.TrackFX_GetFXGUID(tr, it.fx)
       local f = P.cache and P.cache[g]
       if not f or f.fx ~= it.fx or f.name ~= it.name then
-        local names = {}
+        local names, hide, nvis = {}, {}, 0
         for p = 0, reaper.TrackFX_GetNumParams(tr, it.fx) - 1 do
           local _, nm = reaper.TrackFX_GetParamName(tr, it.fx, p, '')
           names[p + 1] = nm
+          if param_hidden(nm) then hide[p] = true else nvis = nvis + 1 end
         end
-        f = { guid = g, fx = it.fx, name = it.name, names = names }
+        f = { guid = g, fx = it.fx, name = it.name, names = names, hide = hide, nvis = nvis }
         P.cache = P.cache or {}
         P.cache[g] = f
       end
@@ -532,7 +538,7 @@ function draw_param_picker()
           local pname, ptype = fx_name_type(fx.name)
           local pkey = 'P:' .. fx.guid
           local n_have = 0
-          for p = 0, #fx.names - 1 do if have[fx.guid .. ':' .. p] then n_have = n_have + 1 end end
+          for p = 0, #fx.names - 1 do if not fx.hide[p] and have[fx.guid .. ':' .. p] then n_have = n_have + 1 end end
           if low ~= '' then ig.SetNextItemOpen(ctx, true, ig.Cond_Always()) end
           local flags = ig.TreeNodeFlags_OpenOnArrow() | ig.TreeNodeFlags_SpanAvailWidth()
           if P.sel[pkey] then flags = flags | ig.TreeNodeFlags_Selected() end
@@ -544,15 +550,17 @@ function draw_param_picker()
             if mx >= lx and mx <= lx + box + 4 then
               -- the check box: every parameter of the FX in or out
               local all = {}
-              for p = 0, #fx.names - 1 do all[#all + 1] = { guid = fx.guid, idx = p, name = fx.names[p + 1] } end
-              params_apply(tr, all, n_have < #fx.names)
+              for p = 0, #fx.names - 1 do
+                if not fx.hide[p] then all[#all + 1] = { guid = fx.guid, idx = p, name = fx.names[p + 1] } end
+              end
+              params_apply(tr, all, n_have < fx.nvis)
             else
               click(pkey, has_mod('shift'), has_mod('ctrl'))
             end
           end
           -- the label, drawn over the node: a check box, the name, then (TYPE) in its color
           local dl = ig.GetWindowDrawList(ctx)
-          draw_check(dl, lx, y1 + 2, box, TXT, n_have == #fx.names and n_have > 0, n_have > 0)
+          draw_check(dl, lx, y1 + 2, box, TXT, n_have == fx.nvis and n_have > 0, n_have > 0)
           local tx = lx + box + 8
           ig.DrawList_AddText(dl, tx, y1, TXT, pname)
           local nx = tx + ig.CalcTextSize(ctx, pname) + 6
@@ -561,12 +569,12 @@ function draw_param_picker()
             ig.DrawList_AddText(dl, nx, y1, type_color(ptype), ttxt)
             nx = nx + ig.CalcTextSize(ctx, ttxt) + 8
           end
-          ig.DrawList_AddText(dl, nx, y1, T.dim, ('%d of %d in the Performance'):format(n_have, #fx.names))
+          ig.DrawList_AddText(dl, nx, y1, T.dim, ('%d of %d in the Performance'):format(n_have, fx.nvis))
           if opened then
             local fxi = gm[fx.guid]
             for p = 0, #fx.names - 1 do
               local nm = fx.names[p + 1]
-              if low == '' or nm:lower():find(low, 1, true) then
+              if not fx.hide[p] and (low == '' or nm:lower():find(low, 1, true)) then
                 local key = 'p:' .. fx.guid .. ':' .. p
                 order[#order + 1] = key
                 if ig.IsRectVisible(ctx, 1, lh) then
