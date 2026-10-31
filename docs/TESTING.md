@@ -22,8 +22,8 @@ New items get the next free number (next: 89).
   (c) In Show mode with an FX section open: widening folds the FX section first, then widens;
   opening an FX section while widened folds the columns back. (d) Widening another rack's column
   folds the first. (e) Settings > Performance mode: a widened column and an open FX section fold back by
-  themselves after the pause (the pause counts from the last click, drag, scroll or key in the
-  FOH-Mate window; moving the mouse around, or working elsewhere in REAPER, doesn't restart it); with the checkbox "Fold ... by themselves" off they stay open (and
+  themselves after the pause (the pause counts from the last mouse movement, click, drag, scroll or key in the
+  Plugins Host window; working elsewhere in REAPER doesn't restart it); with the checkbox "Fold ... by themselves" off they stay open (and
   the time setting does nothing). (f) Smooth and snappy? Band the same size and look as the chevron under the FX section?
   (h) Widening: every row grows to 1.5 times its width and height, with room around it and a divider between the columns, while the column widens, with a
   bigger control, value and name; back to normal when folded. Smooth? Readable? Rows reflow per

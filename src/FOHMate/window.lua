@@ -641,16 +641,19 @@ function perf_keys()
   return PERF_KEYS
 end
 
--- the last time the user really used FOH-Mate: clicked or dragged, scrolled over the Plugins Host
--- window, or pressed a key while it has the focus. Moving the mouse around does not count, nor
--- does work elsewhere in REAPER. Keys are only looked at while a section is open, and every
--- third frame.
+-- the last time the user was active in the Plugins Host window: moved the mouse over it, clicked
+-- or dragged, scrolled, or pressed a key while it has the focus. Nothing outside the window
+-- counts. Keys are only looked at while a section is open, and every third frame.
 function perf_activity(now, any_open)
-  local over = ig.IsWindowHovered(ctx, ig.HoveredFlags_ChildWindows())
-  if over then
+  local mx, my = ig.GetMousePos(ctx)
+  if ig.IsWindowHovered(ctx, ig.HoveredFlags_ChildWindows()) then
     local wv, wh = ig.GetMouseWheel(ctx)
-    if wv ~= 0 or wh ~= 0 or ig.IsMouseDown(ctx, 0) or ig.IsMouseDown(ctx, 1) then PERF_ACT = now end
+    if mx ~= PERF_MX or my ~= PERF_MY or wv ~= 0 or wh ~= 0
+       or ig.IsMouseDown(ctx, 0) or ig.IsMouseDown(ctx, 1) then
+      PERF_ACT = now
+    end
   end
+  PERF_MX, PERF_MY = mx, my
   PERF_FRAME = PERF_FRAME + 1
   if any_open and PERF_FRAME % 3 == 0 then
     for _, k in ipairs(perf_keys()) do
