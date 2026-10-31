@@ -382,11 +382,11 @@ function draw_perf_column(inf, x, y, w, h, M)
     local blh = ig.GetTextLineHeight(ctx)                  -- bold line height: a name may take two lines
     if pushed then ig.PopFont(ctx) end
     local rh = math.floor(2 * blh + 12)
-    local d = M.fh
     local n = math.floor(CFG.perf_demo_rows)
     local names = { 'Threshold', 'Ratio', 'Attack time', 'Low band crossover frequency', 'Output gain',
                     'Mix', 'High shelf frequency', 'Sidechain high-pass filter' }
     local mx_in = ig.IsWindowHovered(ctx)
+    ig.Dummy(ctx, 1, 3)                                    -- room for the glow of the first row
     for k = 1, n do
       local rx, ry = ig.GetCursorScreenPos(ctx)
       rx = rx + 3; local rw2 = rw - 6                      -- a little room for the hover glow
@@ -429,13 +429,21 @@ function draw_perf_column(inf, x, y, w, h, M)
                           kcx + math.cos(ang) * kr * 0.85, kcy + math.sin(ang) * kr * 0.85, T.dots, 3)
       ig.Dummy(ctx, rw, rh)
     end
-    -- the empty row at the end: a "+" in a circle (opens the parameter dialog in the next version)
+    -- the empty row at the end: a "+" in a circle as tall as a row, in the color of the names
+    -- (opens the parameter dialog in the next version). Only the circle and the + light up.
     local px, py = ig.GetCursorScreenPos(ctx)
-    ig.SetCursorScreenPos(ctx, px + (rw - d) / 2, py)
-    ig.PushStyleVar(ctx, ig.StyleVar_FrameRounding(), d / 2)
-    ig.Button(ctx, '+##addparam', d, d)
-    ig.PopStyleVar(ctx)
-    if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Add a parameter (coming in the next version)') end
+    ig.SetCursorScreenPos(ctx, px + (rw - rh) / 2, py)
+    ig.InvisibleButton(ctx, '##addparam', rh, rh)
+    local hov = ig.IsItemHovered(ctx)
+    local pcx, pcy, pr = px + rw / 2, py + rh / 2, rh / 2 - 2
+    local pcol = (c.name_txt & 0xFFFFFF00) | (hov and 0xFF or 0xB0)
+    if hov then ig.DrawList_AddCircleFilled(dl, pcx, pcy, pr, (c.name_txt & 0xFFFFFF00) | 0x30, 0) end
+    ig.DrawList_AddCircle(dl, pcx, pcy, pr, pcol, 0, hov and 3 or 2)
+    local pl = pr * 0.45
+    ig.DrawList_AddLine(dl, pcx - pl, pcy, pcx + pl, pcy, pcol, hov and 3 or 2)
+    ig.DrawList_AddLine(dl, pcx, pcy - pl, pcx, pcy + pl, pcol, hov and 3 or 2)
+    if hov then ig.SetTooltip(ctx, 'Add a parameter (coming in the next version)') end
+    ig.Dummy(ctx, 1, 3)
 
     -- fade at the edges and the position bar
     local sy, smax = ig.GetScrollY(ctx), ig.GetScrollMaxY(ctx)

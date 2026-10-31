@@ -30,13 +30,13 @@ function perf_compact()
   return S.perf and is_locked()
 end
 
--- the name box of a compact rack is a little taller: its handle sits in the bottom edge
-COMPACT_HANDLE = 6
+-- the strip at the bottom of a compact rack that holds its fold handle
+HANDLE_H = 14
 
 -- the three sections of a rack: header, FX, controls
 function section_heights(n_fx, M, compact)
   local rows = math.max(n_fx, 1)
-  local hdr = compact and (SI + M.name_h + COMPACT_HANDLE + SI) or (SI + M.name_h + M.spy + M.fh + SI)
+  local hdr = compact and (SI + M.name_h + SI) or (SI + M.name_h + M.spy + M.fh + SI)
   local fxs = SI + rows * M.rowp + M.sm + SI
   local ctl = compact and 0 or (SI + M.fh + M.spy + M.btn_h + SI)
   return hdr, fxs, ctl
@@ -56,13 +56,13 @@ end
 
 function natural_height(n_fx, M, box, compact)
   local hdr, fxs, ctl = section_heights(n_fx, M, compact)
-  return PAD + hdr + SG + fxs + (compact and 0 or (SG + ctl)) + latbox_h(M, box) + PAD
+  return PAD + hdr + SG + fxs + (compact and HANDLE_H or (SG + ctl)) + latbox_h(M, box) + PAD
 end
 
--- a compact rack with its FX section folded: just the name box
+-- a compact rack with its FX section folded: the name box and the handle
 function folded_height(M)
   local hdr = section_heights(0, M, true)
-  return PAD + hdr + PAD
+  return PAD + hdr + HANDLE_H + PAD
 end
 
 -- one dot (n = 1, mono) or two overlapping dots, one solid and one outlined (n = 2,
@@ -209,17 +209,17 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
 
   local hdr_top = y0 + PAD
   local hdr_bot = hdr_top + hdr_h
-  local ctl_bot = y0 + H - PAD - latbox_h(M, info.box)
+  local ctl_bot = y0 + H - PAD - latbox_h(M, info.box) - (compact and HANDLE_H or 0)
   local ctl_top = ctl_bot - ctl_h
   local fxs_top = hdr_bot + SG
   local fxs_bot = compact and ctl_bot or (ctl_top - SG)
 
-  local NH     = compact and (M.name_h + COMPACT_HANDLE) or M.name_h      -- the name box
-  local hb     = compact and COMPACT_HANDLE or 0
+  local NH, hb = M.name_h, 0                   -- the name box (hb: room kept free at its bottom)
   local nx, NW = wx, WW                        -- where the name box is
+  local mb_w = NH + 6                          -- compact: M and B, rounded rectangles as tall as the name box
   if compact then
     nx = x0 + PAD + SI
-    NW = RACK_W - 2 * PAD - 2 * SI - 2 * (sm + spx)      -- room for M and B on the right
+    NW = RACK_W - 2 * PAD - 2 * SI - 2 * (mb_w + spx)    -- room for M and B on the right
   end
   local name_y = hdr_top + SI
   local io_y   = name_y + M.name_h + spy
@@ -256,7 +256,8 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
   local clipped = false
   local function clip_on()
     if vh < H - 0.5 and not clipped then
-      ig.PushClipRect(ctx, x0, y0, x0 + RACK_W, y0 + vh, true)
+      -- compact: the handle strip and the padding below it are not content
+      ig.PushClipRect(ctx, x0, y0, x0 + RACK_W, y0 + vh - (compact and (PAD + HANDLE_H) or 0), true)
       clipped = true
     end
   end
@@ -288,6 +289,22 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
   end
 
   ig.PushID(ctx, guid)
+
+  -- compact: the handle at the bottom of the rack folds and unfolds its FX section. It is
+  -- submitted first so it wins where it overlaps the FX while the rack is moving.
+  local handle
+  if compact then
+    local fs = perf_fold_state(guid)
+    local hy = y0 + vh - PAD - HANDLE_H
+    ig.SetCursorScreenPos(ctx, x0 + RACK_W / 2 - 40, hy)
+    if ig.InvisibleButton(ctx, 'fold', 80, HANDLE_H) then
+      fs.open = not fs.open
+      PERF_ACT = now
+    end
+    handle = { hov = ig.IsItemHovered(ctx), open = fs.open, y = hy + HANDLE_H / 2 }
+    if handle.hov then ig.SetTooltip(ctx, fs.open and 'Fold the FX section' or 'Show the FX section') end
+    hint_hovered('Click: show or fold the FX section of this rack')
+  end
 
   ------------------------------------------------ routing + Rack Option Menu (round, above the meters)
   local by = name_y + (M.name_h - METER_W) / 2
@@ -407,41 +424,25 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
   end
   if pushed then ig.PopFont(ctx) end
 
-  -- compact: M and B on the right of the name, and the handle that folds the FX section
+  -- compact: M and B on the right of the name, rounded rectangles like BYPASS and MUTE
   if compact then
-    local by1 = name_y + (NH - hb - sm) / 2
-    local bx_b = x0 + RACK_W - PAD - SI - sm
-    local bx_m = bx_b - spx - sm
+    local bx_b = x0 + RACK_W - PAD - SI - mb_w
+    local bx_m = bx_b - spx - mb_w
     local muted_now = reaper.GetMediaTrackInfo_Value(tr, 'B_MUTE') == 1
-    ig.SetCursorScreenPos(ctx, bx_m, by1)
+    ig.SetCursorScreenPos(ctx, bx_m, name_y)
     if muted_now then ig.PushStyleColor(ctx, ig.Col_Button(), T.mute) end
-    if ig.Button(ctx, 'M##mute_s', sm, sm) then
+    if ig.Button(ctx, 'M##mute_s', mb_w, NH) then
       reaper.SetMediaTrackInfo_Value(tr, 'B_MUTE', muted_now and 0 or 1)
     end
     if muted_now then ig.PopStyleColor(ctx) end
     if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Mute') end
     hint_hovered('Click: mute the rack')
-    ig.SetCursorScreenPos(ctx, bx_b, by1)
+    ig.SetCursorScreenPos(ctx, bx_b, name_y)
     if bypassed then ig.PushStyleColor(ctx, ig.Col_Button(), T.byp) end
-    if ig.Button(ctx, 'B##byp_s', sm, sm) then set_bypass(tr, not bypassed) end
+    if ig.Button(ctx, 'B##byp_s', mb_w, NH) then set_bypass(tr, not bypassed) end
     if bypassed then ig.PopStyleColor(ctx) end
     if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Bypass') end
     hint_hovered('Click: bypass the whole rack (FX that were off stay off when it comes back)')
-
-    local fs = perf_fold_state(guid)
-    local hx_, hy_ = nx + NW / 2, name_y + NH - COMPACT_HANDLE / 2 - 1
-    ig.SetCursorScreenPos(ctx, hx_ - 30, name_y + NH - 14)
-    if ig.InvisibleButton(ctx, 'fold', 60, 14) then
-      fs.open = not fs.open
-      PERF_ACT = now
-    end
-    local hov = ig.IsItemHovered(ctx)
-    local hcol = (c.name_txt & 0xFFFFFF00) | (hov and 0xFF or 0x90)
-    local dir = (fs.open and -1 or 1) * 2.5            -- chevron: down when folded, up when open
-    ig.DrawList_AddLine(dl, hx_ - 6, hy_ - dir * 0.6, hx_, hy_ + dir * 0.6, hcol, 2)
-    ig.DrawList_AddLine(dl, hx_, hy_ + dir * 0.6, hx_ + 6, hy_ - dir * 0.6, hcol, 2)
-    if hov then ig.SetTooltip(ctx, fs.open and 'Fold the FX section' or 'Show the FX section') end
-    hint_hovered('Click: show or fold the FX section of this rack')
   end
 
   ------------------------------------------------ In / Out
@@ -877,6 +878,15 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
   end
 
   clip_off()
+
+  -- the handle's chevron, over everything: down when folded, up when open
+  if handle then
+    local hx = x0 + RACK_W / 2
+    local hcol = (c.name_txt & 0xFFFFFF00) | (handle.hov and 0xFF or 0xA0)
+    local dir = handle.open and -3 or 3
+    ig.DrawList_AddLine(dl, hx - 8, handle.y - dir * 0.5, hx, handle.y + dir * 0.5, hcol, 2.5)
+    ig.DrawList_AddLine(dl, hx, handle.y + dir * 0.5, hx + 8, handle.y - dir * 0.5, hcol, 2.5)
+  end
 
   -- latency watchdog: flashing tag on the rack's top border
   if alert then
