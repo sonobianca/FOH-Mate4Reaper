@@ -228,12 +228,19 @@ function draw_bar(dl, x, y1, y2, w, level, hold, clipped)
   end
 end
 
--- a thin horizontal meter (Performance mode, FX section folded): one bar for a mono rack, two for a
--- stereo one, filling left to right, with the clip marker at the right end. a = 0..1 fades it out.
-function draw_hbar(dl, x1, x2, yc, lv, hold, clip, mono, a)
+-- a thin horizontal meter (Performance mode, Show mode): one bar for a mono rack, two for a
+-- stereo one, with the clip marker at one end. Normal: fills left to right, marker at the right
+-- end. flip: mirrored (fills right to left, marker at the left end). a = 0..1 fades it out.
+function draw_hbar(dl, x1, x2, yc, lv, hold, clip, mono, a, flip)
   local function fade(col) return (col & 0xFFFFFF00) | math.floor((col & 0xFF) * a) end
   local cw = 4
-  local bx2 = x2 - cw - 2
+  local b1, b2, c1, c2                         -- the bar's two ends, the clip marker's two ends
+  if flip then b1, b2, c1, c2 = x2, x1 + cw + 2, x1, x1 + cw
+  else b1, b2, c1, c2 = x1, x2 - cw - 2, x2 - cw, x2 end
+  local w = b2 - b1                            -- negative when flipped: fractions run from b1 toward b2
+  local function rect(xa, xb, y, bh, col, r)
+    ig.DrawList_AddRectFilled(dl, math.min(xa, xb), y, math.max(xa, xb), y + bh, col, r)
+  end
   local bars
   if mono then
     bars = { { math.max(lv[1], lv[2]), math.max(hold[1], hold[2]), clip[1] or clip[2] } }
@@ -242,21 +249,18 @@ function draw_hbar(dl, x1, x2, yc, lv, hold, clip, mono, a)
   end
   local bh = mono and 5 or 3
   local y = math.floor(yc - (#bars * bh + (#bars - 1)) / 2)
-  local w = bx2 - x1
   for _, b in ipairs(bars) do
-    ig.DrawList_AddRectFilled(dl, x1, y, bx2, y + bh, fade(T.meter_bg), 1)
+    rect(b1, b2, y, bh, fade(T.meter_bg), 1)
     for _, z in ipairs(ZONES) do
       if b[1] > z[1] then
-        local xa = x1 + meter_frac(z[1]) * w
-        local xb = x1 + meter_frac(math.min(b[1], z[2])) * w
-        ig.DrawList_AddRectFilled(dl, xa, y, xb, y + bh, fade(z[3]))
+        rect(b1 + meter_frac(z[1]) * w, b1 + meter_frac(math.min(b[1], z[2])) * w, y, bh, fade(z[3]))
       end
     end
     if b[2] > METER_MIN then
-      local xh = x1 + meter_frac(b[2]) * w
+      local xh = b1 + meter_frac(b[2]) * w
       ig.DrawList_AddLine(dl, xh, y, xh, y + bh, fade(b[3] and 0xFF4040FF or T.hold), 2)
     end
-    ig.DrawList_AddRectFilled(dl, x2 - cw, y, x2, y + bh, fade(b[3] and 0xFF2020FF or T.clip_off), 1)
+    rect(c1, c2, y, bh, fade(b[3] and 0xFF2020FF or T.clip_off), 1)
     y = y + bh + 1
   end
 end

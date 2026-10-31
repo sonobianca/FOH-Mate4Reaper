@@ -33,7 +33,7 @@ New items get the next free number (next: 90).
   narrow window, CPU while scrolling sideways.
 
 - [ ] 89. (0.14.0) Performance mode, Show mode: the only meters are thin horizontal bars either side
-  of the chevron (input left, output right; one bar for a mono rack, two for stereo; clip marker at
+  of the chevron (input left, output right, mirrored: tops and clip lights both next to the chevron; one bar for a mono rack, two for stereo; clip marker at
   the right end, peak hold tick), visible folded and unfolded. No vertical meters; the FX section
   uses the full width of the rack when open (FX names, the + button, drop zones, drag and drop
   of FX all still right?). Edit mode keeps the full racks with vertical meters. Readable but not

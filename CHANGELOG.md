@@ -12,7 +12,7 @@ Changes since the last public release, grouped by minor version (revisions are f
   its FX section (with the meters beside it) and pushes that rack's column down, and clicking it again
   folds it back, both animated. **Settings > Performance mode** has a checkbox to turn the automatic folding
   off, and the time to wait (**Fold them after**, 15 s by default): open FX sections and widened
-  parameter sections then fold back after that long without activity in the Plugins Host window (the mouse moving over it, a click, a drag, scrolling or a key). In Show mode the meters are thin horizontal bars either side of the chevron (input left, output right), always visible, and the FX section uses the full width of the rack. The parameter rows come in the next steps; until then **Placeholder rows** fills the columns
+  parameter sections then fold back after that long without activity in the Plugins Host window (the mouse moving over it, a click, a drag, scrolling or a key). In Show mode the meters are thin horizontal bars either side of the chevron (input left, output right, mirrored so the tops and the clip lights are both next to the chevron), always visible, and the FX section uses the full width of the rack. The parameter rows come in the next steps; until then **Placeholder rows** fills the columns
   with example rows (names in bold, controls outside the name box, alternating sides, the whole row
   glows under the pointer). Each row shows its value in a small vertical box between the control and
   the name, turned a quarter turn (placeholder values for now). A band at the top of every column

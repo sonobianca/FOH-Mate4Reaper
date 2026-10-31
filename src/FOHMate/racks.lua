@@ -901,7 +901,7 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
     -- left, output on the right) are the only meters; the FX section has the full width.
     if metering then
       draw_hbar(dl, x0 + PAD + SI, hx - 20, handle.y, m.lv_in, m.hold_in, m.clip_in, io_in == W_MONO, 1)
-      draw_hbar(dl, hx + 20, x0 + RACK_W - PAD - SI, handle.y, m.lv_out, m.hold_out, m.clip_out, io_out == W_MONO, 1)
+      draw_hbar(dl, hx + 20, x0 + RACK_W - PAD - SI, handle.y, m.lv_out, m.hold_out, m.clip_out, io_out == W_MONO, 1, true)   -- mirrored: its top and clip marker are next to the chevron
     end
   end
 
