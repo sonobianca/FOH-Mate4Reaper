@@ -2,13 +2,8 @@
 
 Accepted ideas. Nothing here is started unless noted. New ideas get added as they come up.
 
-## 0.12 plan
-Order: the modular refactor first, on its own branch, then the two features.
-- **Modular code.** The script split into modules so it is cleaner and easier to maintain. No
-  performance cost (modules load once at start). This lifts hard constraint 2 (one file): decided by
-  Bianca, CLAUDE.md and the install notes must be updated when it is done. Installed and updated with
-  ReaPack (index in the GitHub repo). The main file keeps its name, so existing actions, toolbar
-  buttons and shortcuts keep working.
+## 0.13 plan
+0.12 was released with the modular code and ReaPack install only; these two follow.
 - **Latency mismatch safety option.** Opt-in setting: a plugin installed in several formats (AU, VST3)
   counts with the highest latency reported by any of its formats, for alerts, limits and display
   only. Estimated values marked in the Plugin list. REAPER's own compensation is not touched. Needs

@@ -83,7 +83,7 @@ empty window to a working rack:
 | What | Notes |
 |---|---|
 | [REAPER](https://www.reaper.fm) 7.x | Developed on 7.81 to 7.84. Older versions are not tested. |
-| [ReaPack](https://reapack.com) | Used to install ReaImGui. |
+| [ReaPack](https://reapack.com) | Installs and updates ReaImGui and FOH-Mate. |
 | [ReaImGui](https://github.com/cfillion/reaimgui) | The graphics library FOH-Mate is built with. |
 
 No other extensions are needed (SWS is not required).
@@ -125,17 +125,37 @@ ReaImGui comes from the default **ReaTeam Extensions** repository, which ReaPack
 3. Right-click **ReaImGui: ReaScript binding for Dear ImGui** and choose **Install**.
 4. Click **Apply** (bottom right), then **restart REAPER**.
 
-### 4. Get FOH-Mate
+### 4. Add the FOH-Mate repository to ReaPack
+
+1. **Extensions > ReaPack > Import repositories...**
+2. Paste this address and click **OK**:
+
+   ```
+   https://github.com/sonobianca/FOH-Mate4Reaper/raw/main/index.xml
+   ```
+
+You only do this once. From then on ReaPack knows where FOH-Mate's updates come from.
+
+### 5. Install FOH-Mate
+
+1. **Extensions > ReaPack > Browse packages...**
+2. Type `FOH-Mate` in the filter box.
+3. Right-click **FOH-Mate** and choose **Install**.
+4. Click **Apply** (bottom right).
+
+ReaPack adds **Script: FOHMate.lua** to the action list by itself.
+
+<details>
+<summary>Without ReaPack (manual install)</summary>
 
 1. Download `src/FOHMate.lua` and the `src/FOHMate` folder from this repository.
 2. Copy both into REAPER's **Scripts** folder: **Options > Show REAPER resource path...** and open the
    **Scripts** folder. The `FOHMate` folder must sit right next to `FOHMate.lua`.
+3. **Actions > Show action list...**, click **New action... > Load ReaScript...** and choose
+   `FOHMate.lua`.
 
-### 5. Load it as an action
-
-1. **Actions > Show action list...**
-2. Click **New action... > Load ReaScript...**
-3. Choose `FOHMate.lua`.
+Manual installs don't update by themselves: see [Updating](#updating-and-uninstalling).
+</details>
 
 ### 6. Run it
 
@@ -508,17 +528,26 @@ Please include all three in a bug report.
 
 ## Updating and uninstalling
 
-- **Update:** replace `FOHMate.lua` and the `FOHMate` folder with the new ones and re-run it. The file
-  name doesn't change between versions, so the action, toolbar buttons and shortcuts keep working.
-  Versions before 0.12 were a single file: add the `FOHMate` folder next to it. If you used an older
-  file with the version in its name (`FOHMate_v...lua`), load `FOHMate.lua` once and remove the old
-  action.
+- **Update with ReaPack:** ReaPack checks for updates when REAPER starts; to check right away use
+  **Extensions > ReaPack > Synchronize packages**. Close and re-run FOH-Mate to use the new version.
+  The action, toolbar buttons and shortcuts keep working.
+- **Moving from a manual install to ReaPack** (versions before 0.12 could only be installed by hand):
+  install with ReaPack as above, point your toolbar buttons and shortcuts to the new
+  **Script: FOHMate.lua** action, then remove the old action and delete the old `FOHMate.lua` (and
+  `FOHMate` folder) from **Scripts**. Settings, favorites, the latency list and your racks' data carry
+  over: they aren't stored in the script.
+- **Update a manual install:** replace `FOHMate.lua` and the `FOHMate` folder with the new ones and
+  re-run it. The file name doesn't change between versions, so the action, toolbar buttons and
+  shortcuts keep working. Versions before 0.12 were a single file: add the `FOHMate` folder next to
+  it. If you used an older file with the version in its name (`FOHMate_v...lua`), load `FOHMate.lua`
+  once and remove the old action.
 - **Coming from Live Rack:** load `FOHMate.lua` in the action list and remove the old `LiveRack_v...lua`
   action. Your settings, favorites and latency list are copied over the first time FOH-Mate starts, and
   your racks keep their saved data. Once everything checks out you can delete the old
   `<REAPER resource path>/Data/LiveRack/` folder.
-- **Uninstall:** use **Revert to regular track** on racks you want to keep as normal tracks, remove the
-  script action, delete `FOHMate.lua` and the `FOHMate` folder, and optionally delete
+- **Uninstall:** use **Revert to regular track** on racks you want to keep as normal tracks. Then, with
+  ReaPack: **Browse packages**, right-click **FOH-Mate**, **Uninstall**, **Apply**. Manual install:
+  remove the script action and delete `FOHMate.lua` and the `FOHMate` folder. Optionally delete
   `<REAPER resource path>/Effects/FOHMate/`.
 
 ---

@@ -8,11 +8,9 @@ reaches users once its tag is pushed. Merging to `main` alone publishes nothing 
 
 1. On the release branch (Claude):
    - check `VERSION` in `src/FOHMate.lua`, the `CHANGELOG.md` section for this minor version, and that
-     `docs/TESTING.md` has nothing open;
+     `docs/TESTING.md` has nothing open (except the ReaPack install check, added for after the tag);
    - run `tools/make_reapack_index.sh`. It writes `index.xml` for that version (its changelog is the
      CHANGELOG section) and stops if `MODULES` and the files in `src/FOHMate/` don't match;
-   - first ReaPack release only (0.12.0): add the ReaPack install steps below to the README, as the
-     main way to install;
    - commit `index.xml`.
 2. Bianca: merge the branch into `main`.
 3. Bianca: create the tag on `main`, named `v` + the version (e.g. `v0.12.0`), and push `main` and the
@@ -29,8 +27,22 @@ it. That is a different place than a manual copy in `Scripts/`, so the first Rea
 new action: point toolbar buttons and shortcuts to it once and remove the old manual copy. Settings,
 favorites, the latency list and the racks' data are not tied to the file and carry over.
 
-## Adding users to the repository (README)
+## How users find it
 
-**Extensions > ReaPack > Import repositories...** and paste
-`https://github.com/sonobianca/FOH-Mate4Reaper/raw/main/index.xml`, then **Browse packages**, find
-**FOH-Mate**, install, apply.
+Users add the repository once (README, Installation steps 4 and 5) with this address:
+`https://github.com/sonobianca/FOH-Mate4Reaper/raw/main/index.xml`
+
+To be found without the README (once, after the first ReaPack release):
+- **reapack.com's list of repositories** (https://reapack.com/repos): its "Edit this list" link opens
+  `config/repos.yml` in the `cfillion/reapack.com` GitHub project. Add this entry at the end and send
+  it as a pull request:
+  ```yaml
+    -
+      link: 'https://github.com/sonobianca/FOH-Mate4Reaper'
+      index: 'https://github.com/sonobianca/FOH-Mate4Reaper/raw/main/index.xml'
+  ```
+- **A thread on the Cockos REAPER forum** (and other live-sound places) with the address above.
+
+Later option, not used for now: submitting FOH-Mate to ReaTeam's repository, which every ReaPack user
+has by default (https://reapack.com/upload/reascript). Their review then decides when updates go out.
+Use one source only, never both.

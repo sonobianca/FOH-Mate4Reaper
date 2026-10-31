@@ -2,11 +2,15 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 76).
+New items get the next free number (next: 77).
 
 ## Open
 
-Nothing open.
+- [ ] 76. (0.12.0) ReaPack install, after the `v0.12.0` tag is pushed: Import repositories with the
+  README's address, Browse packages, find FOH-Mate, Install, Apply. Then: `Scripts/FOH-Mate/Live
+  sound/` holds `FOHMate.lua` and the `FOHMate` folder; **Script: FOHMate.lua** (the new one) runs and
+  shows v0.12.0 with your racks and settings. Then point your toolbar/shortcut at it if you want, and
+  keep or remove the repo copy's action (you develop from the repo copy, so keeping it is fine).
 
 ## Done
 
