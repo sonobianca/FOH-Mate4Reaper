@@ -14,7 +14,8 @@ Changes since the last public release, grouped by minor version (revisions are f
   racks back after that many seconds without a mouse move, click or key press (15 by default, 0 =
   never). The parameter rows come in the next steps; until then **Placeholder rows** fills the columns
   with example rows (names in bold, controls outside the name box, alternating sides, the whole row
-  glows under the pointer).
+  glows under the pointer). Each row shows its value in a small vertical box between the control and
+  the name, turned a quarter turn (placeholder values for now).
 
 - Fixed: **BYPASS** (and the new B) did nothing in Show mode on a rack with an FX that Show mode had
   taken offline for latency: the offline FX counted as "switched on again by hand" and cancelled the

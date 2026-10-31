@@ -2,47 +2,30 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 87).
+New items get the next free number (next: 88).
 
 ## Open
 
-- [ ] 85. (0.14.0, branch performance-mode) Performance mode, step 1 (the view). In REAPER with a few
-  racks:
-  a. **Display > Performance mode** on: the racks line up in one row, a column (with a round +) under
-     each; off: the normal grid comes back. The choice is kept after closing and reopening FOH-Mate.
-  b. Many racks (more than fit): a sideways scrollbar appears and works (drag it, or two-finger swipe
-     / Shift+wheel). The columns reach the bottom of the window without a second scrollbar.
-  c. **Settings > Performance mode > Placeholder rows**: set 20. Each column scrolls by itself (mouse
-     wheel over it, other columns stay put). The rows fade at the top once scrolled and at the bottom
-     while more is below, and the slim bar on the right moves with the position. The rows: bold name
-     in a box (two lines for long names), the knob outside the box, sides alternating, the whole row
-     glows under the pointer.
-  d. Edit mode inside Performance mode: full racks, all the same height, everything as in the normal
-     view; the latency alert tag on the first row is not cropped; dragging a rack onto another rack
-     reorders.
-  e. Docked and floating, narrow and wide window, Daylight mode.
-  f. The first placeholder row shows whole at the top of a column, also with its glow; the + at the end
-     is a circle as tall as a row in the color of the names, and only the circle and the + light up.
-- [ ] 86. (0.14.0) Performance mode in Show mode (folding FX section):
-  a. Switching to Show mode: every rack shrinks to its name box with M and B (rounded rectangles as
-     tall as the name box) on the right and a handle (chevron) at the bottom of the rack; the columns
-     move up. Nothing of the FX section peeks out under the name.
-  b. (Also with an FX that Show mode took offline for latency: B and BYPASS used to do nothing then.)
-     M mutes, B bypasses (they stay lit orange/red, also under the pointer; bypass greys out the
-     rack's whole column too); the name still selects the
-     rack on click and drags to reorder.
-  c. Click anywhere along the bottom edge of the rack, under the FX (the chevron is nearer the bottom
-     edge than the name, and wider; the whole width is the click zone and lights the chevron): that rack's FX section opens with a short smooth animation, the meters beside
-     it, and only that rack's column moves down. Click again: it folds back.
-  d. Leave the mouse alone for 15 s (no click, no key): every open rack folds back. Moving the mouse,
-     clicking or pressing a key restarts the 15 s. **Settings > Performance mode > Fold the FX section
-     after**: another value works, 0 = never folds.
-  e. Back to Edit mode: full racks again (nothing folded); to Show: folded again.
-  f. A rack over its latency limit: the red frame and !! tag follow the folded or open height.
-  g. Watch the CPU gauge with several racks open: no visible rise from the idle timer.
+- [ ] 87. (0.14.0) Performance mode rows show their value: a small vertical box between the control and
+  the name, with placeholder values that fit the parameter ("-18 dB", "4:1", "12 ms", "250 Hz",
+  "+3 dB", "50%", "8 kHz", "80 Hz"). With the control on the right the value reads top to bottom
+  (clockwise quarter turn), with the control on the left it reads bottom to top (counterclockwise).
+  Legible at a glance? Right size, thickness and distance from the name? Also in Daylight mode and
+  with many rows (CPU gauge while scrolling 40 placeholder rows in two or three columns).
 
 ## Done
 
+- [x] 86. (0.14.0) Performance mode in Show mode: racks fold to the name with M and B, the handle
+  (centered, whole-width click zone) opens and folds the FX section with the animation and moves only
+  that rack's column, auto-fold after 15 s idle, Edit/Show switching, latency alert frame: ok. Found
+  while testing: B (and BYPASS) did nothing on a rack with an FX that Show mode had taken offline;
+  fixed in 0.14.0 (the offline FX counted as switched on again).
+- [x] 85. (0.14.0) Performance mode, the view: toggle, one row, columns with their own scroll, fade and
+  position bar, row design (bold name box, control outside, staggered sides, hover glow, + circle),
+  Edit mode full racks, docked/floating, Daylight: ok.
+
+- [x] 84. ReaPack About text (repository and package) shows the FOH-Mate overview with headings and
+  bullets, and no new version is offered: ok.
 - [x] 83. (0.13.3) Update through ReaPack: after the tag was pushed (the first sync failed with a 404
   until then), Synchronize packages offered 0.13.3 and the ReaPack copy works: ok.
 - [x] 82. (0.13.3) Same gap everywhere (between racks, between rows, under the top bar, about 17 px):

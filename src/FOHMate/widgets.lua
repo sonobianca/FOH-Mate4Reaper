@@ -280,3 +280,67 @@ function audio_device_header(is_out)
   return (running and n) or 0
 end
 
+
+---------------------------------------------------------------- vertical text
+
+-- ReaImGui can't rotate text, so the values of Performance mode rows are drawn with a small
+-- stroke font (cell 5 x 8 units, y down): only the characters a value needs.
+VFONT = {
+  ['0'] = { { 1,0, 4,0, 5,1, 5,7, 4,8, 1,8, 0,7, 0,1, 1,0 } },
+  ['1'] = { { 1,1.5, 3,0, 3,8 }, { 1,8, 5,8 } },
+  ['2'] = { { 0,1, 1,0, 4,0, 5,1, 5,3, 0,8, 5,8 } },
+  ['3'] = { { 0,0, 5,0, 2.5,3.5, 4,3.5, 5,4.5, 5,7, 4,8, 1,8, 0,7 } },
+  ['4'] = { { 4,8, 4,0, 0,5.5, 5.5,5.5 } },
+  ['5'] = { { 5,0, 0,0, 0,3.5, 4,3.5, 5,4.5, 5,7, 4,8, 1,8, 0,7 } },
+  ['6'] = { { 5,1, 4,0, 1,0, 0,1, 0,7, 1,8, 4,8, 5,7, 5,4.5, 4,3.5, 0,3.5 } },
+  ['7'] = { { 0,0, 5,0, 2,8 } },
+  ['8'] = { { 1,0, 4,0, 5,1, 5,3, 4,4, 1,4, 0,3, 0,1, 1,0 }, { 1,4, 4,4, 5,5, 5,7, 4,8, 1,8, 0,7, 0,5, 1,4 } },
+  ['9'] = { { 0,7, 1,8, 4,8, 5,7, 5,1, 4,0, 1,0, 0,1, 0,3.5, 1,4.5, 5,4.5 } },
+  ['.'] = { { 2.5,7.4, 2.5,8 } },
+  ['-'] = { { 0.5,4, 4.5,4 } },
+  ['+'] = { { 0.5,4, 4.5,4 }, { 2.5,2, 2.5,6 } },
+  [':'] = { { 2.5,2.4, 2.5,3 }, { 2.5,6, 2.5,6.6 } },
+  ['%'] = { { 0,0, 1.5,0, 1.5,1.5, 0,1.5, 0,0 }, { 3.5,6.5, 5,6.5, 5,8, 3.5,8, 3.5,6.5 }, { 0.3,8, 4.7,0 } },
+  ['d'] = { { 5,0, 5,8 }, { 5,3, 1,3, 0,4, 0,7, 1,8, 5,8 } },
+  ['B'] = { { 0,8, 0,0, 4,0, 5,1, 5,3, 4,4, 0,4 }, { 4,4, 5,5, 5,7, 4,8, 0,8 } },
+  ['H'] = { { 0,0, 0,8 }, { 5,0, 5,8 }, { 0,4, 5,4 } },
+  ['z'] = { { 0,3, 5,3, 0,8, 5,8 } },
+  ['k'] = { { 0,0, 0,8 }, { 5,3, 0,5.5 }, { 1.5,4.8, 5,8 } },
+  ['m'] = { { 0,8, 0,3, 1,3, 2,3.5, 2.5,4.5, 2.5,8 }, { 2.5,4.5, 3.5,3, 4.5,3, 5,4, 5,8 } },
+  ['s'] = { { 5,3, 1,3, 0,4, 1,5.5, 4,5.5, 5,6.5, 4,8, 0,8 } },
+}
+
+-- Draws `text` rotated a quarter turn inside the box (bx, by, bw, bh), centered, as big as fits.
+-- ccw: reads from bottom to top (a control on the left); otherwise top to bottom (control on the right).
+function draw_vtext(dl, text, bx, by, bw, bh, col, ccw)
+  local units = 0
+  for i = 1, #text do units = units + ((text:sub(i, i) == ' ') and 3 or 7) end
+  units = units - 2
+  local s = math.min(1.5, (bh - 8) / units, (bw - 6) / 8)
+  if s <= 0 then return end
+  local len, thick = units * s, 8 * s
+  local cx, cy = bx + bw / 2, by + bh / 2
+  local ox, oy, dux, duy, dvx, dvy
+  if ccw then
+    ox, oy, dux, duy, dvx, dvy = cx - thick / 2, cy + len / 2, 0, -1, 1, 0
+  else
+    ox, oy, dux, duy, dvx, dvy = cx + thick / 2, cy - len / 2, 0, 1, -1, 0
+  end
+  local u = 0
+  for i = 1, #text do
+    local ch = text:sub(i, i)
+    local strokes = VFONT[ch]
+    if strokes then
+      for _, st in ipairs(strokes) do
+        local px, py
+        for j = 1, #st, 2 do
+          local gu, gv = u + st[j] * s, st[j + 1] * s
+          local x, y = ox + dux * gu + dvx * gv, oy + duy * gu + dvy * gv
+          if px then ig.DrawList_AddLine(dl, px, py, x, y, col, 1.5) end
+          px, py = x, y
+        end
+      end
+    end
+    u = u + ((ch == ' ') and 3 or 7) * s
+  end
+end

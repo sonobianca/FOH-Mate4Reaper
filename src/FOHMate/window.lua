@@ -385,16 +385,19 @@ function draw_perf_column(inf, x, y, w, h, M)
     local n = math.floor(CFG.perf_demo_rows)
     local names = { 'Threshold', 'Ratio', 'Attack time', 'Low band crossover frequency', 'Output gain',
                     'Mix', 'High shelf frequency', 'Sidechain high-pass filter' }
+    local values = { '-18 dB', '4:1', '12 ms', '250 Hz', '+3 dB', '50%', '8 kHz', '80 Hz' }   -- placeholders
     local mx_in = ig.IsWindowHovered(ctx)
     ig.Dummy(ctx, 1, 3)                                    -- room for the glow of the first row
     for k = 1, n do
       local rx, ry = ig.GetCursorScreenPos(ctx)
       rx = rx + 3; local rw2 = rw - 6                      -- a little room for the hover glow
       local cd = rh - 8                                    -- the control, outside the name box
-      local box_w = rw2 - cd - 6
+      local vw, vg = 22, 4                                 -- the value box between control and name, and the gaps
+      local box_w = rw2 - cd - vw - 2 * vg
       local left = (k % 2 == 1)                            -- odd rows: name left; even rows: name right
       local bx = left and rx or (rx + rw2 - box_w)
       local kx = left and (rx + rw2 - cd) or rx
+      local vx = left and (bx + box_w + vg) or (kx + cd + vg)
       -- hover: the whole row (name box and control) glows
       if mx_in and mouse_in(rx, ry, rx + rw2, ry + rh) then
         local base = T.glow & 0xFFFFFF00
@@ -420,6 +423,12 @@ function draw_perf_column(inf, x, y, w, h, M)
       ig.DrawList_AddText(dl, bx + (box_w - ig.CalcTextSize(ctx, l1)) / 2, ty, c.name_txt, l1)
       if l2 then ig.DrawList_AddText(dl, bx + (box_w - ig.CalcTextSize(ctx, l2)) / 2, ty + blh, c.name_txt, l2) end
       if pb then ig.PopFont(ctx) end
+      -- the value, a quarter turn: counterclockwise when the control is on the left, clockwise on the right
+      if ry + rh > cy and ry < cy + ch then
+        ig.DrawList_AddRectFilled(dl, vx, ry, vx + vw, ry + rh, c.sec_bg, ROUNDING)
+        ig.DrawList_AddRect(dl, vx, ry, vx + vw, ry + rh, c.sec_bd, ROUNDING, 0, 1)
+        draw_vtext(dl, values[(k - 1) % #values + 1], vx, ry, vw, rh, contrast_text(c.sec_bg, track_color(tr)), not left)
+      end
       -- placeholder control: a knob
       local kcx, kcy, kr = kx + cd / 2, ry + rh / 2, cd / 2 - 1
       ig.DrawList_AddCircleFilled(dl, kcx, kcy, kr, c.sec_bg, 0)
