@@ -2,33 +2,32 @@
 
 Accepted ideas. Nothing here is started unless noted. New ideas get added as they come up.
 
-## 0.13 plan
-0.12 was released with the modular code and ReaPack install only; these two follow.
-- **Latency mismatch safety option.** Opt-in setting: a plugin installed in several formats (AU, VST3)
-  counts with the highest latency reported by any of its formats, for alerts, limits and display
-  only. Estimated values marked in the Plugin list. REAPER's own compensation is not touched. Needs
-  name + developer matching across formats. See the AU vs VST3 open question below.
-- **Performance mode.** Bianca's description:
-  - Racks in a single row, scrolling left to right. The FX part of each rack (the boxes we already
-    have) lines up at the top of the screen.
-  - Below each rack, a parameter section in the same visual style. Each row is one parameter of any
-    FX, with its control, usable in both Show and Edit mode.
-  - There is always one empty row at the end of the list, with a + in a circle; clicking it opens a
-    dialog to pick an FX parameter.
-  - The control fits the parameter when REAPER can tell: on/off, a drop-down for a few fixed
-    values, a rotary knob for continuous values (lighter on screen; switchable to a slider per row,
-    and the default may be swapped to slider after trying it). Plugins that report nothing about
-    their steps get the continuous control.
-  - Rows are removed and reordered in Edit mode only, never in Show mode.
-  - Deleting an FX deletes its parameter rows too; the delete confirmation says so.
-  - Rows are saved with the project, on the rack.
-  - The name defaults to what the plugin reports, and can be renamed by the user.
-  - Color: the rack's color by default, changeable from a drop-down.
-  - Rows alternate sides (row 1 name left, control right; row 2 control left, name right), so a
-    control is harder to hit by mistake.
-  - Replaces the "Performance Panel" idea under Advanced view mode below; MIDI mapping stays a
-    later step.
-- Translations: dropped for now.
+## Performance mode (next: 0.14)
+Shipped in 0.13 and no longer listed here: the latency mismatch option. Translations: dropped for now.
+
+Bianca's design (planning stage, nothing built yet):
+- **A toggle**, not a third mode: an optional, different workflow. Edit and Show keep working inside it.
+- Racks in a single row, scrolling left to right. The FX part of each rack (the boxes we already
+  have) lines up at the top. The full rack or a slimmer one: **a toggle, the user chooses**.
+- **Under each rack, its own column of parameter rows,** in the same visual style. A column belongs to
+  its rack. (Later: a row controlling an FX of another rack. Not now, but don't close the door.)
+- Each row is one parameter of an FX of that rack. There is always one empty row at the end with a +
+  in a circle; clicking it opens a dialog to pick an FX parameter.
+- The control fits the parameter when REAPER can tell: on/off, a drop-down for a few fixed values, a
+  rotary knob for continuous values (switchable to a slider per row; the default may be swapped to
+  slider after trying it). Plugins that report nothing about their steps get the continuous control.
+- Name: what the plugin reports by default, renamable. Color: the rack's color by default, changeable
+  from a drop-down.
+- Rows alternate sides (row 1 name left, control right; row 2 control left, name right), so a control
+  is harder to hit by mistake.
+- Usable in Show and Edit mode. Rows are added, removed and reordered in Edit mode only.
+- Deleting an FX deletes its parameter rows too; the delete confirmation says so.
+- Rows are saved with the project, on the rack.
+- **Scrolling is per column,** and where you are must be clear at a glance: the content fades to
+  transparent at the top and bottom edge while there is more beyond, plus a slim position indicator.
+- **XY controller (Edit mode):** two parameters can be combined into one XY pad; each axis can be
+  reversed from a context menu.
+- Replaces the "Performance Panel" idea under Advanced view mode below. MIDI mapping stays a later step.
 
 ## Advanced view mode
 - Basic stays the default; the mode is saved per project.
