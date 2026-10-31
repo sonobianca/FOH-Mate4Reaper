@@ -91,7 +91,7 @@ end
 -- the value as the vertical box can write it: what the plug-in says when the little stroke font
 -- has every character of it, otherwise the position as a percentage
 function param_vtext(txt, norm)
-  if txt and txt ~= '' and #txt <= 9 then
+  if txt and txt ~= '' and #txt <= 12 then
     local ok = true
     for i = 1, #txt do
       local ch = txt:sub(i, i)
@@ -213,8 +213,20 @@ function param_kind(tr, fxi, r)
 
   -- the guess
   local low = (r.pname or ''):lower()
+  -- two values: a toggle when they read on/off or numbers, a drop-down when they are words (Mono / Stereo)
+  local two_words = false
+  if n == 2 and items and not (ok and istoggle) then
+    local function plain(t)
+      t = t:lower()
+      return t:find('^on') or t:find('^off') or t:find('^yes') or t:find('^no') or t:find('^enable') or t:find('^disable')
+             or t:find('^active') or t:find('^bypass') or tonumber((t:match('^%s*([%-%+]?[%d%.]+)')))
+    end
+    two_words = not (plain(items[1].label) and plain(items[2].label))
+  end
   local guess = 'knob'
-  if (ok and istoggle) or n == 2 or low:find('bypass', 1, true) or low:find('^enable') or low:find('on/off', 1, true)
+  if two_words then
+    guess = 'list'
+  elseif (ok and istoggle) or n == 2 or low:find('bypass', 1, true) or low:find('^enable') or low:find('on/off', 1, true)
      or low:find('^mute') or low == 'on' or low:find('^power') then
     guess = 'toggle'
   elseif n and n >= 3 then
