@@ -211,8 +211,10 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
   local hdr_h, fxs_h, ctl_h = section_heights(#list, M, compact)
 
   local cx  = x0 + PAD + METER_W + GAP         -- middle area
+  local CW  = CENTER_W                         -- its width
+  if compact then cx, CW = x0 + PAD, RACK_W - 2 * PAD end   -- no vertical meters: the FX section takes the full width
   local wx  = cx + SI                          -- widgets inside a section
-  local WW  = CENTER_W - 2 * SI                -- widget width
+  local WW  = CW - 2 * SI                      -- widget width
 
   local hdr_top = y0 + PAD
   local hdr_bot = hdr_top + hdr_h
@@ -253,7 +255,7 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
                       selected and mix(c.border, T.glow, 0.6) or c.border, ROUNDING + 2, 0, selected and 3 or 2)
 
   local function section(y1, y2, wide)
-    local sx, sw = cx, CENTER_W
+    local sx, sw = cx, CW
     if wide then sx, sw = x0 + PAD, RACK_W - 2 * PAD end
     ig.DrawList_AddRectFilled(dl, sx, y1, sx + sw, y2, c.sec_bg, ROUNDING)
     ig.DrawList_AddRect(dl, sx, y1, sx + sw, y2, c.sec_bd, ROUNDING, 0, 1)
@@ -304,8 +306,8 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
     ig.DrawList_AddRectFilled(gdl, gx, gy, gx + RACK_W, gy + vh, fade(c.bg, 0xC8), ROUNDING + 2)
     ig.DrawList_AddRect(gdl, gx, gy, gx + RACK_W, gy + vh, c.border, ROUNDING + 2, 0, 3)
     for _, sec in ipairs(compact and { { hdr_top, hdr_bot } } or { { hdr_top, hdr_bot }, { fxs_top, fxs_bot }, { ctl_top, ctl_bot } }) do
-      ig.DrawList_AddRectFilled(gdl, cx + dx, sec[1] + dy, cx + dx + CENTER_W, sec[2] + dy, fade(c.sec_bg, 0xB0), ROUNDING)
-      ig.DrawList_AddRect(gdl, cx + dx, sec[1] + dy, cx + dx + CENTER_W, sec[2] + dy, fade(c.sec_bd, 0xFF), ROUNDING, 0, 1)
+      ig.DrawList_AddRectFilled(gdl, cx + dx, sec[1] + dy, cx + dx + CW, sec[2] + dy, fade(c.sec_bg, 0xB0), ROUNDING)
+      ig.DrawList_AddRect(gdl, cx + dx, sec[1] + dy, cx + dx + CW, sec[2] + dy, fade(c.sec_bd, 0xFF), ROUNDING, 0, 1)
     end
     ig.DrawList_AddRectFilled(gdl, nx + dx, name_y + dy, nx + dx + NW, name_y + dy + NH, c.name_bg, ROUNDING)
     local nm = fit_text(raw_name(tr) ~= '' and raw_name(tr) or '(unnamed)', NW - 8)
@@ -844,9 +846,8 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
   end
 
   clip_on()
-  if metering then
+  if metering and not compact then
     local my1, my2 = io_y, btn_y + M.btn_h
-    if compact then my1, my2 = fxs_top, fxs_bot end
     draw_meter(dl, x0 + PAD, my1, my2, m.lv_in, m.hold_in, m.clip_in, 'min', io_in == W_MONO)
     draw_meter(dl, x0 + RACK_W - PAD - METER_W, my1, my2, m.lv_out, m.hold_out, m.clip_out, 'mout', io_out == W_MONO)
   end
@@ -896,13 +897,11 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
     local dir = handle.open and -3 or 3
     ig.DrawList_AddLine(dl, hx - 12, handle.y - dir * 0.5, hx, handle.y + dir * 0.5, hcol, 2.5)
     ig.DrawList_AddLine(dl, hx, handle.y + dir * 0.5, hx + 12, handle.y - dir * 0.5, hcol, 2.5)
-    -- the FX section is folded: thin horizontal meters either side of the chevron (input on the
-    -- left, output on the right). They fade out while it opens, and the vertical ones take over.
-    local fa = 1 - 3 * (vh - folded_height(M)) / math.max(1, H - folded_height(M))
-    if metering and fa > 0 then
-      fa = math.min(1, fa)
-      draw_hbar(dl, x0 + PAD + SI, hx - 20, handle.y, m.lv_in, m.hold_in, m.clip_in, io_in == W_MONO, fa)
-      draw_hbar(dl, hx + 20, x0 + RACK_W - PAD - SI, handle.y, m.lv_out, m.hold_out, m.clip_out, io_out == W_MONO, fa)
+    -- Performance mode, Show mode: thin horizontal meters either side of the chevron (input on the
+    -- left, output on the right) are the only meters; the FX section has the full width.
+    if metering then
+      draw_hbar(dl, x0 + PAD + SI, hx - 20, handle.y, m.lv_in, m.hold_in, m.clip_in, io_in == W_MONO, 1)
+      draw_hbar(dl, hx + 20, x0 + RACK_W - PAD - SI, handle.y, m.lv_out, m.hold_out, m.clip_out, io_out == W_MONO, 1)
     end
   end
 

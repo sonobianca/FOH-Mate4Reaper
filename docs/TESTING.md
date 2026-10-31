@@ -32,10 +32,11 @@ New items get the next free number (next: 90).
   now carry a number to see how they spread. Also Edit mode, a bypassed rack, Daylight mode, a
   narrow window, CPU while scrolling sideways.
 
-- [ ] 89. (0.14.0) Show mode, FX section folded: thin horizontal meters either side of the chevron
-  (input left, output right; one bar for a mono rack, two for stereo; clip marker at the right end,
-  peak hold tick). Do they move with the audio and match the vertical ones? Do they fade out while
-  the FX section opens, with the vertical meters appearing in the same move? Readable but not
+- [ ] 89. (0.14.0) Performance mode, Show mode: the only meters are thin horizontal bars either side
+  of the chevron (input left, output right; one bar for a mono rack, two for stereo; clip marker at
+  the right end, peak hold tick), visible folded and unfolded. No vertical meters; the FX section
+  uses the full width of the rack when open (FX names, the + button, drop zones, drag and drop
+  of FX all still right?). Edit mode keeps the full racks with vertical meters. Readable but not
   noisy? Also with "no meters" on (nothing drawn), a bypassed or muted rack, Daylight mode, CPU.
   (Rollback point before this: tag `perf-checkpoint-2`.)
 
