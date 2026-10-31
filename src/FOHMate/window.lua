@@ -480,7 +480,7 @@ function draw_perf_area(infos, M, dt, now)
   local win_w, win_h = ig.GetWindowSize(ctx)
   local sbw = ig.GetStyleVar(ctx, ig.StyleVar_ScrollbarSize())
   local bottom = win_y + win_h - (total_w > win_w and sbw or 0) - 2     -- above the sideways scrollbar
-  local col_y = y + row_h + GLOW_M + 2
+  local col_y = y + row_h + gap                          -- the same gap as between racks
   local col_h = math.max(60, bottom - col_y)
 
   for i, inf in ipairs(infos) do
