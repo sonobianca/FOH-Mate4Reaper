@@ -26,7 +26,8 @@ language and keep them small.
 2. Code is split into modules (`src/FOHMate/*.lua`) for readability, as long as it costs no
    performance. Every module is loaded once at start into the script's private environment, so all
    top-level names are shared; new top-level names go there, not into Lua `local`s. A new module must
-   be added to `MODULES` in `src/FOHMate.lua` and to the install files.
+   be added to `MODULES` in `src/FOHMate.lua` (the ReaPack index is built from that list, see
+   `docs/RELEASING.md`).
 3. Versioning is major.minor.revision: revision for minor adjustments, minor for new features or big
    changes. The major version is Bianca's decision only. The version lives in the one `VERSION`
    constant and shows in the window title bar, not in the file name.
