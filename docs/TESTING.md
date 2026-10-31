@@ -6,14 +6,13 @@ New items get the next free number (next: 77).
 
 ## Open
 
-- [ ] 76. (0.12.0) ReaPack install, after the `v0.12.0` tag is pushed: Import repositories with the
-  README's address, Browse packages, find FOH-Mate, Install, Apply. Then: `Scripts/FOH-Mate/Live
-  sound/` holds `FOHMate.lua` and the `FOHMate` folder; **Script: FOHMate.lua** (the new one) runs and
-  shows v0.12.0 with your racks and settings. Then point your toolbar/shortcut at it if you want, and
-  keep or remove the repo copy's action (you develop from the repo copy, so keeping it is fine).
+Nothing open.
 
 ## Done
 
+- [x] 76. (0.12.0) ReaPack install from the repository's index (first release through ReaPack): the
+  repository imports, FOH-Mate installs, and the installed copy runs v0.12.0 with racks and settings:
+  ok.
 - [x] 75. (0.12.0) Modular code: v0.12.0 runs from the existing action and everything works as in
   0.11.21; with the `FOHMate` folder renamed, the missing-file message shows: ok.
 - [x] 74. (0.11.21) Key dots show the key source's width: mono input into a stereo FX is one dot,
