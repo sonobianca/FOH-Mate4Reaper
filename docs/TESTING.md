@@ -6,6 +6,8 @@ New items get the next free number (next: 92).
 
 ## Open
 
+- [ ] 92. (0.14.0) Q and pan/width. (a) A parameter named "Q", "Quality", "Band 1 Q" gets the **Q band** (Automatic, or right-click > Control): at the minimum the band is as wide as it can be (minimum mark to maximum mark), at the maximum it is the thinnest line, so a higher Q = tighter. Check it with a real EQ's Q, and that "Width band" (bandwidth, knee, stereo width) still gets wider with the value. (b) Add a pan and a stereo width to the Performance (re-add them: existing rows keep the mark they had, or change it in the section on the right): the pan's yellow mark is at the center (12 o'clock), the width's is at the minimum end (7:30, mono); a width turned all the way to mono sits on its mark. Double-click returns to it.
+
 - [ ] 91. (0.14.0) Settings (Options > Settings...), Plugin list and Performance parameters: each opens next to the
   Plugins Host window every time (also with REAPER on a second screen, or after moving the windows),
   and none of them has a fold arrow any more.

@@ -560,7 +560,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
             local marks
             if kind.marks then marks = {}; for i, m in ipairs(kind.marks) do marks[i] = inv and 1 - m or m end end
             newv = draw_encoder('k' .. k, kcx, kcy, kr, shown, { body = c.sec_bg, col = c.border, ptr = T.dots, s = f,
-                                style = kind.kind == 'band' and 'band' or 'line', steps = kind.steps, marks = marks,
+                                style = (kind.kind == 'band' or kind.kind == 'qband') and 'band' or 'line', narrow = kind.kind == 'qband', steps = kind.steps, marks = marks,
                                 def = r.def and (inv and 1 - r.def or r.def) })
           end
           if newv and inv then newv = 1 - newv end

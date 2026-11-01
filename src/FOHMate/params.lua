@@ -109,13 +109,14 @@ end
 -- parameter, so the guesses can be improved from them.
 --   toggle: on/off, or two values   list: a few named values (a drop-down)   steps: a few numeric
 --   values (a stepped encoder)      band: a width or a range (a band centered at the top of the encoder)
+--   qband: a Q factor (a band that gets narrower as the value goes up)
 --   knob: a smooth encoder
 PARAM_OVR      = nil
 PARAM_OVR_FILE = LATDB_DIR .. '/param_controls.txt'
 -- the names of the controls, used everywhere (the tree, the menus, the section on the right)
-PARAM_KIND_LABEL = { knob = 'Encoder', band = 'Width band', steps = 'Stepped encoder', toggle = 'Toggle', list = 'Drop-down' }
+PARAM_KIND_LABEL = { knob = 'Encoder', band = 'Width band', qband = 'Q band', steps = 'Stepped encoder', toggle = 'Toggle', list = 'Drop-down' }
 PARAM_CONTROL_OPTS = { { nil, 'Automatic' } }
-for _, k in ipairs({ 'knob', 'band', 'steps', 'toggle', 'list' }) do
+for _, k in ipairs({ 'knob', 'band', 'qband', 'steps', 'toggle', 'list' }) do
   PARAM_CONTROL_OPTS[#PARAM_CONTROL_OPTS + 1] = { k, PARAM_KIND_LABEL[k] }
 end
 
@@ -231,14 +232,17 @@ function param_kind(tr, fxi, r)
     guess = 'toggle'
   elseif n and n >= 3 then
     guess = numeric and 'steps' or 'list'
+  elseif low == 'q' or low:find('^q[%s%-_]') or low:find('[%s%-_]q$') or low:find('quality', 1, true)
+         or low:find('[%s%-_]q[%s%-_]') then
+    guess = 'qband'     -- a higher Q is a tighter band
   elseif low:find('width', 1, true) or low:find('range', 1, true) or low:find('spread', 1, true)
-         or low:find('knee', 1, true) or low == 'q' or low:find('^q[%s%-_]') or low:find('[%s%-_]q$') then
+         or low:find('knee', 1, true) then
     guess = 'band'
   end
 
   -- in dB: a smooth encoder with the marks of a fader, never one mark per step
   local marks
-  if guess == 'steps' or guess == 'knob' or guess == 'band' then
+  if guess == 'steps' or guess == 'knob' or guess == 'band' or guess == 'qband' then
     marks = param_db_marks(tr, fxi, r.idx)
     if marks and guess == 'steps' then guess = 'knob' end
   end
@@ -336,7 +340,14 @@ function params_apply(tr, targets, adding)
     for _, t in ipairs(targets) do
       if not have[t.guid .. ':' .. t.idx] and gm[t.guid] then
         -- the value it has now is remembered as its default (REAPER doesn't say what the plug-in's own is)
+        -- except a pan (center) and a stereo width (mono, the minimum), whose zero is known
         local def = reaper.TrackFX_GetParamNormalized(tr, gm[t.guid], t.idx)
+        local low = (t.name or ''):lower()
+        if low:find('^pan$') or low:find('[%s%-_]pan$') or low:find('^pan[%s%-_]') or low:find('balance', 1, true) then
+          def = 0.5
+        elseif low:find('width', 1, true) and not low:find('band', 1, true) then
+          def = 0
+        end
         rows[#rows + 1] = { guid = t.guid, idx = t.idx, pname = t.name, def = def }
       end
     end
@@ -458,7 +469,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
     if k.marks then pm = {}; for i, m in ipairs(k.marks) do pm[i] = inv and 1 - m or m end end
     local pd = row and row.def and (inv and 1 - row.def or row.def)
     draw_encoder('pv', cx, cy, r, inv and 1 - norm or norm, { body = body, col = ring, ptr = T.dots, s = 1, static = true,
-                 style = k.kind == 'band' and 'band' or 'line', steps = k.steps, marks = pm, def = pd })
+                 style = (k.kind == 'band' or k.kind == 'qband') and 'band' or 'line', narrow = k.kind == 'qband', steps = k.steps, marks = pm, def = pd })
   end
   ig.Dummy(ctx, 1, 76)
   local f = param_facts(tr, fxi, first.idx)

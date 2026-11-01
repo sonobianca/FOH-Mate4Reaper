@@ -553,7 +553,7 @@ function draw_encoder(id, cx, cy, r, norm, o)
   if o.style == 'band' then
     -- a width: a band centered at the top, as thin as it can be at the minimum and reaching from the
     -- minimum mark to the maximum mark at the maximum
-    local mid, half = (ENC_A0 + ENC_A1) / 2, math.max(math.rad(1.5), (ENC_A1 - ENC_A0) / 2 * v)
+    local mid, half = (ENC_A0 + ENC_A1) / 2, math.max(math.rad(1.5), (ENC_A1 - ENC_A0) / 2 * (o.narrow and 1 - v or v))
     ig.DrawList_PathArcTo(dl, cx, cy, r - 4 * s, mid - half, mid + half)
     ig.DrawList_PathStroke(dl, o.ptr, 0, 3.5 * s)
   else
