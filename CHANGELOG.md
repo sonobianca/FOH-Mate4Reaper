@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Performance mode: on a width or Q band the default mark is two arrows, at the edges of the band the default value would have (a range, not a point).
+
 - Performance mode: a **Q** (or "Quality") parameter gets a new control, the **Q band**: like the width band but it gets narrower as the value goes up, since a higher Q is tighter (also selectable by hand). A pan added to the Performance gets its default mark at the center, a stereo width at the minimum (mono).
 
 - Settings, Plugin list and the Performance parameters window open next to the Plugins Host window (a remembered position could leave them off the screen) and can no longer be folded.

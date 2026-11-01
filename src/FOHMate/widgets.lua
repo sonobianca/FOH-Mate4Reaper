@@ -548,7 +548,17 @@ function draw_encoder(id, cx, cy, r, norm, o)
   if o.marks then
     for _, m in ipairs(o.marks) do enc_tick(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * m, o.col, 0.75 * s) end
   end
-  if o.def then enc_mark(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * o.def, ENC_DEFAULT_COL, s) end
+  if o.def then
+    if o.style == 'band' then
+      -- a band: the default is a range, so two marks at the edges of the band it would have
+      local mid = (ENC_A0 + ENC_A1) / 2
+      local half = math.max(math.rad(1.5), (ENC_A1 - ENC_A0) / 2 * (o.narrow and 1 - o.def or o.def))
+      enc_mark(dl, cx, cy, r, mid - half, ENC_DEFAULT_COL, s)
+      enc_mark(dl, cx, cy, r, mid + half, ENC_DEFAULT_COL, s)
+    else
+      enc_mark(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * o.def, ENC_DEFAULT_COL, s)
+    end
+  end
   local ang = ENC_A0 + (ENC_A1 - ENC_A0) * v
   if o.style == 'band' then
     -- a width: a band centered at the top, as thin as it can be at the minimum and reaching from the
