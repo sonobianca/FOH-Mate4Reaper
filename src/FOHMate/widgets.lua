@@ -550,11 +550,11 @@ function draw_encoder(id, cx, cy, r, norm, o)
   end
   if o.def then
     if o.style == 'band' then
-      -- a band: the default is a range, so two marks at the edges of the band it would have
+      -- a band: the default is a range, so two short lines at the edges of the band it would have
       local mid = (ENC_A0 + ENC_A1) / 2
       local half = math.max(math.rad(1.5), (ENC_A1 - ENC_A0) / 2 * (o.narrow and 1 - o.def or o.def))
-      enc_mark(dl, cx, cy, r, mid - half, ENC_DEFAULT_COL, s)
-      enc_mark(dl, cx, cy, r, mid + half, ENC_DEFAULT_COL, s)
+      enc_tick(dl, cx, cy, r, mid - half, ENC_DEFAULT_COL, s)
+      enc_tick(dl, cx, cy, r, mid + half, ENC_DEFAULT_COL, s)
     else
       enc_mark(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * o.def, ENC_DEFAULT_COL, s)
     end
