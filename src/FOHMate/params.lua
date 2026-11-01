@@ -89,15 +89,30 @@ function params_count(tr)
 end
 
 -- the value as the vertical box can write it: what the plug-in says when the little stroke font
--- has every character of it, otherwise the position as a percentage
-function param_vtext(txt, norm)
-  if txt and txt ~= '' and #txt <= 12 then
+-- has every character of it, otherwise the position as a percentage. The text is tidied first
+-- (µ and ° and other unusual characters dropped, a bare number of a frequency gets "Hz", spaces
+-- squeezed out when it is too long). A text that still can't be written is noted once in
+-- Data/FOHMate/param_text_rejects.txt (plug-in, parameter, text), so the rules can be improved.
+PARAM_REJ = {}
+function param_vtext(txt, norm, pname, tr, fxi)
+  local t = (txt or ''):gsub('\194\181', 'u'):gsub('\194\176', ''):gsub('[\128-\255]', ''):gsub('%c', ' ')
+  t = t:gsub('^%s+', ''):gsub('%s+$', '')
+  if t ~= '' and tonumber(t) and (pname or ''):lower():find('freq', 1, true) then t = t .. ' Hz' end
+  if #t > 12 then t = t:gsub('%s+', '') end
+  if t ~= '' and #t <= 12 then
     local ok = true
-    for i = 1, #txt do
-      local ch = txt:sub(i, i)
+    for i = 1, #t do
+      local ch = t:sub(i, i)
       if ch ~= ' ' and not VFONT[ch] then ok = false; break end
     end
-    if ok then return txt end
+    if ok then return t end
+  end
+  if tr and txt and txt ~= '' then
+    local key = (param_fx_key(tr, fxi) or '') .. '\t' .. (pname or '')
+    if not PARAM_REJ[key] then
+      PARAM_REJ[key] = true
+      write_file(LATDB_DIR .. '/param_text_rejects.txt', key .. '\t' .. txt .. '\n', 'a')
+    end
   end
   return ('%d%%'):format(math.floor(norm * 100 + 0.5))
 end

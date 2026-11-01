@@ -491,7 +491,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         if not missing then
           norm = reaper.TrackFX_GetParamNormalized(tr, fxi, r.idx)
           local _, txt = reaper.TrackFX_GetFormattedParamValue(tr, fxi, r.idx)
-          vtxt = param_vtext(txt, norm)
+          vtxt = param_vtext(txt, norm, r.pname, tr, fxi)
           kind = param_kind(tr, fxi, r)
         end
         local cd = rh - 8 * f                                    -- the control, outside the name box
