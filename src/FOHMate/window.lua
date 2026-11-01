@@ -618,7 +618,10 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         end
         ig.Separator(ctx)
       end
-      if ig.MenuItem(ctx, 'Remove this row') and PARAM_MENU_ROW then params_remove(tr, PARAM_MENU_ROW) end
+      if ig.MenuItem(ctx, 'Remove this row') and rows[PARAM_MENU_ROW or 0] then
+        local mrow = rows[PARAM_MENU_ROW]
+        params_apply(tr, { { guid = mrow.guid, idx = mrow.idx, name = mrow.pname } }, false)
+      end
       ig.EndPopup(ctx)
     end
     if grid then                                           -- the area the columns take, for the sideways scroll
