@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Performance mode: a pan or balance gets its own control, the **Pan**: the yellow default mark is always at the top (the center), a band runs from the top to the left or to the right following the value (7:30 = all the way left, 4:30 = all the way right), and when centered a white X sits on the center. Also selectable by hand for any parameter.
+
 - Performance mode: the value box tidies the plug-in's text before writing it (drops µ, ° and other unusual characters, adds "Hz" to a bare number on a frequency parameter, squeezes out spaces when it is too long) so an EQ's frequencies show as frequencies and not percentages. What still can't be written is noted in Data/FOHMate/param_text_rejects.txt, to improve the rules.
 
 - Performance mode: on a width or Q band the default mark is two short yellow lines, at the edges of the band the default value would have (a range, not a point).

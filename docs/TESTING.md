@@ -6,6 +6,8 @@ New items get the next free number (next: 92).
 
 ## Open
 
+- [ ] 95. (0.14.46) Pan / balance parameters get the **Pan** control (name rules: Pan, Balance; or pick it by hand): the default mark is a yellow arrow at 12 o'clock, a band starts at the top and goes left or right with the value (7:30 = fully left, 4:30 = fully right, the band reaching that mark), and at the center a white X shows on the line of the mark instead of a band. Check it with a real pan, a balance, inverted (the band goes the other way), and that rows added before still show the mark at the top. The control name is "Pan" in the menus and the inspector.
+
 - [ ] 94. (0.14.45) Rack 2's EQ: frequency parameters show as frequencies ("1000 Hz", "1.2kHz"), not percentages. If some are still percentages, send Data/FOHMate/param_text_rejects.txt (plug-in, parameter, the text the plug-in gave) so the rules can be fixed from it.
 
 - [ ] 93. (0.14.44) A width band or Q band shows its yellow default mark as two short lines (like the min/max marks, but yellow) at the two edges of the band the default value would give (not one arrow). A pan or width whose default is mono (minimum): the two lines are close together at the top, as thin as the thinnest band. Q band: the lines follow the narrower-with-higher-Q rule. Inverted rows and the "Default mark" choices in the inspector still move the marks. Plain encoders keep a single arrow.

@@ -494,7 +494,7 @@ function enc_tick(dl, cx, cy, r, ang, col, s)
 end
 
 -- o: body (fill), col (ring and min/max marks, the encoder's color), ptr (pointer or arc color),
---    s (scale), style ('line' pointer, or 'band' for a width: a band centered at the top, wider with the value),
+--    s (scale), style ('line' pointer, or 'pan' for a pan or balance, or 'band' for a width: a band centered at the top, wider with the value),
 --    steps (n values: stepped, with a mark per value), marks (positions 0..1 of extra marks, like a fader's), def (default position 0..1, yellow mark),
 --    static (draw only, no mouse).
 -- Returns the new position 0..1 when the user changed it.
@@ -548,7 +548,7 @@ function draw_encoder(id, cx, cy, r, norm, o)
   if o.marks then
     for _, m in ipairs(o.marks) do enc_tick(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * m, o.col, 0.75 * s) end
   end
-  if o.def then
+  if o.def or o.style == 'pan' then
     if o.style == 'band' then
       -- a band: the default is a range, so two short lines at the edges of the band it would have
       local mid = (ENC_A0 + ENC_A1) / 2
@@ -556,11 +556,23 @@ function draw_encoder(id, cx, cy, r, norm, o)
       enc_tick(dl, cx, cy, r, mid - half, ENC_DEFAULT_COL, s)
       enc_tick(dl, cx, cy, r, mid + half, ENC_DEFAULT_COL, s)
     else
-      enc_mark(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * o.def, ENC_DEFAULT_COL, s)
+      enc_mark(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * (o.style == 'pan' and 0.5 or o.def), ENC_DEFAULT_COL, s)
     end
   end
   local ang = ENC_A0 + (ENC_A1 - ENC_A0) * v
-  if o.style == 'band' then
+  if o.style == 'pan' then
+    -- a pan: the default mark is the center; a band runs from the top to the position, left or right
+    -- (7:30 = all the way left, 4:30 = all the way right); centered, a white X sits on the mark's line
+    local mid = (ENC_A0 + ENC_A1) / 2
+    if math.abs(v - 0.5) < 0.01 then
+      local px, py, xs = cx + math.cos(mid) * r * 0.55, cy + math.sin(mid) * r * 0.55, r * 0.16
+      ig.DrawList_AddLine(dl, px - xs, py - xs, px + xs, py + xs, WHITE, 2.5 * s)
+      ig.DrawList_AddLine(dl, px - xs, py + xs, px + xs, py - xs, WHITE, 2.5 * s)
+    else
+      ig.DrawList_PathArcTo(dl, cx, cy, r - 4 * s, math.min(mid, ang), math.max(mid, ang))
+      ig.DrawList_PathStroke(dl, o.ptr, 0, 3.5 * s)
+    end
+  elseif o.style == 'band' then
     -- a width: a band centered at the top, as thin as it can be at the minimum and reaching from the
     -- minimum mark to the maximum mark at the maximum
     local mid, half = (ENC_A0 + ENC_A1) / 2, math.max(math.rad(1.5), (ENC_A1 - ENC_A0) / 2 * (o.narrow and 1 - v or v))
