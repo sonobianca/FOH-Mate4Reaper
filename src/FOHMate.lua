@@ -27,7 +27,9 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.14.52'   -- major.minor.revision, shown in the window's title bar
+VERSION         = '0.14.53'   -- major.minor.revision, shown in the window's title bar
+DEBUG_TIMER     = true      -- status bar shows how long the script takes per frame; must be false in a
+                            -- public version (tools/make_reapack_index.sh refuses to build otherwise)
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
 GLOW_M          = 6         -- room left around the racks for the selection glow
 NAME_FONT_SIZE  = 16        -- rack name font (bold)
@@ -128,6 +130,7 @@ function pop_theme(nc)
 end
 
 function loop()
+  local t0 = reaper.time_precise()
   if not ctx_is_valid() then create_ctx() end
   FRAME = FRAME + 1
   local now = reaper.time_precise()
@@ -200,6 +203,7 @@ function loop()
   draw_scan_window()
   pop_theme(nc)
   was_visible = visible
+  if DEBUG_TIMER then timer_frame(t0) end
 
   -- things that open a native dialog run here, after the frame is complete
   if #later > 0 then

@@ -164,6 +164,23 @@ function draw_gauge(dl, id, x, y, w, h, frac, label, tip)
   if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, tip) end
 end
 
+-- Debug timer (DEBUG_TIMER): how long the script takes per frame, from the start of loop() to the
+-- end of the drawing (native dialogs left out), and how much of it the racks area takes. Shown in
+-- the status bar, smoothed over about half a second, with the slowest frame of the last 2 seconds.
+-- ReaImGui's own work putting the frame on screen comes after and isn't counted.
+TIMER = { avg = 0, area = 0, area_avg = 0, peak = 0, peak_shown = 0, peak_t = 0 }
+
+function timer_frame(t0)
+  local now = reaper.time_precise()
+  local d = now - t0
+  TIMER.avg = TIMER.avg + (d - TIMER.avg) * 0.06
+  TIMER.area_avg = TIMER.area_avg + (TIMER.area - TIMER.area_avg) * 0.06
+  TIMER.peak = math.max(TIMER.peak, d)
+  if now - TIMER.peak_t > 2 then
+    TIMER.peak_shown, TIMER.peak, TIMER.peak_t = TIMER.peak, 0, now
+  end
+end
+
 -- status bar: same size, border and color as the top bar
 function draw_status_bar(dl, x, y, w, h, M, nracks, nfx, nparams)
   ig.DrawList_AddRect(dl, x, y, x + w, y + h, T.bar_border, ROUNDING, 0, 1)
@@ -204,6 +221,25 @@ function draw_status_bar(dl, x, y, w, h, M, nracks, nfx, nparams)
     label('ms')
   else
     label('Latency: n/a')
+  end
+
+  -- debug timer: "Script [1.4] ms  -  racks [0.6] ms"
+  if DEBUG_TIMER then
+    gx = gx + 10
+    local bw = ig.CalcTextSize(ctx, '00.0') + 16
+    local tip = ('Debug timer (not in public versions)\n' ..
+                 'Time FOH-Mate takes per frame: %.2f ms on average\n' ..
+                 'of which the racks area (Performance rows included): %.2f ms\n' ..
+                 'Slowest frame of the last 2 seconds: %.2f ms\n' ..
+                 'REAPER draws the window about 30 times a second.'):format(
+                 TIMER.avg * 1000, TIMER.area_avg * 1000, TIMER.peak_shown * 1000)
+    label('Script')
+    draw_gauge(dl, 'g_timer', gx, gy, bw, M.fh, nil, ('%.1f'):format(TIMER.avg * 1000), tip)
+    gx = gx + bw + 6
+    label('ms  -  racks')
+    draw_gauge(dl, 'g_timer_area', gx, gy, bw, M.fh, nil, ('%.1f'):format(TIMER.area_avg * 1000), tip)
+    gx = gx + bw + 6
+    label('ms')
   end
 
   -- latency watchdog
@@ -1055,6 +1091,7 @@ function draw(dt, now)
   local child_h = math.max(40, sb_y - RACK_SPACE - hint_h - top)
 
   ig.SetCursorScreenPos(ctx, wx, top)
+  local ta = reaper.time_precise()
   if S.perf then
     if begin_child('racks_perf', bar_w, child_h, ig.WindowFlags_HorizontalScrollbar()) then
       draw_perf_area(infos, M, dt, now)
@@ -1064,6 +1101,7 @@ function draw(dt, now)
     draw_rack_area(infos, M, dt, now, bar_w - sbw)
     ig.EndChild(ctx)
   end
+  TIMER.area = reaper.time_precise() - ta
 
   ------------------------------------------------ help line: what the mouse can do right now
   draw_hint(dl, wx + 6, top + child_h + (sb_y - top - child_h - M.tlh) / 2, bar_w - 12)

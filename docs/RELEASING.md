@@ -7,6 +7,8 @@ reaches users once its tag is pushed. Merging to `main` alone publishes nothing 
 ## Steps
 
 1. On the release branch (Claude):
+   - set `DEBUG_TIMER` in `src/FOHMate.lua` to `false` (the script below refuses to build while it is
+     `true`), and back to `true` on the next working branch;
    - check `VERSION` in `src/FOHMate.lua`, the `CHANGELOG.md` section for this minor version, and that
      `docs/TESTING.md` has nothing open (except the ReaPack install check, added for after the tag);
    - run `tools/make_reapack_index.sh`. It writes `index.xml` for that version (its changelog is the

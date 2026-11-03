@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Test versions only: the status bar shows a **debug timer** after the latency: how many milliseconds FOH-Mate's script takes per frame, and how much of it the racks area takes (Performance rows included). Its tooltip adds the slowest frame of the last 2 seconds. Public versions have it switched off.
+
 - Performance mode: the **Pan** control shows a tiny arrow (smaller than the default mark, its back on the center line, the same size both ways), left or right, when the value is less than 10% off center (up to 9L / 9R), and the band from 10% on, starting as long as the arrow so the switch is smooth; a small vertical line (where the arrow's back is) marks the exact center. A combined **Pan/Width** parameter of an EQ band (the Kirchhoff EQ, for example) follows the band's stereo placement parameter, found by its name: a pan for Stereo, a width for MS (its value then reads M / S, e.g. 100M to 100S, even when the plug-in prints L / R), and greyed out for Left, Right, Mid, Side and Mono. Placement texts it doesn't know are noted in Data/FOHMate/param_text_rejects.txt.
 
 - Performance mode: a pan or balance gets its own control, the **Pan**: the yellow default mark is always at the top (the center), a band runs from the top to the left or to the right following the value (7:30 = all the way left, 4:30 = all the way right), and when centered a small vertical line sits under the mark. Also selectable by hand for any parameter.

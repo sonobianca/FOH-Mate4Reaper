@@ -13,6 +13,11 @@ VERSION=$(sed -nE "s/^VERSION *= *'([0-9.]+)'.*/\1/p" $MAIN)
 [[ -n $VERSION ]] || { print -u2 "VERSION not found in $MAIN"; exit 1 }
 RAW=$REPO_URL/raw/v$VERSION
 
+# the debug timer is for test versions only
+if grep -qE '^DEBUG_TIMER *= *true' $MAIN; then
+  print -u2 "DEBUG_TIMER is on in $MAIN: set it to false for a public version"; exit 1
+fi
+
 # module names, in load order, from the MODULES table
 MODULES=(${(f)"$(sed -n '/^MODULES = {/,/^}/p' $MAIN | grep -oE "'[a-z_]+'" | tr -d "'")"})
 
