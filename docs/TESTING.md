@@ -2,9 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 107).
+New items get the next free number (next: 108).
 
 ## Open
+
+- [ ] 107. (0.14.63) New scale for the width band (Width band and Q band controls). (a) Kirchhoff Pan/Width in MS: at C (normal stereo) the band is a half circle, flat from 9 to 3 o'clock; at 100S it reaches the min and max marks (7:30 to 4:30, as before); towards 100M it shrinks to the thinnest line. (b) A stereo width (0-200%): 100% = the half circle. (c) The yellow default marks follow the same scale (a width whose default is 100% has its two marks at 9 and 3 o'clock). (d) Q band: the middle of the Q range is the half circle too. Does it read well, or should Q keep the old scale?
 
 - [ ] 106. (0.14.61) Reordering rows by drag (Edit mode, Performance mode). (a) Drag a row by its name box: a bar with its name follows the pointer (like an FX drag), the row stays behind faded, and the row under the pointer gets the outline. Drop: the row takes that place, the rows in between shift by one (and switch sides, since odd rows have the name on the left). (b) Drop on the + at the end: the row goes last. (c) Dropped outside the column, or on another rack's column: nothing changes. (d) Cmd-Z undoes the move. (e) Widened column (rows in several columns): the same. (f) Turning a control still works as before, and the right-click menu still opens on the name box. (g) Show mode: rows can't be dragged. (h) The grey help line says what to do while dragging.
 

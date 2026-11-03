@@ -529,6 +529,15 @@ function enc_mark(dl, cx, cy, r, ang, col, s)
     cx + ux * base - px * hw, cy + uy * base - py * hw, col)
 end
 
+-- How far a band reaches on each side of the top, for a width w (0..1): from nothing at the minimum to a
+-- half circle (9 to 3 o'clock) in the middle of the range, a normal stereo width (100% of a 0-200%
+-- width, the center of an M-S one), then on to the min and max marks (7:30 to 4:30) at the maximum.
+function band_half(w)
+  local half, full = math.rad(90), (ENC_A1 - ENC_A0) / 2
+  local h = w <= 0.5 and half * w / 0.5 or half + (full - half) * (w - 0.5) / 0.5
+  return math.max(math.rad(1.5), h)
+end
+
 -- a short line just outside the circle, perpendicular to the circumference (min, max and value marks)
 function enc_tick(dl, cx, cy, r, ang, col, s)
   local ux, uy = math.cos(ang), math.sin(ang)
@@ -595,7 +604,7 @@ function draw_encoder(id, cx, cy, r, norm, o)
     if o.style == 'band' then
       -- a band: the default is a range, so two short lines at the edges of the band it would have
       local mid = (ENC_A0 + ENC_A1) / 2
-      local half = math.max(math.rad(1.5), (ENC_A1 - ENC_A0) / 2 * (o.narrow and 1 - o.def or o.def))
+      local half = band_half(o.narrow and 1 - o.def or o.def)
       enc_tick(dl, cx, cy, r, mid - half, ENC_DEFAULT_COL, s)
       enc_tick(dl, cx, cy, r, mid + half, ENC_DEFAULT_COL, s)
     else
@@ -626,9 +635,9 @@ function draw_encoder(id, cx, cy, r, norm, o)
       ig.DrawList_PathStroke(dl, o.ptr, 0, 3.5 * s)
     end
   elseif o.style == 'band' then
-    -- a width: a band centered at the top, as thin as it can be at the minimum and reaching from the
-    -- minimum mark to the maximum mark at the maximum
-    local mid, half = (ENC_A0 + ENC_A1) / 2, math.max(math.rad(1.5), (ENC_A1 - ENC_A0) / 2 * (o.narrow and 1 - v or v))
+    -- a width: a band centered at the top, as thin as it can be at the minimum, a half circle in the
+    -- middle and reaching from the minimum mark to the maximum mark at the maximum (see band_half)
+    local mid, half = (ENC_A0 + ENC_A1) / 2, band_half(o.narrow and 1 - v or v)
     ig.DrawList_PathArcTo(dl, cx, cy, r - 4 * s, mid - half, mid + half)
     ig.DrawList_PathStroke(dl, o.ptr, 0, 3.5 * s)
   else
