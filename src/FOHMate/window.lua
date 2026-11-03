@@ -548,6 +548,8 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         if kind and kind.dual and not dead then
           local m = param_dual_mode(tr, fxi, kind)
           if m == 'off' then off = true elseif m then ekind = m end
+          -- some plug-ins keep printing L / R in MS: there it reads M / S
+          if m == 'band' then vtxt = vtxt:gsub('^([%d%.%s]*)L', '%1M'):gsub('^([%d%.%s]*)R', '%1S') end
         end
         if off then
           draw_encoder('k' .. k, kcx, kcy, kr, norm, { body = c.sec_bg, col = c.border, ptr = T.dim, s = f, static = true,
