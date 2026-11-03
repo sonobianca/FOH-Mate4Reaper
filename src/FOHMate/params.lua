@@ -124,6 +124,17 @@ function params_drop_fx(tr, guids)
   params_write(tr, kept)
 end
 
+-- dragging a row (Edit mode): row `from` takes the place of row `to`, the rows in between shift by
+-- one; to = the number of rows + 1 puts it at the end
+function params_move(tr, from, to)
+  local rows = {}
+  for i, r in ipairs(params_read(tr)) do rows[i] = r end
+  if not rows[from] or from == to then return end
+  local r = table.remove(rows, from)
+  table.insert(rows, math.min(to, #rows + 1), r)
+  with_undo('Reorder Performance rows', function() params_write(tr, rows) end)
+end
+
 -- how many parameters of the rack are in the Performance
 function params_count(tr)
   return #params_read(tr)

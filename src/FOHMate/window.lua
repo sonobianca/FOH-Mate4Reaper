@@ -487,6 +487,11 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     local show_plus = not is_locked()                      -- the + row is only there in Edit mode
     local slots = n + (show_plus and 1 or 0)
     local mx_in = ig.IsWindowHovered(ctx)
+    -- a row of this column being dragged (Edit mode): where it comes from, and where it is dropped
+    local row_drag = not is_locked() and drag_prev_row ~= nil and drag_prev_row:match('^(.-)|') == guid
+    local row_from = row_drag and tonumber(drag_prev_row:match('|(%d+)$'))
+    local in_col = row_drag and mouse_in(cx, cy, cx + cw, cy + ch)
+    local row_drop
     ig.Dummy(ctx, 1, 3)                                    -- room for the glow of the first row
     local ox, oy = ig.GetCursorScreenPos(ctx)
     local step_x = rw + 4 + 2 * pad                                -- widened: from one column of rows to the next
@@ -553,6 +558,14 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         -- pointed at in the rack glow in another color
         local over = mx_in and mouse_in(rx, ry, rx + rw2, ry + rh)
         local hot = hot_prev_fx ~= nil and hot_prev_fx == r.guid
+        -- a row being dragged over this column: the row under the pointer shows the place it would take
+        -- (the window doesn't count as hovered while the drag is on, so the pointer is checked directly)
+        local row_key = guid .. '|' .. k
+        local drop_here = row_drag and in_col and mouse_in(rx, ry, rx + rw2, ry + rh) and drag_prev_row ~= row_key
+        if row_drag then
+          if drop_here and ig.IsMouseReleased(ctx, 0) then row_drop = k end
+          over, hot = false, false
+        end
         if over and ig.IsMouseClicked(ctx, 0) then ps.last = k end   -- the row touched last
         if over and ig.IsMouseClicked(ctx, 1) and not is_locked() then      -- Edit mode: the row's menu
           PARAM_MENU_ROW = k
@@ -589,6 +602,18 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         ig.DrawList_AddText(dl, bx + (box_w - mm.w1) / 2, ty, c.name_txt, l1)
         if l2 then ig.DrawList_AddText(dl, bx + (box_w - mm.w2) / 2, ty + blh, c.name_txt, l2) end
         if pb then ig.PopFont(ctx) end
+        -- Edit mode: the name box is the handle to drag the row to another place in its column
+        if not is_locked() then
+          ig.SetCursorScreenPos(ctx, bx, ry)
+          ig.InvisibleButton(ctx, '##prow' .. k, box_w, rh)
+          hint_hovered('Drag: reorder  \194\183  right-click: control for this parameter, remove the row')
+          if ig.BeginDragDropSource(ctx) then
+            ig.SetDragDropPayload(ctx, 'PERFROW', row_key)
+            drag_now_row = row_key
+            draw_fx_ghost(rname, '', box_w, M.fh)
+            ig.EndDragDropSource(ctx)
+          end
+        end
         -- the value, a quarter turn: counterclockwise when the control is on the left, clockwise on the right
         if ry + rh > cy and ry < cy + ch then
           ig.DrawList_AddRectFilled(dl, vx, ry, vx + vw, ry + rh, c.sec_bg, ROUNDING)
@@ -641,6 +666,13 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           end
           if newv and inv then newv = 1 - newv end
         end
+        if drag_prev_row == row_key then
+          -- the row being dragged stays behind, faded
+          ig.DrawList_AddRectFilled(dl, rx, ry, rx + rw2, ry + rh, S.daylight and 0xFFFFFF99 or 0x00000099, ROUNDING)
+        elseif drop_here then
+          -- the place the dragged row would take
+          ig.DrawList_AddRect(dl, rx - 1, ry - 1, rx + rw2 + 1, ry + rh + 1, T.glow, ROUNDING, 0, 2)
+        end
         if newv then
           reaper.TrackFX_SetParamNormalized(tr, fxi, r.idx, newv)
           ps.last = k
@@ -673,6 +705,11 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
       if ig.InvisibleButton(ctx, '##addparam', rh, rh) then param_picker_open(tr) end
       local hov = ig.IsItemHovered(ctx)
       local pcx, pcy, pr = px + rw / 2, py + rh / 2, rh / 2 - 2
+      -- a dragged row dropped here goes to the end
+      if row_drag and in_col and mouse_in(px + 3, py, px + rw - 3, py + rh) and row_from ~= n then
+        ig.DrawList_AddRect(dl, px + 2, py - 1, px + rw - 2, py + rh + 1, T.glow, ROUNDING, 0, 2)
+        if ig.IsMouseReleased(ctx, 0) then row_drop = n + 1 end
+      end
       local pcol = (c.name_txt & 0xFFFFFF00) | (hov and 0xFF or 0xB0)
       if hov then ig.DrawList_AddCircleFilled(dl, pcx, pcy, pr, (c.name_txt & 0xFFFFFF00) | 0x30, 0) end
       ig.DrawList_AddCircle(dl, pcx, pcy, pr, pcol, 0, hov and 3 or 2)
@@ -680,6 +717,11 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
       ig.DrawList_AddLine(dl, pcx - pl, pcy, pcx + pl, pcy, pcol, hov and 3 or 2)
       ig.DrawList_AddLine(dl, pcx, pcy - pl, pcx, pcy + pl, pcol, hov and 3 or 2)
       if hov then ig.SetTooltip(ctx, 'Add or remove parameters') end
+    end
+    if row_drop and row_from then                          -- the rows are rewritten once the frame is drawn
+      local to = row_drop
+      later[#later + 1] = function() if valid(tr) then params_move(tr, row_from, to) end end
+      ps.last = math.min(to, n)
     end
     if ig.BeginPopup(ctx, 'prm_menu') then                  -- right-click on a row (Edit mode): its control, or remove it
       local mr = rows[PARAM_MENU_ROW or 0]
@@ -906,7 +948,9 @@ end
 -- the grey help line: what the mouse can do with what is under it, or with what is being dragged
 function draw_hint(dl, x, y, w)
   local copy, move = mod_label(COPY_MOD), mod_label(MOVE_MOD)
-  if drag_prev_rack then
+  if drag_prev_row then
+    HINT = 'Moving the row: drop it on the row whose place it takes, or on the + to put it at the end'
+  elseif drag_prev_rack then
     if has_mod(COPY_MOD) then
       HINT = ('Duplicating the rack: drop it where the copy should go  \194\183  let go of %s to move it instead'):format(copy)
     else
@@ -951,6 +995,7 @@ end
 function draw(dt, now)
   drag_prev_rack, drag_prev_fx = drag_now_rack, drag_now_fx
   drag_now_rack, drag_now_fx = nil, nil
+  drag_prev_row, drag_now_row = drag_now_row, nil
   hover_prev_rack, hover_now_rack = hover_now_rack, nil
   hot_prev_fx, hot_now_fx = hot_now_fx, nil
   lat_over_racks = 0

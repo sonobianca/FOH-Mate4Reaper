@@ -2,9 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 106).
+New items get the next free number (next: 107).
 
 ## Open
+
+- [ ] 106. (0.14.61) Reordering rows by drag (Edit mode, Performance mode). (a) Drag a row by its name box: a bar with its name follows the pointer (like an FX drag), the row stays behind faded, and the row under the pointer gets the outline. Drop: the row takes that place, the rows in between shift by one (and switch sides, since odd rows have the name on the left). (b) Drop on the + at the end: the row goes last. (c) Dropped outside the column, or on another rack's column: nothing changes. (d) Cmd-Z undoes the move. (e) Widened column (rows in several columns): the same. (f) Turning a control still works as before, and the right-click menu still opens on the name box. (g) Show mode: rows can't be dragged. (h) The grey help line says what to do while dragging.
 
 - [ ] 105. (0.14.60) Point at an FX name in a rack (Performance mode, Edit and Show): that FX's rows in the column underneath glow sky blue (orange in Daylight), the other rows don't. The normal white (blue in Daylight) glow when pointing at a row is unchanged. Is the color clear enough, and different enough from the normal glow? Also: no flicker while moving along the FX names.
 

@@ -128,6 +128,7 @@ end
 -- what is being dragged right now (a rack's guid / "guid|fxindex"); the "prev" values
 -- are last frame's, so every rack can react to a drag that started in another one
 drag_now_rack, drag_now_fx, drag_prev_rack, drag_prev_fx = nil, nil, nil, nil
+drag_now_row, drag_prev_row = nil, nil   -- a Performance row being dragged: "rack guid|row number"
 lat_over_racks = 0      -- racks over the latency limit, counted while drawing
 SHOWOFF_MSG = nil       -- "N FX taken offline" after switching to Show
 hover_now_rack, hover_prev_rack = nil, nil   -- rack under the pointer (guid), same idea
