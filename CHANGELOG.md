@@ -4,6 +4,10 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Performance mode: parameters of the same group (an EQ band: "Band 1...", "Gain-Band 2"...) get the rack's color slightly shifted, one way for odd bands and the other way for even ones, so neighbouring bands stand apart.
+
+- Performance mode: the right-click menu of a row has a **Control** submenu, then **Nickname parameter...** and **Recolor parameters** (this row, its band, or every row of its FX; "Automatic" goes back to the rack's color). With **Settings > Performance mode > Remember parameters nicknames** on, a nickname is remembered for that plug-in and given to the parameter whenever it is added again.
+
 - Performance mode: right-click the **+** at the end of a column to remove the rows that aren't linked to a parameter any more (their FX removed or changed).
 
 - Performance mode: the **Width band** and **Q band** have a new scale. The middle of the range (a normal stereo width, the center of an M-S width) is a half circle, from 9 to 3 o'clock; the maximum still reaches the min and max marks, the minimum is still the thinnest line.

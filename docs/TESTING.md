@@ -2,9 +2,17 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 110).
+New items get the next free number (next: 114).
 
 ## Open
+
+- [ ] 113. (0.14.66) Group colors. In a Kirchhoff (or any EQ), add rows of band 1 and band 2 (and a parameter without a band number, like Output). The band 1 rows are a slightly different shade from the band 2 rows (band 3 like band 1, band 4 like band 2...), the rows without a band keep the rack's color. Subtle but visible? In Daylight too. Also ReaEQ ("Freq-Band 1"...). Changing the rack's color: the shades follow.
+
+- [ ] 112. (0.14.66) Right-click a row > Recolor parameters: (a) This row...: the color picker; the row changes as you drag (name box, value box, control ring). Automatic: back to the rack's color (or its band shade). (b) Every "Band 1" row (n)...: only the rows of that band of that FX. Only offered when there are several and not all the FX's rows. (c) Every row of <FX> (n)...: all of them. (d) Save and reopen the project: the colors stay. Cmd-Z after a recolor: tell Claude what it does (the color isn't an undo step yet, like the rack color).
+
+- [ ] 111. (0.14.66) Right-click a row > Nickname parameter...: a box asks for the name (empty = the plug-in's own name). The row shows the nickname at once, also wrapped on two lines. Cmd-Z undoes it. (a) Settings > Performance mode > Remember parameters nicknames, on (default): add the same parameter of the same plug-in on another rack, or in another project: it gets the nickname. Nicknames are in Data/FOHMate/param_nicknames.txt. (b) Off: a new nickname stays on its row only, and new rows get the plug-in's name. (c) A greyed-out row can be nicknamed too.
+
+- [ ] 110. (0.14.66) Right-click a row (Edit mode): the menu reads Control > (the control choices, as before), a line, Nickname parameter..., Recolor parameters >, a line, Remove this row. The Control choices work as before (tick on the current one, "Automatic (now: ...)").
 
 - [ ] 109. (0.14.65) The other way round from 105: point at a parameter row, and its FX in the rack above glows sky blue (orange in Daylight), with the same soft glow as the rows. Only that FX; nothing while dragging a row. Show mode with the FX section folded: nothing to see, nothing breaks.
 

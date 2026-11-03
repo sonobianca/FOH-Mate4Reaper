@@ -91,6 +91,8 @@ SCHEMA = {
     tip = 'On: an open FX section (Show mode) and a widened parameter section fold back after the time below\nwithout you using FOH-Mate. Off: they stay open until you fold them.' },
   { group = 'Performance mode', key = 'perf_fold_after', label = 'Fold them after', kind = 'i', min = 0, max = 120, def = 15, fmt = '%d s',
     tip = 'An open FX section (Show mode) and a widened parameter column fold back after this long\nwithout activity in the Plugins Host window (the mouse moving over it, a click, a drag, scrolling\nor a key). Nothing outside the window counts. Only when the option above is on.' },
+  { group = 'Performance mode', key = 'remember_nicks', label = 'Remember parameters nicknames', kind = 'bool', min = 0, max = 1, def = 1,
+    tip = 'On: a nickname given to a parameter (right-click a row > Nickname parameter) is remembered for that\nplug-in, and the parameter gets it again whenever it is added to the Performance, on any rack or\nproject. Off: a nickname stays on its row only.' },
 
   { group = 'Controls', key = 'enc_mode', label = 'Rotary encoder: drag', kind = 'choice', def = 'vertical',
     options = { { 'vertical', 'up and down' }, { 'circle', 'around the encoder' } },

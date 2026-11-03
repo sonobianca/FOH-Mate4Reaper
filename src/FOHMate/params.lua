@@ -36,10 +36,11 @@ function params_read(tr)
   if c and c.raw == s then c.frame = FRAME; return c.rows end
   local rows = {}
   for rec in s:gmatch('[^;]+') do
-    local g, i, pn, nm, df, iv = rec:match('^([^|]*)|(%d+)|([^|]*)|([^|]*)|?([^|]*)|?([^|]*)$')
+    local g, i, pn, nm, df, iv, cl = rec:match('^([^|]*)|(%d+)|([^|]*)|([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)$')
     if g then
       rows[#rows + 1] = { guid = g, idx = tonumber(i), pname = param_unesc(pn),
-                          name = nm ~= '' and param_unesc(nm) or nil, def = tonumber(df), inv = (iv == '1') }
+                          name = nm ~= '' and param_unesc(nm) or nil, def = tonumber(df), inv = (iv == '1'),
+                          col = tonumber(cl, 16) }
     end
   end
   PARAM_CACHE[guid] = { raw = s, rows = rows, frame = FRAME }
@@ -49,8 +50,9 @@ end
 function params_write(tr, rows)
   local t = {}
   for _, r in ipairs(rows) do
-    t[#t + 1] = ('%s|%d|%s|%s|%s|%s'):format(r.guid, r.idx, param_esc(r.pname or ''), param_esc(r.name or ''),
-                                             r.def and ('%.6f'):format(r.def) or '', r.inv and '1' or '')
+    t[#t + 1] = ('%s|%d|%s|%s|%s|%s|%s'):format(r.guid, r.idx, param_esc(r.pname or ''), param_esc(r.name or ''),
+                                                r.def and ('%.6f'):format(r.def) or '', r.inv and '1' or '',
+                                                r.col and ('%06X'):format(r.col) or '')
   end
   reaper.GetSetMediaTrackInfo_String(tr, EXT_PARAMS, table.concat(t, ';'), true)
   PARAM_CACHE[reaper.GetTrackGUID(tr)] = nil
@@ -239,6 +241,99 @@ PARAM_KIND_LABEL = { knob = 'Encoder', band = 'Width band', pan = 'Pan', qband =
 PARAM_CONTROL_OPTS = { { nil, 'Automatic' } }
 for _, k in ipairs({ 'knob', 'band', 'qband', 'pan', 'steps', 'toggle', 'list' }) do
   PARAM_CONTROL_OPTS[#PARAM_CONTROL_OPTS + 1] = { k, PARAM_KIND_LABEL[k] }
+end
+
+---------------------------------------------------------------- row colors and nicknames
+
+-- The group a parameter belongs to, from its name: a word followed by a number ("Band 1", "Band2 Gain",
+-- "Gain-Band 3", "Ch 2"). Returns the number and a label ("Band 1"), or nothing.
+function param_group(pname)
+  local word, n = (pname or ''):match('(%a+)%s*[%-_]?%s*(%d+)')
+  if not n then return nil end
+  return tonumber(n), word .. ' ' .. n
+end
+
+-- The color a row is drawn in (0xRRGGBBAA): its own (Recolor parameters), or the rack's. Rows of a
+-- group (an EQ's band...) get the rack's color shifted a little, one way for odd groups and the other
+-- way for even ones, so neighbouring groups stand apart.
+function param_row_color(rack_col, r)
+  if r.col then return (r.col << 8) | 0xFF end
+  local g = param_group(r.pname)
+  if not g then return rack_col end
+  local h, s, l = rgb_to_hsl((rack_col >> 24) & 255, (rack_col >> 16) & 255, (rack_col >> 8) & 255)
+  local d = (g % 2 == 1) and -1 or 1
+  local cr, cg, cb = hsl_to_rgb(h + d * 10, s, math.max(0, math.min(1, l + d * 0.03)))
+  return (cr << 24) | (cg << 16) | (cb << 8) | 0xFF
+end
+
+-- Recolor parameters: the color picker for some rows of a rack ({ guid, idx } each)
+function param_open_picker(tr, targets, title)
+  local r0 = params_find(tr, targets[1].guid, targets[1].idx)
+  picker.kind, picker.tr, picker.rows, picker.title = 'param', tr, targets, title
+  picker.rgb = r0 and param_row_color(track_color(tr), r0) >> 8 or S.default_rgb
+  picker.open = true
+end
+
+-- sets (rgb = 0xRRGGBB) or clears (nil: back to the automatic color) the color of those rows
+function params_set_color(tr, targets, rgb)
+  local pick = {}
+  for _, t in ipairs(targets) do pick[t.guid .. ':' .. t.idx] = true end
+  local rows = {}
+  for _, r in ipairs(params_read(tr)) do
+    local n = {}
+    for k, v in pairs(r) do n[k] = v end
+    if pick[r.guid .. ':' .. r.idx] then n.col = rgb end
+    rows[#rows + 1] = n
+  end
+  params_write(tr, rows)
+end
+
+-- Nicknames: a name of the user's own for a parameter. With "Remember parameters nicknames" on
+-- (Settings), it is also kept in Data/FOHMate/param_nicknames.txt (plug-in, parameter, nickname) and
+-- given to that parameter whenever it is added to the Performance again, on any rack or project.
+PARAM_NICK      = nil
+PARAM_NICK_FILE = LATDB_DIR .. '/param_nicknames.txt'
+
+function param_nick_load()
+  PARAM_NICK = {}
+  for _, ln in ipairs(read_lines(PARAM_NICK_FILE)) do
+    local plug, pn, nick = ln:match('^([^\t]*)\t([^\t]*)\t(.+)$')
+    if plug then PARAM_NICK[plug .. '\t' .. pn] = nick end
+  end
+end
+
+function param_nick_get(plug, pname)
+  if CFG.remember_nicks == 0 then return nil end
+  if not PARAM_NICK then param_nick_load() end
+  return PARAM_NICK[plug .. '\t' .. (pname or '')]
+end
+
+function param_nick_set(plug, pname, nick)
+  if not PARAM_NICK then param_nick_load() end
+  PARAM_NICK[plug .. '\t' .. (pname or '')] = nick
+  local t = {}
+  for k, v in pairs(PARAM_NICK) do t[#t + 1] = k .. '\t' .. v end
+  table.sort(t)
+  write_lines(PARAM_NICK_FILE, t)
+end
+
+-- asks for a row's nickname (outside of the ImGui frame); empty = the plug-in's own name again
+function param_prompt_nick(tr, guid, idx)
+  later[#later + 1] = function()
+    if not valid(tr) then return end
+    local r = params_find(tr, guid, idx)
+    if not r then return end
+    local ok, nick = reaper.GetUserInputs('Nickname parameter', 1, 'Nickname (empty: its own name):,extrawidth=160',
+                                          r.name or r.pname or '')
+    if not ok then return end
+    nick = nick:match('^%s*(.-)%s*$')
+    if nick == r.pname then nick = '' end
+    with_undo('Nickname parameter', function()
+      params_update(tr, guid, idx, { name = nick ~= '' and nick or false })
+    end)
+    local fxi = fx_index_by_guid(tr, guid)
+    if fxi and CFG.remember_nicks ~= 0 then param_nick_set(param_fx_key(tr, fxi), r.pname, nick ~= '' and nick or nil) end
+  end
 end
 
 -- the plug-in's name without its type, the way the corrections are filed
@@ -479,7 +574,8 @@ function params_apply(tr, targets, adding)
         elseif low:find('width', 1, true) and not low:find('band', 1, true) then
           def = 0
         end
-        rows[#rows + 1] = { guid = t.guid, idx = t.idx, pname = t.name, def = def }
+        rows[#rows + 1] = { guid = t.guid, idx = t.idx, pname = t.name, def = def,
+                            name = param_nick_get(param_fx_key(tr, gm[t.guid]), t.name) }
       end
     end
   else

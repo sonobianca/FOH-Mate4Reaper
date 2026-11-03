@@ -70,6 +70,8 @@ function draw_dialogs()
   if ig.BeginPopup(ctx, 'Color##picker') then
     if picker.kind == 'default' then
       ig.Text(ctx, 'Default rack color')
+    elseif picker.kind == 'param' then
+      ig.Text(ctx, picker.title or 'Parameter color')
     elseif picker.trs and #picker.trs > 1 then
       ig.Text(ctx, ('Color for the %d selected racks'):format(#picker.trs))
     else
@@ -83,10 +85,17 @@ function draw_dialogs()
         for _, t in ipairs(picker.trs or {}) do
           if valid(t) then set_track_rgb(t, r, g, b) end
         end
+      elseif picker.kind == 'param' then
+        if valid(picker.tr) then params_set_color(picker.tr, picker.rows, new) end
       else
         S.default_rgb = new
         save_setting('defcolor', new)
       end
+    end
+    if picker.kind == 'param' then                       -- back to the rack's color (shifted for a group)
+      if ig.Button(ctx, 'Automatic', 80, 0) and valid(picker.tr) then params_set_color(picker.tr, picker.rows, nil) end
+      hint_hovered('The rack\'s color again (a group of parameters, like an EQ band, gets it slightly shifted)')
+      ig.SameLine(ctx)
     end
     if ig.Button(ctx, 'Close', 80, 0) then ig.CloseCurrentPopup(ctx) end
     ig.EndPopup(ctx)
@@ -483,6 +492,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     local now_t = reaper.time_precise()
     local rows = params_read(tr)
     local gmap = fx_guid_map(tr)
+    local rack_col = track_color(tr)
     local n = #rows
     local show_plus = not is_locked()                      -- the + row is only there in Edit mode
     local slots = n + (show_plus and 1 or 0)
@@ -579,8 +589,14 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
             ig.DrawList_AddRect(dl, rx - i, ry - i, rx + rw2 + i, ry + rh + i, base | a, ROUNDING + i, 0, 1)
           end
         end
-        ig.DrawList_AddRectFilled(dl, bx, ry, bx + box_w, ry + rh, c.name_bg, ROUNDING)
-        ig.DrawList_AddRect(dl, bx, ry, bx + box_w, ry + rh, c.sec_bd, ROUNDING, 0, 1)
+        -- the row's colors: its own (Recolor parameters), or the rack's, shifted a little for a group of
+        -- parameters such as an EQ band (param_row_color); worked out again only when one of them changes
+        local rcol = param_row_color(rack_col, r)
+        local ckey = rcol .. '|' .. tostring(inf.bypassed) .. '|' .. tostring(S.daylight)
+        if mm.ckey ~= ckey then mm.ckey, mm.rc = ckey, rack_colors(rcol, inf.bypassed) end
+        local rc = mm.rc
+        ig.DrawList_AddRectFilled(dl, bx, ry, bx + box_w, ry + rh, rc.name_bg, ROUNDING)
+        ig.DrawList_AddRect(dl, bx, ry, bx + box_w, ry + rh, rc.sec_bd, ROUNDING, 0, 1)
         -- the name: bold, up to two lines
         local pb = push_bold(name_font, NAME_FONT_SIZE * f)
         -- the two lines and their widths are kept until the name, the box or the size change
@@ -600,8 +616,8 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         end
         local l1, l2 = mm.l1, mm.l2
         local ty = ry + (rh - blh * (l2 and 2 or 1)) / 2
-        ig.DrawList_AddText(dl, bx + (box_w - mm.w1) / 2, ty, c.name_txt, l1)
-        if l2 then ig.DrawList_AddText(dl, bx + (box_w - mm.w2) / 2, ty + blh, c.name_txt, l2) end
+        ig.DrawList_AddText(dl, bx + (box_w - mm.w1) / 2, ty, rc.name_txt, l1)
+        if l2 then ig.DrawList_AddText(dl, bx + (box_w - mm.w2) / 2, ty + blh, rc.name_txt, l2) end
         if pb then ig.PopFont(ctx) end
         -- Edit mode: the name box is the handle to drag the row to another place in its column
         if not is_locked() then
@@ -637,20 +653,20 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         end
         -- the value, a quarter turn: counterclockwise when the control is on the left, clockwise on the right
         if ry + rh > cy and ry < cy + ch then
-          ig.DrawList_AddRectFilled(dl, vx, ry, vx + vw, ry + rh, c.sec_bg, ROUNDING)
-          ig.DrawList_AddRect(dl, vx, ry, vx + vw, ry + rh, c.sec_bd, ROUNDING, 0, 1)
-          draw_vtext(dl, vtxt, vx, ry, vw, rh, contrast_text(c.sec_bg, track_color(tr)), not left, f, mm)
+          ig.DrawList_AddRectFilled(dl, vx, ry, vx + vw, ry + rh, rc.sec_bg, ROUNDING)
+          ig.DrawList_AddRect(dl, vx, ry, vx + vw, ry + rh, rc.sec_bd, ROUNDING, 0, 1)
+          draw_vtext(dl, vtxt, vx, ry, vw, rh, contrast_text(rc.sec_bg, rcol), not left, f, mm)
         end
         if off then
-          draw_encoder('k' .. k, kcx, kcy, kr, norm, { body = c.sec_bg, col = c.border, ptr = T.dim, s = f, static = true,
+          draw_encoder('k' .. k, kcx, kcy, kr, norm, { body = rc.sec_bg, col = rc.border, ptr = T.dim, s = f, static = true,
                        style = 'pan' })
           if over then ig.SetTooltip(ctx, 'Not used with this stereo placement') end
         elseif dead then
-          draw_encoder('k' .. k, kcx, kcy, kr, 0, { body = c.sec_bg, col = c.border, ptr = T.dim, s = f, static = true })
+          draw_encoder('k' .. k, kcx, kcy, kr, 0, { body = rc.sec_bg, col = rc.border, ptr = T.dim, s = f, static = true })
           ig.DrawList_AddRectFilled(dl, rx, ry, rx + rw2, ry + rh, (c.bg & 0xFFFFFF00) | 0xB0, ROUNDING)
           if over then ig.SetTooltip(ctx, 'This parameter is not there any more (the FX was removed or changed).') end
         elseif kind.kind == 'list' then
-          newv = draw_dropdown('k' .. k, kcx, kcy, kr, norm, kind.items, { body = c.sec_bg, col = c.border, ptr = T.dots, s = f })
+          newv = draw_dropdown('k' .. k, kcx, kcy, kr, norm, kind.items, { body = rc.sec_bg, col = rc.border, ptr = T.dots, s = f })
         else
           -- inverted: the control shows (and sets) the other way round
           local inv = r.inv
@@ -661,7 +677,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           else
             local marks
             if kind.marks then marks = {}; for i, m in ipairs(kind.marks) do marks[i] = inv and 1 - m or m end end
-            newv = draw_encoder('k' .. k, kcx, kcy, kr, shown, { body = c.sec_bg, col = c.border, ptr = T.dots, s = f,
+            newv = draw_encoder('k' .. k, kcx, kcy, kr, shown, { body = rc.sec_bg, col = rc.border, ptr = T.dots, s = f,
                                 style = ekind == 'pan' and 'pan' or (ekind == 'band' or ekind == 'qband') and 'band' or 'line', narrow = ekind == 'qband', steps = kind.steps, marks = marks,
                                 def = r.def and (inv and 1 - r.def or r.def) })
           end
@@ -740,13 +756,41 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     if ig.BeginPopup(ctx, 'prm_menu') then                  -- right-click on a row (Edit mode): its control, or remove it
       local mr = rows[PARAM_MENU_ROW or 0]
       local mfx = mr and gmap[mr.guid]
-      if mr and mfx then
+      if mr and mfx and ig.BeginMenu(ctx, 'Control') then
         local mk = param_kind(tr, mfx, mr)
-        ig.TextDisabled(ctx, 'Control for this parameter')
         for _, o in ipairs(PARAM_CONTROL_OPTS) do
           local on = (o[1] == nil and not mk.overridden) or (o[1] ~= nil and mk.overridden and mk.kind == o[1])
           local label = o[2] .. ((o[1] == nil) and (' (now: ' .. PARAM_KIND_LABEL[mk.guess] .. ')') or '')
           if ig.MenuItem(ctx, label, nil, on) then param_set_override(tr, mfx, mr, o[1]) end
+        end
+        ig.EndMenu(ctx)
+      end
+      if mr then
+        ig.Separator(ctx)
+        if ig.MenuItem(ctx, 'Nickname parameter...') then param_prompt_nick(tr, mr.guid, mr.idx) end
+        if ig.BeginMenu(ctx, 'Recolor parameters') then
+          local one = { { guid = mr.guid, idx = mr.idx } }
+          if ig.MenuItem(ctx, 'This row...') then param_open_picker(tr, one, 'Color of this row') end
+          -- the rows of the same group (Band 1...) of the same FX, and every row of the FX
+          local gnum, glabel = param_group(mr.pname)
+          local same_g, same_fx = {}, {}
+          for _, rr in ipairs(rows) do
+            if rr.guid == mr.guid then
+              same_fx[#same_fx + 1] = { guid = rr.guid, idx = rr.idx }
+              if gnum and param_group(rr.pname) == gnum then same_g[#same_g + 1] = { guid = rr.guid, idx = rr.idx } end
+            end
+          end
+          if #same_g > 1 and #same_g < #same_fx then
+            local t = ('Every "%s" row (%d)...'):format(glabel, #same_g)
+            if ig.MenuItem(ctx, t) then param_open_picker(tr, same_g, ('Color of the "%s" rows'):format(glabel)) end
+          end
+          if #same_fx > 1 then
+            local fxn = mfx and clean_fx_name(select(2, reaper.TrackFX_GetFXName(tr, mfx, ''))) or 'this FX'
+            if ig.MenuItem(ctx, ('Every row of %s (%d)...'):format(fxn, #same_fx)) then
+              param_open_picker(tr, same_fx, 'Color of the rows of ' .. fxn)
+            end
+          end
+          ig.EndMenu(ctx)
         end
         ig.Separator(ctx)
       end
