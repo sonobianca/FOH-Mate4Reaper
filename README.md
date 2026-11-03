@@ -380,9 +380,9 @@ track channels, so outputs, sends and meters always agree.
 
 ### Color and Daylight
 
-- **Display > Recolor every rack** colors all racks, starting from a random color, each contrasting
+- **Display > Colors > Recolor every rack** colors all racks, starting from a random color, each contrasting
   with the previous one.
-- **Display > Choose default color...** and **New racks use automatic / default color** decide the color of racks
+- **Display > Colors > Choose default color...** and **New racks use automatic / default color** decide the color of racks
   you create or copy.
 - **Display > Daylight mode** switches the whole panel to a light theme for bright rooms. Each rack's own color
   is kept as a pale tint with a solid name label.
