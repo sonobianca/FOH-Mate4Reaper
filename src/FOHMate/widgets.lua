@@ -548,7 +548,8 @@ end
 -- o: body (fill), col (ring and min/max marks, the encoder's color), ptr (pointer or arc color),
 --    s (scale), style ('line' pointer, or 'pan' for a pan or balance, or 'band' for a width: a band centered at the top, wider with the value),
 --    steps (n values: stepped, with a mark per value), marks (positions 0..1 of extra marks, like a fader's), def (default position 0..1, yellow mark),
---    range ({ lo, hi }: it stops there, shown by two marks in the link color), static (draw only, no mouse).
+--    range ({ lo, hi }: it stops there, shown by an arc in the link color outside the marks, with a handle
+--    from each end to the ring), static (draw only, no mouse).
 -- Returns the new position 0..1 when the user changed it.
 function draw_encoder(id, cx, cy, r, norm, o)
   local s = o.s or 1
@@ -592,6 +593,17 @@ function draw_encoder(id, cx, cy, r, norm, o)
   end
   local v = changed or norm
   ig.DrawList_AddCircleFilled(dl, cx, cy, r, o.body, 0)
+  if o.range then
+    -- the limits: under the ring and every mark, far enough out for the marks to sit between it and the ring
+    local ra = r + 8.5 * s
+    local a, b = ENC_A0 + (ENC_A1 - ENC_A0) * o.range[1], ENC_A0 + (ENC_A1 - ENC_A0) * o.range[2]
+    ig.DrawList_PathArcTo(dl, cx, cy, ra, a, b)
+    ig.DrawList_PathStroke(dl, T.link, 0, 1.5 * s)
+    for _, e in ipairs({ a, b }) do
+      local ux, uy = math.cos(e), math.sin(e)
+      ig.DrawList_AddLine(dl, cx + ux * r, cy + uy * r, cx + ux * (ra + 0.75 * s), cy + uy * (ra + 0.75 * s), T.link, 1.5 * s)
+    end
+  end
   ig.DrawList_AddCircle(dl, cx, cy, r, hover and mix(o.col, WHITE, 0.3) or o.col, 0, 2 * s)
   enc_tick(dl, cx, cy, r, ENC_A0, o.col, s)
   enc_tick(dl, cx, cy, r, ENC_A1, o.col, s)
@@ -600,9 +612,6 @@ function draw_encoder(id, cx, cy, r, norm, o)
   end
   if o.marks then
     for _, m in ipairs(o.marks) do enc_tick(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * m, o.col, 0.75 * s) end
-  end
-  if o.range then
-    for _, m in ipairs(o.range) do enc_tick(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * m, T.link, s) end
   end
   if o.def or o.style == 'pan' then
     if o.style == 'band' then

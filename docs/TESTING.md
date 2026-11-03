@@ -2,9 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 122).
+New items get the next free number (next: 123).
 
 ## Open
+
+- [ ] 122. (0.14.73) Limits without the full range: instead of two marks, a thin sky-blue arc (orange in Daylight) runs outside the encoder from Min to Max, with a short handle at each end down to the ring. The min/max, dB and default marks sit between the arc and the ring, drawn over it. Easy to see with the default mark right next to a limit? Not cut off at the top or bottom of the row, at normal size and widened? Also in the parameter window's preview.
 
 - [ ] 121. (0.14.72) Limit values. (a) Right-click a parameter (an encoder, e.g. a Kirchhoff gain) > **Limit values...**: the parameter window opens with it selected; "Limit values (Min / Max)" is under Invert and Default mark. Not offered for a toggle or a drop-down. (b) Tick it: Min and Max sliders appear, showing the plug-in's values (Hz, dB...; a percentage when the plug-in can't say). Move them, and try **Now** on each: Min can't go above Max. A value outside the new limits jumps inside. (c) Full range off: two marks in sky blue (orange in Daylight) on the encoder show Min and Max, and the encoder stops there, in both drag modes (up/down and around). No dead zone when you drag past a limit and come back. (d) Full range on: the encoder turns from its minimum to its maximum mark for Min to Max, finer than before; the value box and the plug-in agree; dB marks outside the limits are gone, the default mark only shows when it's inside. (e) With Invert on too, in both modes. (f) A width band, a Q band and a pan (both modes; with full range, does a pan's center still make sense?). A stepped encoder: stops at the limits, no full-range option. (g) Double-click to the default mark. (h) Untick Limit values: back to normal. (i) Save, close, reopen: kept; duplicate the rack: the copy has them too. (Like Invert, changing the limits is not an undo step.)
 
