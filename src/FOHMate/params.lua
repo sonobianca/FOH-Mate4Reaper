@@ -262,7 +262,7 @@ function param_row_color(rack_col, r)
   if not g then return rack_col end
   local h, s, l = rgb_to_hsl((rack_col >> 24) & 255, (rack_col >> 16) & 255, (rack_col >> 8) & 255)
   local d = (g % 2 == 1) and -1 or 1
-  local cr, cg, cb = hsl_to_rgb(h + d * 10, s, math.max(0, math.min(1, l + d * 0.03)))
+  local cr, cg, cb = hsl_to_rgb(h + d * 18, math.min(1, s * 1.1), math.max(0, math.min(1, l + d * 0.06)))
   return (cr << 24) | (cg << 16) | (cb << 8) | 0xFF
 end
 

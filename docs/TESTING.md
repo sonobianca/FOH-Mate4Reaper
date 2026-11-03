@@ -6,7 +6,7 @@ New items get the next free number (next: 114).
 
 ## Open
 
-- [ ] 113. (0.14.66) Group colors. In a Kirchhoff (or any EQ), add rows of band 1 and band 2 (and a parameter without a band number, like Output). The band 1 rows are a slightly different shade from the band 2 rows (band 3 like band 1, band 4 like band 2...), the rows without a band keep the rack's color. Subtle but visible? In Daylight too. Also ReaEQ ("Freq-Band 1"...). Changing the rack's color: the shades follow.
+- [ ] 113. (0.14.67: stronger shift than 0.14.66, which was too subtle) Group colors. In a Kirchhoff (or any EQ), add rows of band 1 and band 2 (and a parameter without a band number, like Output). The band 1 rows are a slightly different shade from the band 2 rows (band 3 like band 1, band 4 like band 2...), the rows without a band keep the rack's color. Subtle but visible? In Daylight too. Also ReaEQ ("Freq-Band 1"...). Changing the rack's color: the shades follow.
 
 - [ ] 112. (0.14.66) Right-click a row > Recolor parameters: (a) This row...: the color picker; the row changes as you drag (name box, value box, control ring). Automatic: back to the rack's color (or its band shade). (b) Every "Band 1" row (n)...: only the rows of that band of that FX. Only offered when there are several and not all the FX's rows. (c) Every row of <FX> (n)...: all of them. (d) Save and reopen the project: the colors stay. Cmd-Z after a recolor: tell Claude what it does (the color isn't an undo step yet, like the rack color).
 
