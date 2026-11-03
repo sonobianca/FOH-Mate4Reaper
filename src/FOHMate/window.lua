@@ -607,7 +607,11 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           local m = mm.mode
           if m == 'off' then off = true elseif m then ekind = m end
           -- some plug-ins keep printing L / R in MS: there it reads M / S
-          if m == 'band' then vtxt = vtxt:gsub('^([%d%.%s]*)L', '%1M'):gsub('^([%d%.%s]*)R', '%1S') end
+          -- ("100L", "L100", "-50 L", "Left 30"...: an L or R on its own, or the words Left / Right)
+          if m == 'band' then
+            vtxt = vtxt:gsub('%f[%a][Ll][Ee][Ff][Tt]%f[%A]', 'M'):gsub('%f[%a][Rr][Ii][Gg][Hh][Tt]%f[%A]', 'S')
+                       :gsub('%f[%a][Ll]%f[%A]', 'M'):gsub('%f[%a][Rr]%f[%A]', 'S')
+          end
         end
         if off then
           draw_encoder('k' .. k, kcx, kcy, kr, norm, { body = c.sec_bg, col = c.border, ptr = T.dim, s = f, static = true,

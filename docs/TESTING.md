@@ -2,9 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 102).
+New items get the next free number (next: 103).
 
 ## Open
+
+- [ ] 102. (0.14.57) Kirchhoff band in MS (follow-up to 97): the Pan/Width row's value box reads M / S, whatever way the plug-in writes L / R ("100L", "L100", "-50 L", "Left 30"). Back in Stereo it reads L / R again. If it still shows L / R: (a) does the encoder show the width band (centered at the top) or the pan? (b) what exactly does the value box say, and what does the plug-in's own window say for that value?
 
 - [ ] 101. (0.14.56) In VS Code (not REAPER): open a few files in src/FOHMate/ (widgets.lua, racks.lua, FOHMate.lua). The Problems panel shows no "Undefined global" or "lowercase initial" lines any more. If they're still there, reload the window (Cmd-Shift-P > Developer: Reload Window). Also: the script still starts in REAPER as before.
 
