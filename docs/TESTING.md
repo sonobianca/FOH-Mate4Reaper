@@ -2,9 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 105).
+New items get the next free number (next: 106).
 
 ## Open
+
+- [ ] 105. (0.14.60) Point at an FX name in a rack (Performance mode, Edit and Show): that FX's rows in the column underneath glow sky blue (orange in Daylight), the other rows don't. The normal white (blue in Daylight) glow when pointing at a row is unchanged. Is the color clear enough, and different enough from the normal glow? Also: no flicker while moving along the FX names.
 
 - [ ] 104. (0.14.59) Deleting an FX takes its Performance rows along. (a) Right-click an FX that has rows > Delete FX...: the box says how many rows go too, and shows even if you ticked "Don't show this again" for Delete FX before. Delete: the FX and its rows are gone, the other FX's rows stay. Cmd-Z: both come back, rows working. (b) An FX without rows: the usual box (or none, if you hid it). (c) Rack menu > Remove every FX, and Remove bypassed FX (also with the rack bypassed): when rows would go, a box first with the count; then only the rows of the removed FX go. With several racks selected: one box, the count for all of them. (d) Not changed: an FX deleted from REAPER's own FX window, or replaced (Replace FX), still leaves its rows greyed out. Tell Claude if those should go too.
 

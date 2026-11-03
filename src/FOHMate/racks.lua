@@ -603,6 +603,7 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
     end
     if not it.enabled then ig.PopStyleColor(ctx) end
     pop_native()
+    if ig.IsItemHovered(ctx) then hot_now_fx = fx_guid end   -- its Performance rows glow
     if locked then
       hint_hovered('Click: open or close the FX window')
     else

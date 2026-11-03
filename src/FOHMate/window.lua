@@ -549,15 +549,17 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         local bx = left and rx or (rx + rw2 - box_w)
         local kx = left and (rx + rw2 - cd) or rx
         local vx = left and (bx + box_w + vg) or (kx + cd + vg)
-        -- hover: the whole row (name box and control) glows
+        -- hover: the whole row (name box and control) glows; the rows of an FX whose name is
+        -- pointed at in the rack glow in another color
         local over = mx_in and mouse_in(rx, ry, rx + rw2, ry + rh)
+        local hot = hot_prev_fx ~= nil and hot_prev_fx == r.guid
         if over and ig.IsMouseClicked(ctx, 0) then ps.last = k end   -- the row touched last
         if over and ig.IsMouseClicked(ctx, 1) and not is_locked() then      -- Edit mode: the row's menu
           PARAM_MENU_ROW = k
           ig.OpenPopup(ctx, 'prm_menu')
         end
-        if over then
-          local base = T.glow & 0xFFFFFF00
+        if over or hot then
+          local base = (over and T.glow or T.link) & 0xFFFFFF00
           for i = 1, 3 do
             local a = math.floor(170 * (1 - (i - 1) / 3) ^ 2)
             ig.DrawList_AddRect(dl, rx - i, ry - i, rx + rw2 + i, ry + rh + i, base | a, ROUNDING + i, 0, 1)
@@ -950,6 +952,7 @@ function draw(dt, now)
   drag_prev_rack, drag_prev_fx = drag_now_rack, drag_now_fx
   drag_now_rack, drag_now_fx = nil, nil
   hover_prev_rack, hover_now_rack = hover_now_rack, nil
+  hot_prev_fx, hot_now_fx = hot_now_fx, nil
   lat_over_racks = 0
   HINT = nil
 

@@ -27,7 +27,7 @@ function theme()
       meter_bg = 0xC8C8C8FF, hold = 0x000000FF, clip_off = 0xC9A9A9FF,
       bar_border = 0x707070FF, title = 0x1B3A5BFF, gauge_text = 0x141414FF,
       chk_bg = 0xFFFFFFFF, chk_ring = 0x333333FF, chk_dot = 0x1E6FD9FF,
-      glow = 0x1E6FD9FF, cue_edit = 0x2E9E4FFF, cue_show = 0xD23C3CFF,
+      glow = 0x1E6FD9FF, link = 0xE07B00FF, cue_edit = 0x2E9E4FFF, cue_show = 0xD23C3CFF,
       sc_on = 0x9B6FE0FF, sc_ink = 0x202020FF, sc_ink_on = 0xFFFFFFFF, dots = 0x202020FF,
     }
   end
@@ -36,7 +36,7 @@ function theme()
     meter_bg = 0x181818FF, hold = 0xFFFFFFFF, clip_off = 0x3A2020FF,
     bar_border = 0x707070FF, title = 0xFFD27AFF, gauge_text = 0xFFFFFFFF,
     chk_bg = 0x1A1A1AFF, chk_ring = 0xCCCCCCFF, chk_dot = 0x6FB4FFFF,
-    glow = 0xFFFFFFFF, cue_edit = 0x2E9E4FFF, cue_show = 0xD23C3CFF,
+    glow = 0xFFFFFFFF, link = 0x4FC3F7FF, cue_edit = 0x2E9E4FFF, cue_show = 0xD23C3CFF,
     sc_on = 0x7A4FC4FF, sc_ink = 0xD8D8D8FF, sc_ink_on = 0xFFFFFFFF, dots = 0xEDEDEDFF,
   }
 end

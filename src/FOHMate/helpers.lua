@@ -131,6 +131,7 @@ drag_now_rack, drag_now_fx, drag_prev_rack, drag_prev_fx = nil, nil, nil, nil
 lat_over_racks = 0      -- racks over the latency limit, counted while drawing
 SHOWOFF_MSG = nil       -- "N FX taken offline" after switching to Show
 hover_now_rack, hover_prev_rack = nil, nil   -- rack under the pointer (guid), same idea
+hot_now_fx, hot_prev_fx = nil, nil           -- FX whose name is under the pointer (guid): its Performance rows glow
 
 -- will dropping what is being dragged make a copy?
 -- FX: copy key held, or dropped on another rack without the move key. Racks: copy key held.
