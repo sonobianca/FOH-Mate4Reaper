@@ -562,13 +562,12 @@ function draw_encoder(id, cx, cy, r, norm, o)
   local ang = ENC_A0 + (ENC_A1 - ENC_A0) * v
   if o.style == 'pan' then
     -- a pan: the default mark is the center; a band runs from the top to the position, left or right
-    -- (7:30 = all the way left, 4:30 = all the way right); centered, a white X sits on the mark's line
+    -- (7:30 = all the way left, 4:30 = all the way right); centered, a small vertical line under the mark
     local mid = (ENC_A0 + ENC_A1) / 2
     if math.abs(v - 0.5) < 0.0025 then
-      -- (AddLine shifts its ends by half a pixel; taken back so the X sits on the mark's line)
-      local px, py, xs = cx + math.cos(mid) * r * 0.55 - 0.5, cy + math.sin(mid) * r * 0.55 - 0.5, r * 0.16
-      ig.DrawList_AddLine(dl, px - xs, py - xs, px + xs, py + xs, WHITE, 2.5 * s)
-      ig.DrawList_AddLine(dl, px - xs, py + xs, px + xs, py - xs, WHITE, 2.5 * s)
+      -- centered: a small vertical line where the arrow's back would be
+      local py = cy - (r - 4 * s)
+      ig.DrawList_AddRectFilled(dl, cx - 0.75 * s, py - 2.5 * s, cx + 0.75 * s, py + 2.5 * s, o.ptr)
     elseif math.abs(v - 0.5) < 0.05 then        -- up to 9% either side (9L to 9R on a 100L-100R pan)
       -- off center by too little for a band to show: a tiny arrow pointing left or right, smaller than
       -- the default mark, its back on the center line
