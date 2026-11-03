@@ -2,9 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 104).
+New items get the next free number (next: 105).
 
 ## Open
+
+- [ ] 104. (0.14.59) Deleting an FX takes its Performance rows along. (a) Right-click an FX that has rows > Delete FX...: the box says how many rows go too, and shows even if you ticked "Don't show this again" for Delete FX before. Delete: the FX and its rows are gone, the other FX's rows stay. Cmd-Z: both come back, rows working. (b) An FX without rows: the usual box (or none, if you hid it). (c) Rack menu > Remove every FX, and Remove bypassed FX (also with the rack bypassed): when rows would go, a box first with the count; then only the rows of the removed FX go. With several racks selected: one box, the count for all of them. (d) Not changed: an FX deleted from REAPER's own FX window, or replaced (Replace FX), still leaves its rows greyed out. Tell Claude if those should go too.
 
 - [ ] 103. (0.14.58) Duplicated racks keep working rows. (a) A rack with a few Performance rows: right-click > Duplicate rack. The copy's rows are not greyed out, and turning one moves the copy's FX, not the original's (check in both FX windows). (b) The same with Cmd-drag of the rack (duplicate by drag). (c) Use as template: the copy's rows work too, on its fresh FX. (d) Cmd-Z after each: the copy goes, the original's rows are untouched. (e) Not covered yet: REAPER's own Track > Duplicate (Cmd-D) still gives greyed rows on the copy. Tell Claude if you use that one too.
 

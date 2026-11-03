@@ -363,9 +363,11 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
     if ig.MenuItem(ctx, 'Recolor automatically') then rack_action(tr, 'Recolor automatically', recolor_rack_auto) end
     if ig.MenuItem(ctx, 'Choose color...') then open_picker('rack', tr) end
     ig.Separator(ctx)
-    if ig.MenuItem(ctx, 'Remove every FX') then rack_action(tr, 'Remove every FX', remove_all_fx) end
+    if ig.MenuItem(ctx, 'Remove every FX') then
+      fx_removal(tr, 'Remove every FX', remove_all_fx, function() return nil end)
+    end
     if ig.MenuItem(ctx, 'Remove bypassed FX') then
-      rack_action(tr, 'Remove bypassed FX', remove_bypassed_fx)
+      fx_removal(tr, 'Remove bypassed FX', remove_bypassed_fx, bypassed_fx_guids)
     end
     ig.Separator(ctx)
     if ig.MenuItem(ctx, 'Revert to regular track') then rack_action(tr, 'Revert to regular track', revert_to_track) end
@@ -668,8 +670,16 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
         ig.EndMenu(ctx)
       end
       if ig.MenuItem(ctx, 'Delete FX...') then
-        request_confirm(('Delete "%s" from this rack?'):format(clean_fx_name(it.name)),
-          function() delete_fx(tr, fx_guid) end, 'Delete', 'delete_fx')
+        -- with rows in the Performance it always asks (they go too), even after "Don't show this again"
+        local nrows = params_count_fx(tr, { [fx_guid] = true })
+        if nrows > 0 then
+          request_confirm(('Delete "%s" from this rack?\nIts %d parameter row%s in the Performance will be removed too.\n(Ctrl+Z brings them back.)')
+                          :format(clean_fx_name(it.name), nrows, nrows == 1 and '' or 's'),
+            function() delete_fx(tr, fx_guid) end, 'Delete')
+        else
+          request_confirm(('Delete "%s" from this rack?'):format(clean_fx_name(it.name)),
+            function() delete_fx(tr, fx_guid) end, 'Delete', 'delete_fx')
+        end
       end
       ig.Separator(ctx)
       local fl = lat.fx[fx_guid] or 0

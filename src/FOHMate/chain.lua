@@ -132,16 +132,34 @@ function remove_all_fx(tr)
     local list = chain_info(tr).list
     for i = #list, 1, -1 do reaper.TrackFX_Delete(tr, list[i].fx) end
     reaper.GetSetMediaTrackInfo_String(tr, EXT_BYPASS, '', true)
+    params_drop_fx(tr, nil)
   end)
+end
+
+-- the FX "Remove bypassed FX" takes away (with the rack bypassed: those that were off before)
+function bypassed_fx_guids(tr)
+  local s = get_saved_bypass(tr)
+  local states = {}
+  if s then for v in s:gmatch('[01]') do states[#states + 1] = v end end
+  local out = {}
+  for i, it in ipairs(chain_info(tr).list) do
+    if (s and states[i] == '0') or (not s and not it.enabled) then out[reaper.TrackFX_GetFXGUID(tr, it.fx)] = true end
+  end
+  return out
 end
 
 function remove_bypassed_fx(tr)
   with_undo('Rack: remove bypassed FX', function()
     unbypass_if_needed(tr)
     local list = chain_info(tr).list
+    local gone = {}
     for i = #list, 1, -1 do
-      if not list[i].enabled then reaper.TrackFX_Delete(tr, list[i].fx) end
+      if not list[i].enabled then
+        gone[reaper.TrackFX_GetFXGUID(tr, list[i].fx)] = true
+        reaper.TrackFX_Delete(tr, list[i].fx)
+      end
     end
+    params_drop_fx(tr, gone)
   end)
 end
 
@@ -234,6 +252,7 @@ function delete_fx(tr, guid)
   with_undo('Rack: delete FX', function()
     local pos = fx_index_by_guid(tr, guid)
     if pos then reaper.TrackFX_Delete(tr, pos) end
+    params_drop_fx(tr, { [guid] = true })
   end)
 end
 

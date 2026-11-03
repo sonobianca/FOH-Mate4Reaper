@@ -101,3 +101,20 @@ function rack_action(tr, what, fn, label)
   end
 end
 
+-- the same for removing FX: when some of them have rows in the Performance (which: rack -> the set of
+-- FX GUIDs that would go, nil = all), it always asks first, since the rows go too
+function fx_removal(tr, what, fn, which)
+  local trs = targets_for(tr)
+  local n = 0
+  for _, t in ipairs(trs) do n = n + params_count_fx(t, which(t)) end
+  if n == 0 then return rack_action(tr, what, fn) end
+  request_confirm(('%s%s?\n%d parameter row%s in the Performance will be removed too.\n(Ctrl+Z brings them back.)')
+                  :format(what, #trs > 1 and (' for the %d selected racks'):format(#trs) or '', n, n == 1 and '' or 's'),
+    function()
+      later[#later + 1] = function()
+        for _, t in ipairs(trs) do if valid(t) then fn(t) end end
+        last_scan = -math.huge
+      end
+    end, 'Remove')
+end
+

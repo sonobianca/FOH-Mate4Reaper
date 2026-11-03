@@ -104,6 +104,26 @@ function params_copy(src, new)
   params_write(new, out)
 end
 
+-- how many rows of the rack belong to the FX in `guids` (a set of FX GUIDs; nil = every row)
+function params_count_fx(tr, guids)
+  local n = 0
+  for _, r in ipairs(params_read(tr)) do
+    if not guids or guids[r.guid] then n = n + 1 end
+  end
+  return n
+end
+
+-- removes the rows of the FX in `guids` (nil = every row), inside the caller's undo block:
+-- an FX that is deleted takes its rows along
+function params_drop_fx(tr, guids)
+  if params_count_fx(tr, guids) == 0 then return end
+  local kept = {}
+  for _, r in ipairs(params_read(tr)) do
+    if guids and not guids[r.guid] then kept[#kept + 1] = r end
+  end
+  params_write(tr, kept)
+end
+
 -- how many parameters of the rack are in the Performance
 function params_count(tr)
   return #params_read(tr)

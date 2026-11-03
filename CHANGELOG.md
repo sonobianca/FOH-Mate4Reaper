@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Performance mode: deleting an FX (**Delete FX...**, **Remove every FX**, **Remove bypassed FX**) removes its parameter rows too. When it has some, a confirmation always says how many go (Ctrl+Z brings them back).
+
 - Performance mode: a rack made with **Duplicate rack** (menu or Cmd-drag) or **Use as template** keeps its parameter rows working: they now control the copy's own FX. Before, they still pointed at the original's FX and showed as removed.
 
 - For editing only: a `.luarc.json` settings file tells VS Code's Lua checker about the names REAPER and FOHMate.lua provide, so it no longer marks them as errors. Nothing changes in REAPER.
