@@ -566,12 +566,13 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           kind = param_kind(tr, fxi, r)
         end
         local cd = rh - 8 * f                                    -- the control, outside the name box
-        local vw, vg = 22 * f, 4 * f                                 -- the value box between control and name, and the gaps
-        local box_w = rw2 - cd - vw - 2 * vg
+        -- the value box between control and name, a little closer to the name (gap vn) than to the control (vc)
+        local vw, vn, vc = 22 * f, 2.5 * f, 5.5 * f
+        local box_w = rw2 - cd - vw - vn - vc
         local left = (j % 2 == 1)                            -- odd rows: name left; even rows: name right
         local bx = left and rx or (rx + rw2 - box_w)
         local kx = left and (rx + rw2 - cd) or rx
-        local vx = left and (bx + box_w + vg) or (kx + cd + vg)
+        local vx = left and (bx + box_w + vn) or (kx + cd + vc)
         -- hover: the whole row (name box and control) glows; the rows of an FX whose name is
         -- pointed at in the rack glow in another color
         local over = mx_in and mouse_in(rx, ry, rx + rw2, ry + rh)

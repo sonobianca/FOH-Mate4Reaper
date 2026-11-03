@@ -2,9 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 124).
+New items get the next free number (next: 125).
 
 ## Open
+
+- [ ] 124. (0.14.75) The value box sits a little closer to the name (gap 2.5 px instead of 4) and farther from the control (5.5 px), on every row, both sides, normal size and widened. A control with the limits arc has room now? The name boxes keep their width.
 
 - [ ] 123. (0.14.74) A control with the limits arc is no longer cropped at the column's edge: it moves to the middle of its space (a little toward the value box), on both sides (rows with the name left and right), at normal size and widened. The arc doesn't touch the value box. Controls without the arc stay where they were.
 
