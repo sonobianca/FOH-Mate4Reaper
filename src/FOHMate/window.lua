@@ -614,12 +614,6 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
             ig.EndDragDropSource(ctx)
           end
         end
-        -- the value, a quarter turn: counterclockwise when the control is on the left, clockwise on the right
-        if ry + rh > cy and ry < cy + ch then
-          ig.DrawList_AddRectFilled(dl, vx, ry, vx + vw, ry + rh, c.sec_bg, ROUNDING)
-          ig.DrawList_AddRect(dl, vx, ry, vx + vw, ry + rh, c.sec_bd, ROUNDING, 0, 1)
-          draw_vtext(dl, vtxt, vx, ry, vw, rh, contrast_text(c.sec_bg, track_color(tr)), not left, f, mm)
-        end
         -- the control, a little further out than the middle of its box to leave room for the marks
         local kcx = kx + cd / 2 + (left and 1 or -1) * 3 * f
         local kcy, kr = ry + rh / 2, cd / 2 - 6 * f
@@ -639,6 +633,12 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
             vtxt = vtxt:gsub('%f[%a][Ll][Ee][Ff][Tt]%f[%A]', 'M'):gsub('%f[%a][Rr][Ii][Gg][Hh][Tt]%f[%A]', 'S')
                        :gsub('%f[%a][Ll]%f[%A]', 'M'):gsub('%f[%a][Rr]%f[%A]', 'S')
           end
+        end
+        -- the value, a quarter turn: counterclockwise when the control is on the left, clockwise on the right
+        if ry + rh > cy and ry < cy + ch then
+          ig.DrawList_AddRectFilled(dl, vx, ry, vx + vw, ry + rh, c.sec_bg, ROUNDING)
+          ig.DrawList_AddRect(dl, vx, ry, vx + vw, ry + rh, c.sec_bd, ROUNDING, 0, 1)
+          draw_vtext(dl, vtxt, vx, ry, vw, rh, contrast_text(c.sec_bg, track_color(tr)), not left, f, mm)
         end
         if off then
           draw_encoder('k' .. k, kcx, kcy, kr, norm, { body = c.sec_bg, col = c.border, ptr = T.dim, s = f, static = true,
