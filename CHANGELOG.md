@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- The **Display** menu is in three groups between lines: **Daylight mode** and a **Colors** submenu (Recolor every rack, Choose default color..., New racks use automatic / default color); **Performance mode** and **Hide disabled parameters**; a **Rack latency box** submenu (Off, Always, Only when a rack has latency) and **Dock**.
+
 - Performance parameters window: parameters with the same prefix (an EQ's **Band 1**, **Band 2**...) are gathered in a branch of their own under their FX, with its own check box to add or remove them all.
 
 - Performance mode: parameters of the same group (an EQ band: "Band 1...", "Gain-Band 2"...) get the rack's color slightly shifted, one way for odd bands and the other way for even ones, so neighbouring bands stand apart.

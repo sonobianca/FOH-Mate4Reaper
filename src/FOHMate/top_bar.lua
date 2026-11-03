@@ -21,29 +21,37 @@ function open_settings_at(group)
   S.settings_focus = group
 end
 
+-- three groups between lines: the look (Daylight, Colors), Performance mode, the layout (latency
+-- box, Dock); more than three items of a kind go in a submenu
 function draw_display_menu()
   toggle_setting('Daylight mode', 'daylight', 'daylight')
+  if ig.BeginMenu(ctx, 'Colors') then
+    if ig.MenuItem(ctx, 'Recolor every rack', nil, false, not is_locked()) then recolor_every_rack() end
+    if ig.MenuItem(ctx, 'Choose default color...') then open_picker('default') end
+    ig.Separator(ctx)
+    if ig.MenuItem(ctx, 'New racks use automatic color', nil, S.color_mode == 'auto') then
+      S.color_mode = 'auto'; save_setting('colormode', 'auto')
+    end
+    if ig.MenuItem(ctx, 'New racks use default color', nil, S.color_mode == 'default') then
+      S.color_mode = 'default'; save_setting('colormode', 'default')
+    end
+    ig.EndMenu(ctx)
+  end
+  ig.Separator(ctx)
   toggle_setting('Performance mode', 'perf', 'perfmode',
     'One row of racks that scrolls sideways, with a column of parameters under each rack.\nShow mode: each rack is just its name until you open its FX section with the handle.\nEdit mode: full racks.')
   toggle_setting('Hide disabled parameters', 'hide_dead', 'hidedead',
     'Performance mode: the parameters whose FX was deleted (or changed) are left out of the columns.\nThey are kept: a new FX of the same plug-in on the rack takes them back.')
-  ig.TextDisabled(ctx, 'Rack latency box')
-  for _, o in ipairs({ { 'off', 'Off' }, { 'always', 'Always' }, { 'auto', 'Only when a rack has latency' } }) do
-    if ig.MenuItem(ctx, '   ' .. o[2] .. '##latbox', nil, S.lat_box == o[1]) then
-      S.lat_box = o[1]
-      save_setting('latbox', o[1])
+  ig.Separator(ctx)
+  if ig.BeginMenu(ctx, 'Rack latency box') then
+    for _, o in ipairs({ { 'off', 'Off' }, { 'always', 'Always' }, { 'auto', 'Only when a rack has latency' } }) do
+      if ig.MenuItem(ctx, o[2] .. '##latbox', nil, S.lat_box == o[1]) then
+        S.lat_box = o[1]
+        save_setting('latbox', o[1])
+      end
     end
+    ig.EndMenu(ctx)
   end
-  ig.Separator(ctx)
-  if ig.MenuItem(ctx, 'Recolor every rack', nil, false, not is_locked()) then recolor_every_rack() end
-  if ig.MenuItem(ctx, 'Choose default color...') then open_picker('default') end
-  if ig.MenuItem(ctx, 'New racks use automatic color', nil, S.color_mode == 'auto') then
-    S.color_mode = 'auto'; save_setting('colormode', 'auto')
-  end
-  if ig.MenuItem(ctx, 'New racks use default color', nil, S.color_mode == 'default') then
-    S.color_mode = 'default'; save_setting('colormode', 'default')
-  end
-  ig.Separator(ctx)
   if ig.BeginMenu(ctx, 'Dock') then
     if ig.MenuItem(ctx, 'Floating') then dock_request = 0 end
     ig.Separator(ctx)

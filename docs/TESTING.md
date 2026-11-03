@@ -2,9 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 120).
+New items get the next free number (next: 121).
 
 ## Open
+
+- [ ] 120. (0.14.71) The Display menu: Daylight mode, Colors > (Recolor every rack, Choose default color..., a line, New racks use automatic color / default color, with the check mark on the one in use); a line; Performance mode, Hide disabled parameters; a line; Rack latency box > (Off / Always / Only when a rack has latency, check mark on the one in use), Dock >. Each item still does what it did. Recolor every rack is greyed out in Show mode.
 
 - [ ] 119. (0.14.70) The word "row" is gone from what you see in Performance mode: the row menu (Recolor parameters > This parameter... / Every "Band 1" parameter / Every parameter of <FX>; Remove this parameter), the + menu (Remove the N parameters not linked any more, Clear all box), the delete boxes, the help line at the bottom (hover a name box, the +, and while dragging), the parameter window's "This parameter" section, the Settings tooltips (Remember parameters nicknames, Rotary encoder), Display > Hide disabled parameters tooltip, and the undo names (Reorder / Clear Performance parameters). Does anything still say "row"?
 
