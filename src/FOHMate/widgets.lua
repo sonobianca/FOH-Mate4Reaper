@@ -574,7 +574,8 @@ function draw_encoder(id, cx, cy, r, norm, o)
       -- the default mark, its back on the center line
       local d = ang < mid and -1 or 1
       local px, py = cx, cy - (r - 4 * s)
-      ig.DrawList_AddTriangleFilled(dl, px + d * 3.5 * s, py, px, py - 2 * s, px, py + 2 * s, o.ptr)
+      -- (the points go round the same way for both directions, or the left one's soft edge falls inside it)
+      ig.DrawList_AddTriangleFilled(dl, px + d * 3.5 * s, py, px, py - 2 * d * s, px, py + 2 * d * s, o.ptr)
     else
       -- from 10% on: the band, never shorter than the arrow so the switch doesn't jump
       local rb = r - 4 * s
