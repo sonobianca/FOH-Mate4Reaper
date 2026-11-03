@@ -15,6 +15,7 @@
 PARAM_CACHE = {}   -- per rack: the saved text and the rows parsed from it
 PARAM_PICK  = nil  -- the parameter window (Edit mode): { tr, filter, sel, anchor, order, fx }
 PARAM_KIND  = {}   -- what kind of control a parameter gets, found once per parameter
+ROW_MEMO    = {}   -- per row (FX guid:index:name): what the plug-in last said, so it isn't asked every frame
 
 function param_esc(s)
   return (s:gsub('[%%|;\n\r]', function(ch) return ('%%%02X'):format(ch:byte()) end))

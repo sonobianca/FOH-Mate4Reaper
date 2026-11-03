@@ -6,6 +6,8 @@ New items get the next free number (next: 92).
 
 ## Open
 
+- [ ] 99. (0.14.54) Performance rows remember what the plug-in said. (a) Same setup as 98: is the "racks" number lower than before? (b) Turn a control, and move the same parameter in the plug-in's own window: the value box follows at once both ways. (c) A Kirchhoff Pan/Width: change the stereo placement in the plug-in, the row switches within half a second. (d) Replace or remove an FX that has rows: they grey out within half a second; Cmd-Z brings them back. (e) Rename a row, widen and fold a column: the names wrap as before.
+
 - [ ] 98. (0.14.53) Debug timer: the status bar shows "Script [x.x] ms  -  racks [x.x] ms" right after the latency boxes, and the tooltip gives the average, the racks part and the slowest frame of the last 2 seconds. Write down the numbers for one fixed setup (same project, Performance mode, same racks and rows visible, nothing playing or the same thing playing), so the next two versions can be compared to it. Also with a narrow window: nothing on the status bar overlaps.
 
 - [ ] 97. (0.14.52) Kirchhoff band in MS: the Pan/Width row's value box reads M / S ("100M" fully one way, "100S" the other, "C" in the middle), not L / R; back in Stereo it reads L / R again. Also after changing the control by hand and setting it back to Automatic. If it doesn't, check the plug-in's own text (Param > the parameter list in its FX window) for that value in MS mode, and tell Claude what it says.

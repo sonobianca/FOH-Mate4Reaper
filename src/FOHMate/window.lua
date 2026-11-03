@@ -230,8 +230,7 @@ function draw_status_bar(dl, x, y, w, h, M, nracks, nfx, nparams)
     local tip = ('Debug timer (not in public versions)\n' ..
                  'Time FOH-Mate takes per frame: %.2f ms on average\n' ..
                  'of which the racks area (Performance rows included): %.2f ms\n' ..
-                 'Slowest frame of the last 2 seconds: %.2f ms\n' ..
-                 'REAPER draws the window about 30 times a second.'):format(
+                 'Slowest frame of the last 2 seconds: %.2f ms'):format(
                  TIMER.avg * 1000, TIMER.area_avg * 1000, TIMER.peak_shown * 1000)
     label('Script')
     draw_gauge(dl, 'g_timer', gx, gy, bw, M.fh, nil, ('%.1f'):format(TIMER.avg * 1000), tip)
@@ -518,16 +517,29 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         -- what this row shows: the real parameter (fxi = where its FX is now)
         local r = rows[k]
         local rname, vtxt, norm, fxi, missing, kind = r.name or r.pname, '?', 0, gmap[r.guid], false, nil
-        if fxi and r.idx < reaper.TrackFX_GetNumParams(tr, fxi) then
-          local _, pn = reaper.TrackFX_GetParamName(tr, fxi, r.idx, '')
-          missing = (pn ~= r.pname)                           -- a changed plug-in: not the parameter it was
-        else
-          missing = true
+        -- what the plug-in said is kept per row (ROW_MEMO): the name check is done again every 30
+        -- frames (half a second) or when the FX moved, the value's text when the value moved or every
+        -- 30 frames (a plug-in may print it differently after another parameter changed)
+        local mk = r.guid .. ':' .. r.idx .. ':' .. (r.pname or '')
+        local mm = ROW_MEMO[mk]
+        if not mm then mm = {}; ROW_MEMO[mk] = mm end
+        if fxi ~= mm.fxi or FRAME - (mm.f_name or -99) >= 30 then
+          if fxi and r.idx < reaper.TrackFX_GetNumParams(tr, fxi) then
+            local _, pn = reaper.TrackFX_GetParamName(tr, fxi, r.idx, '')
+            mm.missing = (pn ~= r.pname)                      -- a changed plug-in: not the parameter it was
+          else
+            mm.missing = true
+          end
+          mm.fxi, mm.f_name, mm.f_txt = fxi, FRAME, nil
         end
+        missing = mm.missing
         if not missing then
           norm = reaper.TrackFX_GetParamNormalized(tr, fxi, r.idx)
-          local _, txt = reaper.TrackFX_GetFormattedParamValue(tr, fxi, r.idx)
-          vtxt = param_vtext(txt, norm, r.pname, tr, fxi)
+          if norm ~= mm.norm or FRAME - (mm.f_txt or -99) >= 30 then
+            local _, txt = reaper.TrackFX_GetFormattedParamValue(tr, fxi, r.idx)
+            mm.vtxt, mm.norm, mm.f_txt = param_vtext(txt, norm, r.pname, tr, fxi), norm, FRAME
+          end
+          vtxt = mm.vtxt
           kind = param_kind(tr, fxi, r)
         end
         local cd = rh - 8 * f                                    -- the control, outside the name box
@@ -555,18 +567,25 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         ig.DrawList_AddRect(dl, bx, ry, bx + box_w, ry + rh, c.sec_bd, ROUNDING, 0, 1)
         -- the name: bold, up to two lines
         local pb = push_bold(name_font, NAME_FONT_SIZE * f)
-        local l1, l2 = rname, nil
-        if ig.CalcTextSize(ctx, l1) > box_w - 8 then
-          local cut = l1
-          while #cut > 1 and ig.CalcTextSize(ctx, cut) > box_w - 8 do
-            cut = cut:match('^(.*)%s+%S*$') or cut:sub(1, #cut - 1)
+        -- the two lines and their widths are kept until the name, the box or the size change
+        local wkey = rname .. '|' .. box_w .. '|' .. f
+        if mm.wkey ~= wkey then
+          local l1, l2 = rname, nil
+          if ig.CalcTextSize(ctx, l1) > box_w - 8 then
+            local cut = l1
+            while #cut > 1 and ig.CalcTextSize(ctx, cut) > box_w - 8 do
+              cut = cut:match('^(.*)%s+%S*$') or cut:sub(1, #cut - 1)
+            end
+            l2 = fit_text((l1:sub(#cut + 1):gsub('^%s+', '')), box_w - 8)
+            l1 = cut
           end
-          l2 = fit_text((l1:sub(#cut + 1):gsub('^%s+', '')), box_w - 8)
-          l1 = cut
+          mm.wkey, mm.l1, mm.l2 = wkey, l1, l2
+          mm.w1, mm.w2 = ig.CalcTextSize(ctx, l1), l2 and ig.CalcTextSize(ctx, l2)
         end
+        local l1, l2 = mm.l1, mm.l2
         local ty = ry + (rh - blh * (l2 and 2 or 1)) / 2
-        ig.DrawList_AddText(dl, bx + (box_w - ig.CalcTextSize(ctx, l1)) / 2, ty, c.name_txt, l1)
-        if l2 then ig.DrawList_AddText(dl, bx + (box_w - ig.CalcTextSize(ctx, l2)) / 2, ty + blh, c.name_txt, l2) end
+        ig.DrawList_AddText(dl, bx + (box_w - mm.w1) / 2, ty, c.name_txt, l1)
+        if l2 then ig.DrawList_AddText(dl, bx + (box_w - mm.w2) / 2, ty + blh, c.name_txt, l2) end
         if pb then ig.PopFont(ctx) end
         -- the value, a quarter turn: counterclockwise when the control is on the left, clockwise on the right
         if ry + rh > cy and ry < cy + ch then
@@ -582,7 +601,10 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         -- a Pan/Width that follows a stereo placement: a pan, a width, or switched off, as it says now
         local ekind, off = kind and kind.kind, false
         if kind and kind.dual and not dead then
-          local m = param_dual_mode(tr, fxi, kind)
+          if FRAME - (mm.f_mode or -99) >= 15 then             -- asked again every quarter second
+            mm.mode, mm.f_mode = param_dual_mode(tr, fxi, kind), FRAME
+          end
+          local m = mm.mode
           if m == 'off' then off = true elseif m then ekind = m end
           -- some plug-ins keep printing L / R in MS: there it reads M / S
           if m == 'band' then vtxt = vtxt:gsub('^([%d%.%s]*)L', '%1M'):gsub('^([%d%.%s]*)R', '%1S') end
