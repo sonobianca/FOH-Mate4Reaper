@@ -25,6 +25,8 @@ function draw_display_menu()
   toggle_setting('Daylight mode', 'daylight', 'daylight')
   toggle_setting('Performance mode', 'perf', 'perfmode',
     'One row of racks that scrolls sideways, with a column of parameters under each rack.\nShow mode: each rack is just its name until you open its FX section with the handle.\nEdit mode: full racks.')
+  toggle_setting('Hide disabled parameters', 'hide_dead', 'hidedead',
+    'Performance mode: the rows whose FX was deleted (or changed) are left out of the columns.\nThey are kept: a new FX of the same plug-in on the rack takes them back.')
   ig.TextDisabled(ctx, 'Rack latency box')
   for _, o in ipairs({ { 'off', 'Off' }, { 'always', 'Always' }, { 'auto', 'Only when a rack has latency' } }) do
     if ig.MenuItem(ctx, '   ' .. o[2] .. '##latbox', nil, S.lat_box == o[1]) then

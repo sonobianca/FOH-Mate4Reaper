@@ -127,12 +127,14 @@ function unbypass_if_needed(tr)
   if get_saved_bypass(tr) then set_bypass(tr, false) end
 end
 
-function remove_all_fx(tr)
+-- keep_rows: the FX's rows in the Performance stay (greyed out), for a new instance of the same
+-- plug-in to take back (params_relink)
+function remove_all_fx(tr, keep_rows)
   with_undo('Rack: remove every FX', function()
     local list = chain_info(tr).list
     for i = #list, 1, -1 do reaper.TrackFX_Delete(tr, list[i].fx) end
     reaper.GetSetMediaTrackInfo_String(tr, EXT_BYPASS, '', true)
-    params_drop_fx(tr, nil)
+    if not keep_rows then params_drop_fx(tr, nil) end
   end)
 end
 
@@ -148,7 +150,7 @@ function bypassed_fx_guids(tr)
   return out
 end
 
-function remove_bypassed_fx(tr)
+function remove_bypassed_fx(tr, keep_rows)
   with_undo('Rack: remove bypassed FX', function()
     unbypass_if_needed(tr)
     local list = chain_info(tr).list
@@ -159,7 +161,7 @@ function remove_bypassed_fx(tr)
         reaper.TrackFX_Delete(tr, list[i].fx)
       end
     end
-    params_drop_fx(tr, gone)
+    if not keep_rows then params_drop_fx(tr, gone) end
   end)
 end
 
@@ -206,6 +208,7 @@ function add_fx_to_rack(tr, ident)
       local info = chain_info(tr)
       if info.out_fx and idx > info.out_fx then move_fx(tr, idx, info.out_fx) end
       fit_new_fx(tr, g)
+      params_relink(tr, g)
     end
   end)
 end
@@ -218,6 +221,7 @@ function insert_fx_at(tr, ident, pos)
       local g = reaper.TrackFX_GetFXGUID(tr, idx)
       move_fx(tr, idx, pos)
       fit_new_fx(tr, g)
+      params_relink(tr, g)
     end
   end)
 end
@@ -244,15 +248,16 @@ function replace_fx(tr, old_guid, ident)
         sc_write(tr, map)
       end
       fit_new_fx(tr, new_guid)
+      params_relink(tr, new_guid)
     end
   end)
 end
 
-function delete_fx(tr, guid)
+function delete_fx(tr, guid, keep_rows)
   with_undo('Rack: delete FX', function()
     local pos = fx_index_by_guid(tr, guid)
     if pos then reaper.TrackFX_Delete(tr, pos) end
-    params_drop_fx(tr, { [guid] = true })
+    if not keep_rows then params_drop_fx(tr, { [guid] = true }) end
   end)
 end
 

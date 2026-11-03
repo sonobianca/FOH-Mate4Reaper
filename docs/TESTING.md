@@ -2,9 +2,17 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 115).
+New items get the next free number (next: 119).
 
 ## Open
+
+- [ ] 118. (0.14.69) Right-click the + of a column > **Clear all**: a confirmation with the number of rows; Clear all removes every row of that rack (only that rack), Cancel keeps them; Ctrl+Z brings them back. Greyed out when the rack has no rows.
+
+- [ ] 117. (0.14.69) **Display > Hide disabled parameters** (a check mark, remembered after a restart): the greyed-out rows (FX deleted, or changed) disappear from the columns, and the rows under them move up (odd/even sides still alternate). Switch it off: they are back, in their place. With it on: drag a row to reorder, right-click a row, the + menu ("Remove the N rows not linked any more" still counts the hidden ones). Widened column too.
+
+- [ ] 116. (0.14.69) A new FX takes back kept rows. Delete a Kirchhoff with rows, **keep rows**, then add a Kirchhoff to the same rack (a) from the + / FX menu, (b) by dragging one from another rack (and Cmd-drag a copy within the rack), (c) with Replace FX on another FX: the rows come back to life, with their nicknames, colors, controls, invert and default. (d) Add a different plug-in: the rows stay greyed out. (e) Two Kirchhoffs deleted with kept rows, then one added: only the first one's rows come back; add a second: the others come back. (f) An FX that already has rows (moved within the rack) never takes other rows. (g) Ctrl+Z after adding: FX and relink go back together. (Not covered: FX added from REAPER's own FX window.)
+
+- [ ] 115. (0.14.69) Delete an FX that has rows (**Delete FX...**): the box says how many rows it has, with three buttons: **Delete FX and rows** (both go), **Delete FX, keep rows** (the FX goes, the rows stay greyed out), Cancel (nothing). The same for **Remove every FX** and **Remove bypassed FX** (Remove FX and rows / Remove FX, keep rows), with several racks selected too. An FX with no rows: the old simple box (Don't show this again still works). Ctrl+Z after each.
 
 - [ ] 114. (0.14.68) Performance parameters window (the + of a column): under an FX, parameters with the same prefix are in a branch of their own (Kirchhoff: Band 1, Band 2...; ReaEQ: Band 1...), folded at first, where the first of them was in the plug-in's list. The other parameters stay where they were. (a) A branch shows a check box (all / some / none, like an FX) and "n of m in the Performance"; its check box puts all of them in or out at once. (b) Clicking a branch selects it: Add / Remove to Performance and the control section on the right work on all of its parameters; Shift-click and Cmd-click work across branches and parameters. (c) Search: branches with a match open and show only the matching parameters. (d) A plug-in with many bands: no lag when opening the window.
 

@@ -208,7 +208,8 @@ end
 
 -- id: only for popups that are not critical. The box then has a "Don't show this
 -- again" checkbox; once hidden, the popup is answered "yes" without showing.
-function request_confirm(text, yes, label, id)
+-- alt: a second answer, { label = ..., fn = ... }, as a button between the first one and Cancel.
+function request_confirm(text, yes, label, id, alt)
   if id and popup_hidden(id) then
     later[#later + 1] = function() yes(); last_scan = -math.huge end
     return
@@ -221,7 +222,7 @@ function request_confirm(text, yes, label, id)
     over_main = host ~= 'main'
   end
   confirm = { text = text, yes = yes, label = label or 'Yes', host = host, over_main = over_main,
-              id = id, dont_show = false }
+              id = id, dont_show = false, alt = alt }
   confirm_open = true
 end
 

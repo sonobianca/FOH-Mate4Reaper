@@ -678,12 +678,15 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
         ig.EndMenu(ctx)
       end
       if ig.MenuItem(ctx, 'Delete FX...') then
-        -- with rows in the Performance it always asks (they go too), even after "Don't show this again"
+        -- with rows in the Performance it always asks, even after "Don't show this again": remove
+        -- the rows too, or keep them for a new FX of the same plug-in to take back
         local nrows = params_count_fx(tr, { [fx_guid] = true })
         if nrows > 0 then
-          request_confirm(('Delete "%s" from this rack?\nIts %d parameter row%s in the Performance will be removed too.\n(Ctrl+Z brings them back.)')
+          request_confirm(('Delete "%s" from this rack?\nIt has %d parameter row%s in the Performance.\n'
+                           .. 'Kept rows stay greyed out, and come back to life when the same plug-in\nis put on this rack again.\n(Ctrl+Z brings everything back.)')
                           :format(clean_fx_name(it.name), nrows, nrows == 1 and '' or 's'),
-            function() delete_fx(tr, fx_guid) end, 'Delete')
+            function() delete_fx(tr, fx_guid) end, 'Delete FX and rows', nil,
+            { label = 'Delete FX, keep rows', fn = function() delete_fx(tr, fx_guid, true) end })
         else
           request_confirm(('Delete "%s" from this rack?'):format(clean_fx_name(it.name)),
             function() delete_fx(tr, fx_guid) end, 'Delete', 'delete_fx')

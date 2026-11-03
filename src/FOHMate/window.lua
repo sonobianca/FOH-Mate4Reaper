@@ -35,7 +35,10 @@ function apply_pending()
             landed = reaper.TrackFX_GetFXGUID(op.dst_tr, op.dst)
           end
           -- the FX takes the width of its new place (mono/stereo version)
-          if landed then fit_new_fx(op.dst_tr, landed) end
+          if landed then
+            fit_new_fx(op.dst_tr, landed)
+            params_relink(op.dst_tr, landed)   -- a new instance takes back the rows of a deleted one
+          end
         end
       end
     end)
@@ -137,11 +140,17 @@ function draw_confirm(host)
         end
       end
       ig.Separator(ctx)
-      local yes = ig.Button(ctx, confirm.label, 110, 0)
+      local bw = confirm.alt and 150 or 110
+      local yes = ig.Button(ctx, confirm.label, bw, 0)
+      local alt = false
+      if confirm.alt then
+        ig.SameLine(ctx)
+        alt = ig.Button(ctx, confirm.alt.label, bw, 0)
+      end
       ig.SameLine(ctx)
-      local no = ig.Button(ctx, 'Cancel', 110, 0)
-      if yes then
-        local f = confirm.yes
+      local no = ig.Button(ctx, 'Cancel', bw, 0)
+      if yes or alt then
+        local f = alt and confirm.alt.fn or confirm.yes
         if confirm.dont_show then hide_popup(confirm.id) end
         confirm = nil
         ig.CloseCurrentPopup(ctx)
@@ -494,8 +503,15 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     local gmap = fx_guid_map(tr)
     local rack_col = track_color(tr)
     local n = #rows
+    -- the rows shown, by their place in the list (Display > Hide disabled parameters leaves out
+    -- the rows not linked any more); the layout counts only those
+    local vis = {}
+    for k, r in ipairs(rows) do
+      if not (S.hide_dead and param_row_memo(tr, r, gmap[r.guid]).missing) then vis[#vis + 1] = k end
+    end
+    local nv = #vis
     local show_plus = not is_locked()                      -- the + row is only there in Edit mode
-    local slots = n + (show_plus and 1 or 0)
+    local slots = nv + (show_plus and 1 or 0)
     local mx_in = ig.IsWindowHovered(ctx)
     -- a row of this column being dragged (Edit mode): where it comes from, and where it is dropped
     local row_drag = not is_locked() and drag_prev_row ~= nil and drag_prev_row:match('^(.-)|') == guid
@@ -515,14 +531,17 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     else
       if ig.GetScrollX(ctx) ~= 0 then ig.SetScrollX(ctx, 0) end
       if ps.reveal > 0 then                                -- just folded back: show the row touched last
-        if ps.last then ig.SetScrollY(ctx, math.max(0, 3 + (ps.last - 1) * pitch - (ch - rh) / 2)) end
+        local j = ps.last
+        if j and nv < n then for i, k in ipairs(vis) do if k <= ps.last then j = i end end end
+        if j then ig.SetScrollY(ctx, math.max(0, 3 + (j - 1) * pitch - (ch - rh) / 2)) end
         ps.reveal = ps.reveal - 1
       end
     end
-    for k = 1, n do
+    for j = 1, nv do
+      local k = vis[j]                                     -- j: its place in the column, k: in the rack's list
       local rx, ry
       if grid then
-        rx, ry = ox + pad + math.floor((k - 1) / rpc) * step_x, oy + pad + ((k - 1) % rpc) * pitch
+        rx, ry = ox + pad + math.floor((j - 1) / rpc) * step_x, oy + pad + ((j - 1) % rpc) * pitch
       else
         rx, ry = ig.GetCursorScreenPos(ctx)
       end
@@ -535,18 +554,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         -- what the plug-in said is kept per row (ROW_MEMO): the name check is done again every 30
         -- frames (half a second) or when the FX moved, the value's text when the value moved or every
         -- 30 frames (a plug-in may print it differently after another parameter changed)
-        local mk = r.guid .. ':' .. r.idx .. ':' .. (r.pname or '')
-        local mm = ROW_MEMO[mk]
-        if not mm then mm = {}; ROW_MEMO[mk] = mm end
-        if fxi ~= mm.fxi or FRAME - (mm.f_name or -99) >= 30 then
-          if fxi and r.idx < reaper.TrackFX_GetNumParams(tr, fxi) then
-            local _, pn = reaper.TrackFX_GetParamName(tr, fxi, r.idx, '')
-            mm.missing = (pn ~= r.pname)                      -- a changed plug-in: not the parameter it was
-          else
-            mm.missing = true
-          end
-          mm.fxi, mm.f_name, mm.f_txt = fxi, FRAME, nil
-        end
+        local mm = param_row_memo(tr, r, fxi)
         missing = mm.missing
         if not missing then
           norm = reaper.TrackFX_GetParamNormalized(tr, fxi, r.idx)
@@ -560,7 +568,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         local cd = rh - 8 * f                                    -- the control, outside the name box
         local vw, vg = 22 * f, 4 * f                                 -- the value box between control and name, and the gaps
         local box_w = rw2 - cd - vw - 2 * vg
-        local left = (k % 2 == 1)                            -- odd rows: name left; even rows: name right
+        local left = (j % 2 == 1)                            -- odd rows: name left; even rows: name right
         local bx = left and rx or (rx + rw2 - box_w)
         local kx = left and (rx + rw2 - cd) or rx
         local vx = left and (bx + box_w + vg) or (kx + cd + vg)
@@ -714,7 +722,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     if show_plus then
       local px, py
       if grid then
-        px, py = ox + pad + math.floor(n / rpc) * step_x, oy + pad + (n % rpc) * pitch
+        px, py = ox + pad + math.floor(nv / rpc) * step_x, oy + pad + (nv % rpc) * pitch
       else
         px, py = ig.GetCursorScreenPos(ctx)
       end
@@ -734,7 +742,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
       ig.DrawList_AddLine(dl, pcx - pl, pcy, pcx + pl, pcy, pcol, hov and 3 or 2)
       ig.DrawList_AddLine(dl, pcx, pcy - pl, pcx, pcy + pl, pcol, hov and 3 or 2)
       if hov then ig.SetTooltip(ctx, 'Add or remove parameters') end
-      hint_hovered('Click: add or remove parameters  \194\183  right-click: remove the rows not linked any more')
+      hint_hovered('Click: add or remove parameters  \194\183  right-click: remove the rows not linked any more, or every row')
       -- right-click: clean up the rows whose parameter is gone (found once, when the menu opens)
       if hov and ig.IsMouseClicked(ctx, 1) then
         PARAM_UNLINKED = params_unlinked(tr)
@@ -745,6 +753,14 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         local label = nu > 0 and ('Remove the %d row%s not linked any more'):format(nu, nu == 1 and '' or 's')
                               or 'Every row is linked: nothing to remove'
         if ig.MenuItem(ctx, label, nil, false, nu > 0) then params_apply(tr, PARAM_UNLINKED, false) end
+        ig.Separator(ctx)
+        if ig.MenuItem(ctx, 'Clear all', nil, false, n > 0) then
+          request_confirm(('Remove all %d row%s of this rack from the Performance?\n(Ctrl+Z brings them back.)')
+                          :format(n, n == 1 and '' or 's'),
+            function()
+              if valid(tr) then with_undo('Clear Performance rows', function() params_drop_fx(tr, nil) end) end
+            end, 'Clear all')
+        end
         ig.EndPopup(ctx)
       end
     end

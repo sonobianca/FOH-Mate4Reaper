@@ -18,7 +18,13 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 - Performance mode: pointing at an FX name in a rack makes that FX's parameter rows glow in their own color (sky blue, orange in Daylight), and pointing at a row makes its FX glow.
 
-- Performance mode: deleting an FX (**Delete FX...**, **Remove every FX**, **Remove bypassed FX**) removes its parameter rows too. When it has some, a confirmation always says how many go (Ctrl+Z brings them back).
+- Performance mode: deleting an FX (**Delete FX...**, **Remove every FX**, **Remove bypassed FX**) that has parameter rows always asks first, saying how many rows it has: **Delete FX and rows**, **Delete FX, keep rows** (they stay, greyed out), or Cancel. Ctrl+Z brings everything back.
+
+- Performance mode: a new FX on a rack (added from the menus, dropped from another rack, or Replace FX) takes back the kept rows of a deleted FX of the same plug-in: every one of those rows must find its parameter, with the same name, at the same place in the new FX. One deleted FX per new FX, and only for an FX that has no rows yet.
+
+- Performance mode: **Display > Hide disabled parameters** leaves the rows that aren't linked any more (greyed out) out of the columns. They are still there, and show again when the option is switched off or when a new FX takes them back.
+
+- Performance mode: the right-click menu of the **+** has **Clear all**, which removes every row of that rack (after a confirmation; Ctrl+Z brings them back).
 
 - Performance mode: a rack made with **Duplicate rack** (menu or Cmd-drag) or **Use as template** keeps its parameter rows working: they now control the copy's own FX. Before, they still pointed at the original's FX and showed as removed.
 

@@ -126,6 +126,63 @@ function params_drop_fx(tr, guids)
   params_write(tr, kept)
 end
 
+-- A new FX on the rack (added, dropped from another rack, Replace FX) takes back the rows an FX of the
+-- same plug-in left when it was deleted with "keep the rows": rows whose FX is gone, each of whose
+-- parameters has the same name at the same place in the new FX. One deleted FX per new FX (the
+-- first in the column), and only when the new FX has no rows yet. Inside the caller's undo block.
+function params_relink(tr, guid)
+  local rows = params_read(tr)
+  if #rows == 0 then return end
+  local gm = fx_guid_map(tr)
+  local fxi = gm[guid]
+  if not fxi then return end
+  for _, r in ipairs(rows) do if r.guid == guid then return end end
+  local np = reaper.TrackFX_GetNumParams(tr, fxi)
+  local tried = {}
+  for _, r in ipairs(rows) do
+    local old = r.guid
+    if not gm[old] and not tried[old] then
+      tried[old] = true
+      local fits = true
+      for _, o in ipairs(rows) do
+        if o.guid == old then
+          local pn = o.idx < np and select(2, reaper.TrackFX_GetParamName(tr, fxi, o.idx, '')) or nil
+          if pn ~= o.pname then fits = false; break end
+        end
+      end
+      if fits then
+        local out = {}
+        for i, o in ipairs(rows) do
+          local n = {}
+          for k, v in pairs(o) do n[k] = v end
+          if o.guid == old then n.guid = guid end
+          out[i] = n
+        end
+        params_write(tr, out)
+        return
+      end
+    end
+  end
+end
+
+-- what the plug-in last said about a row (ROW_MEMO): whether its parameter is gone (missing) is
+-- checked again every 30 frames (half a second) or when its FX moved (fxi = where its FX is now)
+function param_row_memo(tr, r, fxi)
+  local mk = r.guid .. ':' .. r.idx .. ':' .. (r.pname or '')
+  local mm = ROW_MEMO[mk]
+  if not mm then mm = {}; ROW_MEMO[mk] = mm end
+  if fxi ~= mm.fxi or FRAME - (mm.f_name or -99) >= 30 then
+    if fxi and r.idx < reaper.TrackFX_GetNumParams(tr, fxi) then
+      local _, pn = reaper.TrackFX_GetParamName(tr, fxi, r.idx, '')
+      mm.missing = (pn ~= r.pname)                      -- a changed plug-in: not the parameter it was
+    else
+      mm.missing = true
+    end
+    mm.fxi, mm.f_name, mm.f_txt = fxi, FRAME, nil
+  end
+  return mm
+end
+
 -- dragging a row (Edit mode): row `from` takes the place of row `to`, the rows in between shift by
 -- one; to = the number of rows + 1 puts it at the end
 function params_move(tr, from, to)

@@ -238,6 +238,7 @@ function load_settings()
                     return (reaper.GetExtState(EXT_SECTION, 'showlat') == '1') and 'always' or 'off'
                   end)(),
     perf        = reaper.GetExtState(EXT_SECTION, 'perfmode') == '1',  -- Performance mode view
+    hide_dead   = reaper.GetExtState(EXT_SECTION, 'hidedead') == '1',  -- Performance rows not linked any more left out
     odd_even    = reaper.GetExtState(EXT_SECTION, 'oddeven') == '1',  -- stereo pairs start on odd channels
     show_settings = false,
   }
