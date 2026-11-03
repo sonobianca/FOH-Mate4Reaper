@@ -564,10 +564,16 @@ function draw_encoder(id, cx, cy, r, norm, o)
     -- a pan: the default mark is the center; a band runs from the top to the position, left or right
     -- (7:30 = all the way left, 4:30 = all the way right); centered, a white X sits on the mark's line
     local mid = (ENC_A0 + ENC_A1) / 2
-    if math.abs(v - 0.5) < 0.01 then
+    local span = math.abs(ang - mid) * (r - 4 * s)
+    if math.abs(v - 0.5) < 0.0025 then
       local px, py, xs = cx + math.cos(mid) * r * 0.55, cy + math.sin(mid) * r * 0.55, r * 0.16
       ig.DrawList_AddLine(dl, px - xs, py - xs, px + xs, py + xs, WHITE, 2.5 * s)
       ig.DrawList_AddLine(dl, px - xs, py + xs, px + xs, py - xs, WHITE, 2.5 * s)
+    elseif span < 7 * s then
+      -- off center by too little for a band to show: a tiny arrow pointing left or right
+      local d = ang < mid and -1 or 1
+      local px, py = cx, cy - (r - 4 * s)
+      ig.DrawList_AddTriangleFilled(dl, px + d * 6 * s, py, px - d * 1.5 * s, py - 3.5 * s, px - d * 1.5 * s, py + 3.5 * s, o.ptr)
     else
       ig.DrawList_PathArcTo(dl, cx, cy, r - 4 * s, math.min(mid, ang), math.max(mid, ang))
       ig.DrawList_PathStroke(dl, o.ptr, 0, 3.5 * s)

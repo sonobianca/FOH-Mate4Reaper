@@ -543,7 +543,17 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         local kcy, kr = ry + rh / 2, cd / 2 - 6 * f
         local dead = missing or not fxi
         local newv
-        if dead then
+        -- a Pan/Width that follows a stereo placement: a pan, a width, or switched off, as it says now
+        local ekind, off = kind and kind.kind, false
+        if kind and kind.dual and not dead then
+          local m = param_dual_mode(tr, fxi, kind)
+          if m == 'off' then off = true elseif m then ekind = m end
+        end
+        if off then
+          draw_encoder('k' .. k, kcx, kcy, kr, norm, { body = c.sec_bg, col = c.border, ptr = T.dim, s = f, static = true,
+                       style = 'pan' })
+          if over then ig.SetTooltip(ctx, 'Not used with this stereo placement') end
+        elseif dead then
           draw_encoder('k' .. k, kcx, kcy, kr, 0, { body = c.sec_bg, col = c.border, ptr = T.dim, s = f, static = true })
           ig.DrawList_AddRectFilled(dl, rx, ry, rx + rw2, ry + rh, (c.bg & 0xFFFFFF00) | 0xB0, ROUNDING)
           if over then ig.SetTooltip(ctx, 'This parameter is not there any more (the FX was removed or changed).') end
@@ -560,7 +570,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
             local marks
             if kind.marks then marks = {}; for i, m in ipairs(kind.marks) do marks[i] = inv and 1 - m or m end end
             newv = draw_encoder('k' .. k, kcx, kcy, kr, shown, { body = c.sec_bg, col = c.border, ptr = T.dots, s = f,
-                                style = kind.kind == 'pan' and 'pan' or (kind.kind == 'band' or kind.kind == 'qband') and 'band' or 'line', narrow = kind.kind == 'qband', steps = kind.steps, marks = marks,
+                                style = ekind == 'pan' and 'pan' or (ekind == 'band' or ekind == 'qband') and 'band' or 'line', narrow = ekind == 'qband', steps = kind.steps, marks = marks,
                                 def = r.def and (inv and 1 - r.def or r.def) })
           end
           if newv and inv then newv = 1 - newv end

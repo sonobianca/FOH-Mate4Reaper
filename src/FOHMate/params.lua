@@ -117,6 +117,42 @@ function param_vtext(txt, norm, pname, tr, fxi)
   return ('%d%%'):format(math.floor(norm * 100 + 0.5))
 end
 
+-- Some parameters mean something else depending on another one: a band of an EQ has one Pan/Width
+-- parameter that is a pan when the band's stereo placement is Stereo, a width when it is MS, and is
+-- ignored for Left, Right, Mid, Side or Mono. The parameter that decides is found by its name: the
+-- same band (the text before "Pan") and a name like placement / stereo / channel / mode.
+function param_mode_sibling(tr, fxi, r)
+  local prefix = (r.pname or ''):lower():match('^(.-)%s*pan') or ''
+  local n = reaper.TrackFX_GetNumParams(tr, fxi)
+  for i = 0, n - 1 do
+    if i ~= r.idx then
+      local _, nm = reaper.TrackFX_GetParamName(tr, fxi, i, '')
+      nm = nm:lower()
+      local same = prefix == '' or (nm:sub(1, #prefix) == prefix and not nm:sub(#prefix + 1, #prefix + 1):match('%d'))
+      if same and (nm:find('placement', 1, true) or nm:find('stereo', 1, true) or nm:find('channel', 1, true)
+                   or nm:find('mode', 1, true)) and not nm:find('pan', 1, true) and not nm:find('width', 1, true) then
+        return i
+      end
+    end
+  end
+end
+
+-- what such a parameter is right now: 'pan', 'band' (a width), or 'off' (the plug-in ignores it)
+PARAM_MODE_REJ = {}
+function param_dual_mode(tr, fxi, k)
+  local _, txt = reaper.TrackFX_GetFormattedParamValue(tr, fxi, k.dual)
+  local t = (txt or ''):lower():gsub('^%s+', ''):gsub('%s+$', '')
+  if t:find('m/s', 1, true) or t:find('mid/side', 1, true) or t:find('mid-side', 1, true) or t:find('^ms') then return 'band' end
+  if t:find('stereo', 1, true) or t == 'l/r' or t == 'lr' then return 'pan' end
+  if t:find('^left') or t:find('^right') or t:find('^mid') or t:find('^side') or t:find('^mono')
+     or t == 'l' or t == 'r' or t == 'm' or t == 's' then return 'off' end
+  if t ~= '' and not PARAM_MODE_REJ[t] then
+    PARAM_MODE_REJ[t] = true
+    write_file(LATDB_DIR .. '/param_text_rejects.txt', 'placement text\t' .. t .. '\n', 'a')
+  end
+  return nil
+end
+
 -- What control a parameter gets. REAPER says little about a parameter (its range, its step, whether
 -- it is a toggle, how it prints a value), so FOH-Mate guesses from that and from the name, and the
 -- guess can be corrected by hand: right-click a row in Edit mode. The corrections are kept in
@@ -258,6 +294,13 @@ function param_kind(tr, fxi, r)
     guess = 'band'
   end
 
+  -- a Pan/Width parameter follows a stereo placement parameter of the same band, when there is one
+  local dual
+  if not two_words and low:find('pan', 1, true) and low:find('width', 1, true) then
+    guess = 'pan'
+    dual = param_mode_sibling(tr, fxi, r)
+  end
+
   -- in dB: a smooth encoder with the marks of a fader, never one mark per step
   local marks
   if guess == 'steps' or guess == 'knob' or guess == 'band' or guess == 'qband' or guess == 'pan' then
@@ -281,7 +324,8 @@ function param_kind(tr, fxi, r)
       end
     end
   end
-  k = { kind = kind, guess = guess, overridden = overridden, label = PARAM_KIND_LABEL[kind], marks = marks }
+  k = { kind = kind, guess = guess, overridden = overridden, label = PARAM_KIND_LABEL[kind], marks = marks,
+        dual = not overridden and dual or nil }
   if (kind == 'steps' or kind == 'list') and items then
     k.steps, k.items = n, items
     k.label = ('%s (%d)'):format(PARAM_KIND_LABEL[kind], n)
