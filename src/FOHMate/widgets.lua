@@ -548,7 +548,7 @@ end
 -- o: body (fill), col (ring and min/max marks, the encoder's color), ptr (pointer or arc color),
 --    s (scale), style ('line' pointer, or 'pan' for a pan or balance, or 'band' for a width: a band centered at the top, wider with the value),
 --    steps (n values: stepped, with a mark per value), marks (positions 0..1 of extra marks, like a fader's), def (default position 0..1, yellow mark),
---    static (draw only, no mouse).
+--    range ({ lo, hi }: it stops there, shown by two marks in the link color), static (draw only, no mouse).
 -- Returns the new position 0..1 when the user changed it.
 function draw_encoder(id, cx, cy, r, norm, o)
   local s = o.s or 1
@@ -583,6 +583,7 @@ function draw_encoder(id, cx, cy, r, norm, o)
         raw = raw - dy * k
       end
       raw = math.max(0, math.min(1, raw))
+      if o.range then raw = math.max(o.range[1], math.min(o.range[2], raw)) end
       st.raw = raw
       local v = raw
       if o.steps and o.steps > 1 then v = math.floor(raw * (o.steps - 1) + 0.5) / (o.steps - 1) end
@@ -599,6 +600,9 @@ function draw_encoder(id, cx, cy, r, norm, o)
   end
   if o.marks then
     for _, m in ipairs(o.marks) do enc_tick(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * m, o.col, 0.75 * s) end
+  end
+  if o.range then
+    for _, m in ipairs(o.range) do enc_tick(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * m, T.link, s) end
   end
   if o.def or o.style == 'pan' then
     if o.style == 'band' then

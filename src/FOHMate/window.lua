@@ -676,20 +676,18 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         elseif kind.kind == 'list' then
           newv = draw_dropdown('k' .. k, kcx, kcy, kr, norm, kind.items, { body = rc.sec_bg, col = rc.border, ptr = T.dots, s = f })
         else
-          -- inverted: the control shows (and sets) the other way round
-          local inv = r.inv
-          local shown = inv and 1 - norm or norm
+          -- the control shows (and sets) the value through the row's invert and limits (param_to_ctl)
+          local shown = param_to_ctl(r, ekind, norm)
           if kind.kind == 'toggle' then
             local d = 2 * (kr + 3 * f)
             if circle_check(dl, 'k' .. k, kcx - d / 2, kcy - d / 2, d, shown > 0.5) then newv = shown > 0.5 and 0 or 1 end
           else
-            local marks
-            if kind.marks then marks = {}; for i, m in ipairs(kind.marks) do marks[i] = inv and 1 - m or m end end
+            local marks, def, range = param_ctl_view(r, ekind, kind.marks)
             newv = draw_encoder('k' .. k, kcx, kcy, kr, shown, { body = rc.sec_bg, col = rc.border, ptr = T.dots, s = f,
                                 style = ekind == 'pan' and 'pan' or (ekind == 'band' or ekind == 'qband') and 'band' or 'line', narrow = ekind == 'qband', steps = kind.steps, marks = marks,
-                                def = r.def and (inv and 1 - r.def or r.def) })
+                                def = def, range = range })
           end
-          if newv and inv then newv = 1 - newv end
+          if newv then newv = param_from_ctl(r, ekind, newv) end
         end
         if drag_prev_row == row_key then
           -- the row being dragged stays behind, faded
@@ -807,6 +805,9 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
             end
           end
           ig.EndMenu(ctx)
+        end
+        if mfx and param_limit_ok(param_kind(tr, mfx, mr).kind) and ig.MenuItem(ctx, 'Limit values...') then
+          param_picker_open(tr, 'p:' .. mr.guid .. ':' .. mr.idx)
         end
         ig.Separator(ctx)
       end

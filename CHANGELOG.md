@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Performance mode: a parameter's values can be **limited** to a Min and a Max (the parameter window, section "This parameter", or right-click a parameter > **Limit values...**), for encoders, stepped encoders, width/Q bands and pans. The sliders show the plug-in's own values, and **Now** takes the current one. With **Use the full range of the control**, the control turns all the way from Min to Max, for finer moves; without it, the control stops at Min and Max, shown by two marks in the link color. Setting the limits moves a value that is outside them inside at once. Saved with the parameter in the project (also when duplicating a rack).
+
 - The **Display** menu is in three groups between lines: **Daylight mode** and a **Colors** submenu (Recolor every rack, Choose default color..., New racks use automatic / default color); **Performance mode** and **Hide disabled parameters**; a **Rack latency box** submenu (Off, Always, Only when a rack has latency) and **Dock**.
 
 - Performance parameters window: parameters with the same prefix (an EQ's **Band 1**, **Band 2**...) are gathered in a branch of their own under their FX, with its own check box to add or remove them all.

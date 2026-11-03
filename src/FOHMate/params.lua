@@ -36,11 +36,14 @@ function params_read(tr)
   if c and c.raw == s then c.frame = FRAME; return c.rows end
   local rows = {}
   for rec in s:gmatch('[^;]+') do
-    local g, i, pn, nm, df, iv, cl = rec:match('^([^|]*)|(%d+)|([^|]*)|([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)$')
+    local g, i, pn, nm, df, iv, cl, lo, hi, ft =
+      rec:match('^([^|]*)|(%d+)|([^|]*)|([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)$')
     if g then
-      rows[#rows + 1] = { guid = g, idx = tonumber(i), pname = param_unesc(pn),
-                          name = nm ~= '' and param_unesc(nm) or nil, def = tonumber(df), inv = (iv == '1'),
-                          col = tonumber(cl, 16) }
+      local r = { guid = g, idx = tonumber(i), pname = param_unesc(pn),
+                  name = nm ~= '' and param_unesc(nm) or nil, def = tonumber(df), inv = (iv == '1'),
+                  col = tonumber(cl, 16), lo = tonumber(lo), hi = tonumber(hi), fit = (ft == '1') }
+      if not (r.lo and r.hi and r.lo < r.hi) then r.lo, r.hi = nil, nil end
+      rows[#rows + 1] = r
     end
   end
   PARAM_CACHE[guid] = { raw = s, rows = rows, frame = FRAME }
@@ -50,9 +53,12 @@ end
 function params_write(tr, rows)
   local t = {}
   for _, r in ipairs(rows) do
-    t[#t + 1] = ('%s|%d|%s|%s|%s|%s|%s'):format(r.guid, r.idx, param_esc(r.pname or ''), param_esc(r.name or ''),
+    local lim = r.lo and r.hi
+    t[#t + 1] = ('%s|%d|%s|%s|%s|%s|%s|%s|%s|%s'):format(r.guid, r.idx, param_esc(r.pname or ''), param_esc(r.name or ''),
                                                 r.def and ('%.6f'):format(r.def) or '', r.inv and '1' or '',
-                                                r.col and ('%06X'):format(r.col) or '')
+                                                r.col and ('%06X'):format(r.col) or '',
+                                                lim and ('%.6f'):format(r.lo) or '', lim and ('%.6f'):format(r.hi) or '',
+                                                r.fit and '1' or '')
   end
   reaper.GetSetMediaTrackInfo_String(tr, EXT_PARAMS, table.concat(t, ';'), true)
   PARAM_CACHE[reaper.GetTrackGUID(tr)] = nil
@@ -209,6 +215,49 @@ function params_unlinked(tr)
     if gone then out[#out + 1] = { guid = r.guid, idx = r.idx, name = r.pname } end
   end
   return out
+end
+
+-- Limit values (Min/Max): a parameter in the Performance may be kept between lo and hi (0..1, as
+-- REAPER counts it). With fit (Use the full range of the control), the control's whole travel covers
+-- lo..hi, for finer moves; without it, the control stops at lo and hi. Only for the controls that
+-- turn (an encoder, a stepped encoder, a width or Q band, a pan); fit not for a stepped encoder.
+function param_limit_ok(kind) return kind ~= nil and kind ~= 'toggle' and kind ~= 'list' end
+function param_fit_ok(kind) return kind == 'knob' or kind == 'band' or kind == 'qband' or kind == 'pan' end
+
+-- the parameter's value -> where the control shows it (0..1), and back (invert included)
+function param_to_ctl(r, kind, v)
+  if r.lo and r.fit and param_fit_ok(kind) then v = math.max(0, math.min(1, (v - r.lo) / (r.hi - r.lo))) end
+  if r.inv then v = 1 - v end
+  return v
+end
+
+function param_from_ctl(r, kind, v)
+  if r.inv then v = 1 - v end
+  if r.lo and param_limit_ok(kind) then
+    if r.fit and param_fit_ok(kind) then v = r.lo + v * (r.hi - r.lo)
+    else v = math.max(r.lo, math.min(r.hi, v)) end
+  end
+  return v
+end
+
+-- what the control draws, in its own 0..1: the extra marks (a fader's dB marks: with fit, only those
+-- inside the limits), the default mark, and the limits it stops at (without fit) as { lo, hi }
+function param_ctl_view(r, kind, marks)
+  local lim = r.lo and param_limit_ok(kind)
+  local fit = lim and r.fit and param_fit_ok(kind)
+  local function inside(m) return not fit or (m >= r.lo and m <= r.hi) end
+  local pm
+  if marks then
+    pm = {}
+    for _, m in ipairs(marks) do if inside(m) then pm[#pm + 1] = param_to_ctl(r, kind, m) end end
+  end
+  local pd = r.def and inside(r.def) and param_to_ctl(r, kind, r.def) or nil
+  local range
+  if lim and not fit then
+    local a, b = param_to_ctl(r, kind, r.lo), param_to_ctl(r, kind, r.hi)
+    range = { math.min(a, b), math.max(a, b) }
+  end
+  return pm, pd, range
 end
 
 -- how many parameters of the rack are in the Performance
@@ -584,8 +633,10 @@ function param_hidden(name)
   return name:lower():find('^%s*reserved') ~= nil
 end
 
-function param_picker_open(tr)
-  PARAM_PICK = { tr = tr, filter = '', sel = {}, anchor = nil, order = {} }
+-- sel_key: a parameter to select at once ('p:' .. FX guid .. ':' .. index), for the row menu
+function param_picker_open(tr, sel_key)
+  PARAM_PICK = { tr = tr, filter = '', sel = {}, anchor = sel_key, order = {} }
+  if sel_key then PARAM_PICK.sel[sel_key] = true end
 end
 
 -- The tree of an FX: parameters with the same prefix (param_group: "Band 1"...) go in a branch of
@@ -761,6 +812,50 @@ function draw_param_control_panel(P, fxs, gm, targets)
         end
       end
     end
+    -- Limit values: Min and Max, for the controls that turn (param_limit_ok)
+    if param_limit_ok(k.kind) then
+      local lim = row.lo ~= nil
+      local rv3, v3 = ig.Checkbox(ctx, 'Limit values (Min / Max)', lim)
+      if ig.IsItemHovered(ctx) then
+        ig.SetTooltip(ctx, 'The parameter only takes values between Min and Max\nwhen it is moved from the Performance.')
+      end
+      if rv3 then params_update(tr, first.guid, first.idx, v3 and { lo = 0, hi = 1 } or { lo = false, hi = false, fit = false }) end
+      if lim then
+        -- the plug-in's own text for a position, when it can give it (otherwise a percentage)
+        local function txt(v)
+          local ok, t = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, first.idx, v, '')
+          if not ok or t == '' then t = ('%d%%'):format(math.floor(v * 100 + 0.5)) end
+          return (t:gsub('%%', '%%%%'))
+        end
+        local lo, hi = row.lo, row.hi
+        for _, e in ipairs({ { 'Min', 'lo' }, { 'Max', 'hi' } }) do
+          ig.SetNextItemWidth(ctx, 160)
+          local rv, v = ig.SliderDouble(ctx, e[1] .. '##lim' .. e[2], row[e[2]], 0, 1, txt(row[e[2]]))
+          ig.SameLine(ctx)
+          if ig.SmallButton(ctx, 'Now##limnow' .. e[2]) then rv, v = true, reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx) end
+          if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Set ' .. e[1] .. ' to where the parameter is now') end
+          if rv then
+            if e[2] == 'lo' then lo = math.min(v, hi - 0.001) else hi = math.max(v, lo + 0.001) end
+          end
+        end
+        if lo ~= row.lo or hi ~= row.hi then
+          params_update(tr, first.guid, first.idx, { lo = lo, hi = hi })
+          -- the parameter moves inside the new limits at once
+          local cur = reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx)
+          if cur < lo or cur > hi then reaper.TrackFX_SetParamNormalized(tr, fxi, first.idx, math.max(lo, math.min(hi, cur))) end
+        end
+        if param_fit_ok(k.kind) then
+          local rv4, v4 = ig.Checkbox(ctx, 'Use the full range of the control', row.fit == true)
+          if ig.IsItemHovered(ctx) then
+            ig.SetTooltip(ctx, 'On: the control turns all the way from Min to Max, for finer moves.\n'
+                            .. 'Off: the control stops at Min and Max (two marks show where).')
+          end
+          if rv4 then params_update(tr, first.guid, first.idx, { fit = v4 }) end
+        else
+          ig.TextDisabled(ctx, 'The control stops at Min and Max.')
+        end
+      end
+    end
   end
 
   -- a preview of the control, and what REAPER says about the parameter
@@ -780,12 +875,11 @@ function draw_param_control_panel(P, fxs, gm, targets)
     ig.DrawList_AddCircle(dl, cx, cy, r, ring, 0, 2)
     ig.DrawList_AddTriangleFilled(dl, cx - 6, cy - 3.5, cx + 6, cy - 3.5, cx, cy + 4, ring)
   else
-    local inv = row and row.inv
-    local pm = nil
-    if k.marks then pm = {}; for i, m in ipairs(k.marks) do pm[i] = inv and 1 - m or m end end
-    local pd = row and row.def and (inv and 1 - row.def or row.def)
-    draw_encoder('pv', cx, cy, r, inv and 1 - norm or norm, { body = body, col = ring, ptr = T.dots, s = 1, static = true,
-                 style = k.kind == 'pan' and 'pan' or (k.kind == 'band' or k.kind == 'qband') and 'band' or 'line', narrow = k.kind == 'qband', steps = k.steps, marks = pm, def = pd })
+    local rr = row or {}
+    local pm, pd, range = param_ctl_view(rr, k.kind, k.marks)
+    draw_encoder('pv', cx, cy, r, param_to_ctl(rr, k.kind, norm), { body = body, col = ring, ptr = T.dots, s = 1, static = true,
+                 style = k.kind == 'pan' and 'pan' or (k.kind == 'band' or k.kind == 'qband') and 'band' or 'line', narrow = k.kind == 'qband', steps = k.steps, marks = pm, def = pd,
+                 range = range })
   end
   ig.Dummy(ctx, 1, 76)
   local f = param_facts(tr, fxi, first.idx)
