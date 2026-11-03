@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- For editing only: a `.luarc.json` settings file tells VS Code's Lua checker about the names REAPER and FOHMate.lua provide, so it no longer marks them as errors. Nothing changes in REAPER.
+
 - Test versions only: the status bar shows a **debug timer** after the latency: how many milliseconds FOH-Mate's script takes per frame, and how much of it the racks area takes (Performance rows included). Its tooltip adds the slowest frame of the last 2 seconds. Public versions have it switched off.
 
 - Performance mode uses less CPU: each parameter row keeps what the plug-in last told it (its value's text, whether the parameter is still there, a Pan/Width's stereo placement, how the name wraps) and only asks again when the value moves or after a short while, instead of on every frame. The vertical values are drawn with a few joined lines per character instead of one call per line (sharp corners such as the tips of V and W stay as they were), and redrawn as they are while the value and the row don't move.

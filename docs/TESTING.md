@@ -2,9 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 92).
+New items get the next free number (next: 102).
 
 ## Open
+
+- [ ] 101. (0.14.56) In VS Code (not REAPER): open a few files in src/FOHMate/ (widgets.lua, racks.lua, FOHMate.lua). The Problems panel shows no "Undefined global" or "lowercase initial" lines any more. If they're still there, reload the window (Cmd-Shift-P > Developer: Reload Window). Also: the script still starts in REAPER as before.
 
 - [ ] 100. (0.14.55) Vertical values drawn as joined lines. (a) Same setup as 98 and 99: is the "racks" number lower again? (b) Look closely at the values: same letters, same thickness, same spacing as before? Check the sharp ones (V, W, M, A, N, K, 4, 7) for spikes at the tips, and the rounded ones (0, 8, S, O) for clean corners. Also widened (bigger rows) and in Daylight mode. (c) Scroll a column and turn a control: the values follow without lag or leftovers.
 

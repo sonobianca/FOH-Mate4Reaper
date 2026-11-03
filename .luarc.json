@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+  "runtime.version": "Lua 5.4",
+  "diagnostics.disable": ["lowercase-global"],
+  "diagnostics.globals": [
+    "reaper", "gfx",
+    "VERSION", "DEBUG_TIMER", "PREFIX", "GLOW_M", "NAME_FONT_SIZE", "TITLE_FONT_SIZE",
+    "LEVEL_MIN", "LEVEL_MAX", "EXT_SECTION", "OLD_EXT_SECTION", "METER_NAME", "METER_PATH",
+    "GMEM", "STRIDE", "EXT_BYPASS", "OLD_EXT_BYPASS", "STATS_FILE", "IS_MAC",
+    "SC_BUS_PREFIX", "SC_IN_PREFIX", "EXT_SC", "EXT_IO", "EXT_LATOK", "ALERT_RED",
+    "EXT_SHOWOFF", "EXT_SPLIT", "EXT_PARAMS", "COPY_BADGE", "NATIVE_DARK", "NATIVE_LIGHT",
+    "ig", "cfg_flags", "ctx", "MODULES", "MODULE_DIR",
+    "push_theme", "pop_theme", "loop", "safe_loop",
+    "T", "FRAME", "last_time", "last_scan", "force_size", "dock_request", "dock_applied",
+    "MAIN_X", "MAIN_Y", "win_w", "win_h", "prev_w", "prev_h", "cur_dock", "was_visible", "later"
+  ]
+}
