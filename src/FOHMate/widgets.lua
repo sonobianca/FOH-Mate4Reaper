@@ -597,12 +597,11 @@ function draw_encoder(id, cx, cy, r, norm, o)
     -- the limits: under the ring and every mark, far enough out for the marks to sit between it and the ring
     local ra = r + 8.5 * s
     local a, b = ENC_A0 + (ENC_A1 - ENC_A0) * o.range[1], ENC_A0 + (ENC_A1 - ENC_A0) * o.range[2]
+    -- one line: from the ring out, along the arc, and back in to the ring, so the corners join cleanly
+    ig.DrawList_PathLineTo(dl, cx + math.cos(a) * r, cy + math.sin(a) * r)
     ig.DrawList_PathArcTo(dl, cx, cy, ra, a, b)
+    ig.DrawList_PathLineTo(dl, cx + math.cos(b) * r, cy + math.sin(b) * r)
     ig.DrawList_PathStroke(dl, T.link, 0, 1.5 * s)
-    for _, e in ipairs({ a, b }) do
-      local ux, uy = math.cos(e), math.sin(e)
-      ig.DrawList_AddLine(dl, cx + ux * r, cy + uy * r, cx + ux * (ra + 0.75 * s), cy + uy * (ra + 0.75 * s), T.link, 1.5 * s)
-    end
   end
   ig.DrawList_AddCircle(dl, cx, cy, r, hover and mix(o.col, WHITE, 0.3) or o.col, 0, 2 * s)
   enc_tick(dl, cx, cy, r, ENC_A0, o.col, s)

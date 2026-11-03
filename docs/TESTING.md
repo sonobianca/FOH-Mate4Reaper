@@ -2,9 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 125).
+New items get the next free number (next: 126).
 
 ## Open
+
+- [ ] 125. (0.14.76) The limits arc and its two handles are one line now: both corners (Min and Max) join cleanly, no pixel off at either end, at normal size and widened.
 
 - [ ] 124. (0.14.75) The value box sits a little closer to the name (gap 2.5 px instead of 4) and farther from the control (5.5 px), on every row, both sides, normal size and widened. A control with the limits arc has room now? The name boxes keep their width.
 
