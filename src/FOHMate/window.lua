@@ -247,7 +247,7 @@ function draw_status_bar(dl, x, y, w, h, M, nracks, nfx, nparams)
     local bw = ig.CalcTextSize(ctx, '00.0') + 16
     local tip = ('Debug timer (not in public versions)\n' ..
                  'Time FOH-Mate takes per frame: %.2f ms on average\n' ..
-                 'of which the racks area (Performance rows included): %.2f ms\n' ..
+                 'of which the racks area (Performance parameters included): %.2f ms\n' ..
                  'Slowest frame of the last 2 seconds: %.2f ms'):format(
                  TIMER.avg * 1000, TIMER.area_avg * 1000, TIMER.peak_shown * 1000)
     label('Script')
@@ -631,7 +631,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         if not is_locked() then
           ig.SetCursorScreenPos(ctx, bx, ry)
           ig.InvisibleButton(ctx, '##prow' .. k, box_w, rh)
-          hint_hovered('Drag: reorder  \194\183  right-click: control for this parameter, remove the row')
+          hint_hovered('Drag: reorder  \194\183  right-click: control for this parameter, remove it')
           if ig.BeginDragDropSource(ctx) then
             ig.SetDragDropPayload(ctx, 'PERFROW', row_key)
             drag_now_row = row_key
@@ -742,7 +742,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
       ig.DrawList_AddLine(dl, pcx - pl, pcy, pcx + pl, pcy, pcol, hov and 3 or 2)
       ig.DrawList_AddLine(dl, pcx, pcy - pl, pcx, pcy + pl, pcol, hov and 3 or 2)
       if hov then ig.SetTooltip(ctx, 'Add or remove parameters') end
-      hint_hovered('Click: add or remove parameters  \194\183  right-click: remove the rows not linked any more, or every row')
+      hint_hovered('Click: add or remove parameters  \194\183  right-click: remove the parameters not linked any more, or all of them')
       -- right-click: clean up the rows whose parameter is gone (found once, when the menu opens)
       if hov and ig.IsMouseClicked(ctx, 1) then
         PARAM_UNLINKED = params_unlinked(tr)
@@ -750,15 +750,15 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
       end
       if ig.BeginPopup(ctx, 'plus_menu') then
         local nu = PARAM_UNLINKED and #PARAM_UNLINKED or 0
-        local label = nu > 0 and ('Remove the %d row%s not linked any more'):format(nu, nu == 1 and '' or 's')
-                              or 'Every row is linked: nothing to remove'
+        local label = nu > 0 and ('Remove the %d parameter%s not linked any more'):format(nu, nu == 1 and '' or 's')
+                              or 'Every parameter is linked: nothing to remove'
         if ig.MenuItem(ctx, label, nil, false, nu > 0) then params_apply(tr, PARAM_UNLINKED, false) end
         ig.Separator(ctx)
         if ig.MenuItem(ctx, 'Clear all', nil, false, n > 0) then
-          request_confirm(('Remove all %d row%s of this rack from the Performance?\n(Ctrl+Z brings them back.)')
+          request_confirm(('Remove all %d parameter%s of this rack from the Performance?\n(Ctrl+Z brings them back.)')
                           :format(n, n == 1 and '' or 's'),
             function()
-              if valid(tr) then with_undo('Clear Performance rows', function() params_drop_fx(tr, nil) end) end
+              if valid(tr) then with_undo('Clear Performance parameters', function() params_drop_fx(tr, nil) end) end
             end, 'Clear all')
         end
         ig.EndPopup(ctx)
@@ -786,7 +786,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         if ig.MenuItem(ctx, 'Nickname parameter...') then param_prompt_nick(tr, mr.guid, mr.idx) end
         if ig.BeginMenu(ctx, 'Recolor parameters') then
           local one = { { guid = mr.guid, idx = mr.idx } }
-          if ig.MenuItem(ctx, 'This row...') then param_open_picker(tr, one, 'Color of this row') end
+          if ig.MenuItem(ctx, 'This parameter...') then param_open_picker(tr, one, 'Color of this parameter') end
           -- the rows of the same group (Band 1...) of the same FX, and every row of the FX
           local gnum, glabel = param_group(mr.pname)
           local same_g, same_fx = {}, {}
@@ -797,20 +797,20 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
             end
           end
           if #same_g > 1 and #same_g < #same_fx then
-            local t = ('Every "%s" row (%d)...'):format(glabel, #same_g)
-            if ig.MenuItem(ctx, t) then param_open_picker(tr, same_g, ('Color of the "%s" rows'):format(glabel)) end
+            local t = ('Every "%s" parameter (%d)...'):format(glabel, #same_g)
+            if ig.MenuItem(ctx, t) then param_open_picker(tr, same_g, ('Color of the "%s" parameters'):format(glabel)) end
           end
           if #same_fx > 1 then
             local fxn = mfx and clean_fx_name(select(2, reaper.TrackFX_GetFXName(tr, mfx, ''))) or 'this FX'
-            if ig.MenuItem(ctx, ('Every row of %s (%d)...'):format(fxn, #same_fx)) then
-              param_open_picker(tr, same_fx, 'Color of the rows of ' .. fxn)
+            if ig.MenuItem(ctx, ('Every parameter of %s (%d)...'):format(fxn, #same_fx)) then
+              param_open_picker(tr, same_fx, 'Color of the parameters of ' .. fxn)
             end
           end
           ig.EndMenu(ctx)
         end
         ig.Separator(ctx)
       end
-      if ig.MenuItem(ctx, 'Remove this row') and rows[PARAM_MENU_ROW or 0] then
+      if ig.MenuItem(ctx, 'Remove this parameter') and rows[PARAM_MENU_ROW or 0] then
         local mrow = rows[PARAM_MENU_ROW]
         params_apply(tr, { { guid = mrow.guid, idx = mrow.idx, name = mrow.pname } }, false)
       end
@@ -1023,7 +1023,7 @@ end
 function draw_hint(dl, x, y, w)
   local copy, move = mod_label(COPY_MOD), mod_label(MOVE_MOD)
   if drag_prev_row then
-    HINT = 'Moving the row: drop it on the row whose place it takes, or on the + to put it at the end'
+    HINT = 'Moving the parameter: drop it on the parameter whose place it takes, or on the + to put it at the end'
   elseif drag_prev_rack then
     if has_mod(COPY_MOD) then
       HINT = ('Duplicating the rack: drop it where the copy should go  \194\183  let go of %s to move it instead'):format(copy)

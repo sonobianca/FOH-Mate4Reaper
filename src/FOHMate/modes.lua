@@ -117,9 +117,9 @@ function fx_removal(tr, what, fn, which)
       end
     end
   end
-  request_confirm(('%s%s?\n%d parameter row%s in the Performance belong to these FX.\n'
-                   .. 'Kept rows stay greyed out, and come back to life when the same plug-in\nis put on the rack again.\n(Ctrl+Z brings everything back.)')
+  request_confirm(('%s%s?\n%d parameter%s in the Performance belong to these FX.\n'
+                   .. 'Kept parameters stay greyed out, and come back to life when the same plug-in\nis put on the rack again.\n(Ctrl+Z brings everything back.)')
                   :format(what, #trs > 1 and (' for the %d selected racks'):format(#trs) or '', n, n == 1 and '' or 's'),
-    go(false), 'Remove FX and rows', nil, { label = 'Remove FX, keep rows', fn = go(true) })
+    go(false), 'Remove FX and parameters', nil, { label = 'Remove FX, keep parameters', fn = go(true) })
 end
 

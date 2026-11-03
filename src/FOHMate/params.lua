@@ -191,7 +191,7 @@ function params_move(tr, from, to)
   if not rows[from] or from == to then return end
   local r = table.remove(rows, from)
   table.insert(rows, math.min(to, #rows + 1), r)
-  with_undo('Reorder Performance rows', function() params_write(tr, rows) end)
+  with_undo('Reorder Performance parameters', function() params_write(tr, rows) end)
 end
 
 -- the rows whose parameter is gone (its FX removed, or the plug-in changed), as { guid, idx, name }
@@ -738,7 +738,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
   -- how this row behaves (saved with the project: only for a parameter that is in the Performance)
   local row = params_find(tr, first.guid, first.idx)
   ig.Separator(ctx)
-  ig.Text(ctx, 'This row')
+  ig.Text(ctx, 'This parameter')
   if not row then
     ig.TextDisabled(ctx, 'Put the parameter in the Performance\nto set these.')
   else

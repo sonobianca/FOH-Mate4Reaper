@@ -8,29 +8,31 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 - Performance mode: parameters of the same group (an EQ band: "Band 1...", "Gain-Band 2"...) get the rack's color slightly shifted, one way for odd bands and the other way for even ones, so neighbouring bands stand apart.
 
-- Performance mode: the right-click menu of a row has a **Control** submenu, then **Nickname parameter...** and **Recolor parameters** (this row, its band, or every row of its FX; "Automatic" goes back to the rack's color). With **Settings > Performance mode > Remember parameters nicknames** on, a nickname is remembered for that plug-in and given to the parameter whenever it is added again.
+- Performance mode: the right-click menu of a parameter has a **Control** submenu, then **Nickname parameter...** and **Recolor parameters** (this parameter, its band, or every parameter of its FX; "Automatic" goes back to the rack's color). With **Settings > Performance mode > Remember parameters nicknames** on, a nickname is remembered for that plug-in and given to the parameter whenever it is added again.
 
-- Performance mode: right-click the **+** at the end of a column to remove the rows that aren't linked to a parameter any more (their FX removed or changed).
+- Performance mode: right-click the **+** at the end of a column to remove the parameters that aren't linked any more (their FX removed or changed).
 
 - Performance mode: the **Width band** and **Q band** have a new scale. The middle of the range (a normal stereo width, the center of an M-S width) is a half circle, from 9 to 3 o'clock; the maximum still reaches the min and max marks, the minimum is still the thinnest line.
 
-- Performance mode, Edit mode: parameter rows can be **reordered by dragging** their name box, with the same look as dragging an FX (a bar follows the pointer, the row stays behind faded, the target is outlined). Drop on a row to take its place, or on the + to put it at the end.
+- Performance mode, Edit mode: parameters can be **reordered by dragging** their name box, with the same look as dragging an FX (a bar follows the pointer, the parameter stays behind faded, the target is outlined). Drop on a parameter to take its place, or on the + to put it at the end.
 
-- Performance mode: pointing at an FX name in a rack makes that FX's parameter rows glow in their own color (sky blue, orange in Daylight), and pointing at a row makes its FX glow.
+- Performance mode: pointing at an FX name in a rack makes that FX's parameters glow in their own color (sky blue, orange in Daylight), and pointing at a parameter makes its FX glow.
 
-- Performance mode: deleting an FX (**Delete FX...**, **Remove every FX**, **Remove bypassed FX**) that has parameter rows always asks first, saying how many rows it has: **Delete FX and rows**, **Delete FX, keep rows** (they stay, greyed out), or Cancel. Ctrl+Z brings everything back.
+- Performance mode: deleting an FX (**Delete FX...**, **Remove every FX**, **Remove bypassed FX**) that has parameters in the Performance always asks first, saying how many it has: **Delete FX and parameters**, **Delete FX, keep parameters** (they stay, greyed out), or Cancel. Ctrl+Z brings everything back.
 
-- Performance mode: a new FX on a rack (added from the menus, dropped from another rack, or Replace FX) takes back the kept rows of a deleted FX of the same plug-in: every one of those rows must find its parameter, with the same name, at the same place in the new FX. One deleted FX per new FX, and only for an FX that has no rows yet.
+- Performance mode: a new FX on a rack (added from the menus, dropped from another rack, or Replace FX) takes back the kept parameters of a deleted FX of the same plug-in: every one of them must be found, with the same name, at the same place in the new FX. One deleted FX per new FX, and only for an FX that has no parameters in the Performance yet.
 
-- Performance mode: **Display > Hide disabled parameters** leaves the rows that aren't linked any more (greyed out) out of the columns. They are still there, and show again when the option is switched off or when a new FX takes them back.
+- Performance mode: **Display > Hide disabled parameters** leaves the parameters that aren't linked any more (greyed out) out of the columns. They are still there, and show again when the option is switched off or when a new FX takes them back.
 
-- Performance mode: the right-click menu of the **+** has **Clear all**, which removes every row of that rack (after a confirmation; Ctrl+Z brings them back).
+- Performance mode: the menus, confirmations and hints call the rows of a column **parameters** (Remove this parameter, Delete FX and parameters...).
 
-- Performance mode: a rack made with **Duplicate rack** (menu or Cmd-drag) or **Use as template** keeps its parameter rows working: they now control the copy's own FX. Before, they still pointed at the original's FX and showed as removed.
+- Performance mode: the right-click menu of the **+** has **Clear all**, which removes every parameter of that rack (after a confirmation; Ctrl+Z brings them back).
+
+- Performance mode: a rack made with **Duplicate rack** (menu or Cmd-drag) or **Use as template** keeps its parameters working: they now control the copy's own FX. Before, they still pointed at the original's FX and showed as removed.
 
 - For editing only: a `.luarc.json` settings file tells VS Code's Lua checker about the names REAPER and FOHMate.lua provide, so it no longer marks them as errors. Nothing changes in REAPER.
 
-- Test versions only: the status bar shows a **debug timer** after the latency: how many milliseconds FOH-Mate's script takes per frame, and how much of it the racks area takes (Performance rows included). Its tooltip adds the slowest frame of the last 2 seconds. Public versions have it switched off.
+- Test versions only: the status bar shows a **debug timer** after the latency: how many milliseconds FOH-Mate's script takes per frame, and how much of it the racks area takes (Performance parameters included). Its tooltip adds the slowest frame of the last 2 seconds. Public versions have it switched off.
 
 - Performance mode uses less CPU: each parameter row keeps what the plug-in last told it (its value's text, whether the parameter is still there, a Pan/Width's stereo placement, how the name wraps) and only asks again when the value moves or after a short while, instead of on every frame. The vertical values are drawn with a few joined lines per character instead of one call per line (sharp corners such as the tips of V and W stay as they were), and redrawn as they are while the value and the row don't move.
 

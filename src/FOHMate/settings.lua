@@ -92,11 +92,11 @@ SCHEMA = {
   { group = 'Performance mode', key = 'perf_fold_after', label = 'Fold them after', kind = 'i', min = 0, max = 120, def = 15, fmt = '%d s',
     tip = 'An open FX section (Show mode) and a widened parameter column fold back after this long\nwithout activity in the Plugins Host window (the mouse moving over it, a click, a drag, scrolling\nor a key). Nothing outside the window counts. Only when the option above is on.' },
   { group = 'Performance mode', key = 'remember_nicks', label = 'Remember parameters nicknames', kind = 'bool', min = 0, max = 1, def = 1,
-    tip = 'On: a nickname given to a parameter (right-click a row > Nickname parameter) is remembered for that\nplug-in, and the parameter gets it again whenever it is added to the Performance, on any rack or\nproject. Off: a nickname stays on its row only.' },
+    tip = 'On: a nickname given to a parameter (right-click it > Nickname parameter) is remembered for that\nplug-in, and the parameter gets it again whenever it is added to the Performance, on any rack or\nproject. Off: a nickname stays on that one parameter only.' },
 
   { group = 'Controls', key = 'enc_mode', label = 'Rotary encoder: drag', kind = 'choice', def = 'vertical',
     options = { { 'vertical', 'up and down' }, { 'circle', 'around the encoder' } },
-    tip = 'How a rotary encoder is turned with the mouse (the parameter rows of Performance mode, and any\nother FOH-Mate module that uses encoders).\nUp and down: drag vertically; the farther the pointer is to the side of the encoder, the finer it is.\nAround the encoder: drag the pointer in a circle around it. Shift = finer in both.' },
+    tip = 'How a rotary encoder is turned with the mouse (the parameters of Performance mode, and any\nother FOH-Mate module that uses encoders).\nUp and down: drag vertically; the farther the pointer is to the side of the encoder, the finer it is.\nAround the encoder: drag the pointer in a circle around it. Shift = finer in both.' },
 }
 
 CFG = {}
