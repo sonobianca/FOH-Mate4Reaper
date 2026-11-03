@@ -4,7 +4,7 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
-- Performance mode: the **Pan** control shows a tiny arrow (smaller than the default mark, its back on the center line), left or right, when the value is off center by too little for the band to show; the white X is only for the exact center. A combined **Pan/Width** parameter of an EQ band (the Kirchhoff EQ, for example) follows the band's stereo placement parameter, found by its name: a pan for Stereo, a width for MS, and greyed out for Left, Right, Mid, Side and Mono. Placement texts it doesn't know are noted in Data/FOHMate/param_text_rejects.txt.
+- Performance mode: the **Pan** control shows a tiny arrow (smaller than the default mark, its back on the center line), left or right, when the value is less than 10% off center (up to 9L / 9R), and the band from 10% on, starting as long as the arrow so the switch is smooth; the white X is only for the exact center. A combined **Pan/Width** parameter of an EQ band (the Kirchhoff EQ, for example) follows the band's stereo placement parameter, found by its name: a pan for Stereo, a width for MS, and greyed out for Left, Right, Mid, Side and Mono. Placement texts it doesn't know are noted in Data/FOHMate/param_text_rejects.txt.
 
 - Performance mode: a pan or balance gets its own control, the **Pan**: the yellow default mark is always at the top (the center), a band runs from the top to the left or to the right following the value (7:30 = all the way left, 4:30 = all the way right), and when centered a white X sits on the center. Also selectable by hand for any parameter.
 

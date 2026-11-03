@@ -564,20 +564,22 @@ function draw_encoder(id, cx, cy, r, norm, o)
     -- a pan: the default mark is the center; a band runs from the top to the position, left or right
     -- (7:30 = all the way left, 4:30 = all the way right); centered, a white X sits on the mark's line
     local mid = (ENC_A0 + ENC_A1) / 2
-    local span = math.abs(ang - mid) * (r - 4 * s)
     if math.abs(v - 0.5) < 0.0025 then
       -- (AddLine shifts its ends by half a pixel; taken back so the X sits on the mark's line)
       local px, py, xs = cx + math.cos(mid) * r * 0.55 - 0.5, cy + math.sin(mid) * r * 0.55 - 0.5, r * 0.16
       ig.DrawList_AddLine(dl, px - xs, py - xs, px + xs, py + xs, WHITE, 2.5 * s)
       ig.DrawList_AddLine(dl, px - xs, py + xs, px + xs, py - xs, WHITE, 2.5 * s)
-    elseif span < 7 * s then
+    elseif math.abs(v - 0.5) < 0.05 then        -- up to 9% either side (9L to 9R on a 100L-100R pan)
       -- off center by too little for a band to show: a tiny arrow pointing left or right, smaller than
       -- the default mark, its back on the center line
       local d = ang < mid and -1 or 1
       local px, py = cx, cy - (r - 4 * s)
       ig.DrawList_AddTriangleFilled(dl, px + d * 3.5 * s, py, px, py - 2 * s, px, py + 2 * s, o.ptr)
     else
-      ig.DrawList_PathArcTo(dl, cx, cy, r - 4 * s, math.min(mid, ang), math.max(mid, ang))
+      -- from 10% on: the band, never shorter than the arrow so the switch doesn't jump
+      local rb = r - 4 * s
+      local a = mid + (ang < mid and -1 or 1) * math.max(math.abs(ang - mid), 3.5 * s / rb)
+      ig.DrawList_PathArcTo(dl, cx, cy, rb, math.min(mid, a), math.max(mid, a))
       ig.DrawList_PathStroke(dl, o.ptr, 0, 3.5 * s)
     end
   elseif o.style == 'band' then
