@@ -566,6 +566,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           if drop_here and ig.IsMouseReleased(ctx, 0) then row_drop = k end
           over, hot = false, false
         end
+        if over then row_hot_now = r.guid end                -- its FX glows in the rack
         if over and ig.IsMouseClicked(ctx, 0) then ps.last = k end   -- the row touched last
         if over and ig.IsMouseClicked(ctx, 1) and not is_locked() then      -- Edit mode: the row's menu
           PARAM_MENU_ROW = k
@@ -1011,6 +1012,7 @@ function draw(dt, now)
   drag_prev_row, drag_now_row = drag_now_row, nil
   hover_prev_rack, hover_now_rack = hover_now_rack, nil
   hot_prev_fx, hot_now_fx = hot_now_fx, nil
+  row_hot_prev, row_hot_now = row_hot_now, nil
   lat_over_racks = 0
   HINT = nil
 

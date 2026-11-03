@@ -10,7 +10,7 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 - Performance mode, Edit mode: parameter rows can be **reordered by dragging** their name box, with the same look as dragging an FX (a bar follows the pointer, the row stays behind faded, the target is outlined). Drop on a row to take its place, or on the + to put it at the end.
 
-- Performance mode: pointing at an FX name in a rack makes that FX's parameter rows glow in their own color (sky blue, orange in Daylight).
+- Performance mode: pointing at an FX name in a rack makes that FX's parameter rows glow in their own color (sky blue, orange in Daylight), and pointing at a row makes its FX glow.
 
 - Performance mode: deleting an FX (**Delete FX...**, **Remove every FX**, **Remove bypassed FX**) removes its parameter rows too. When it has some, a confirmation always says how many go (Ctrl+Z brings them back).
 

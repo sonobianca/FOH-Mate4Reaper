@@ -2,9 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 109).
+New items get the next free number (next: 110).
 
 ## Open
+
+- [ ] 109. (0.14.65) The other way round from 105: point at a parameter row, and its FX in the rack above glows sky blue (orange in Daylight), with the same soft glow as the rows. Only that FX; nothing while dragging a row. Show mode with the FX section folded: nothing to see, nothing breaks.
 
 - [ ] 108. (0.14.64) Right-click the + at the end of a column (Edit mode). (a) With greyed-out rows (delete an FX from REAPER's own FX window, or replace one): the menu says "Remove the N rows not linked any more"; clicking it removes exactly those, the working rows stay in their order. Cmd-Z brings them back. (b) With every row working: the menu item is greyed out ("Every row is linked: nothing to remove"). (c) A left click still opens the Performance parameters window. (d) The grey help line mentions the right-click.
 

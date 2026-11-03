@@ -604,6 +604,13 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
     if not it.enabled then ig.PopStyleColor(ctx) end
     pop_native()
     if ig.IsItemHovered(ctx) then hot_now_fx = fx_guid end   -- its Performance rows glow
+    if row_hot_prev == fx_guid then                          -- one of its Performance rows is pointed at
+      local base = T.link & 0xFFFFFF00
+      for i = 1, 3 do
+        local a = math.floor(170 * (1 - (i - 1) / 3) ^ 2)
+        ig.DrawList_AddRect(dl, wx - i, y - i, wx + WW + i, y + fh + i, base | a, ROUNDING + i, 0, 1)
+      end
+    end
     if locked then
       hint_hovered('Click: open or close the FX window')
     else
