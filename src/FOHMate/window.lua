@@ -639,8 +639,11 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
             ig.EndDragDropSource(ctx)
           end
         end
-        -- the control, a little further out than the middle of its box to leave room for the marks
-        local kcx = kx + cd / 2 + (left and 1 or -1) * 3 * f
+        -- the control, a little further out than the middle of its box to leave room for the marks;
+        -- in the middle when it has the arc of its limits (Limit values without the full range), which
+        -- reaches farther out: it then stays inside the column and clear of the value box
+        local arc = r.lo and kind and param_limit_ok(kind.kind) and not (r.fit and param_fit_ok(kind.kind))
+        local kcx = kx + cd / 2 + (arc and 0 or (left and 1 or -1) * 3 * f)
         local kcy, kr = ry + rh / 2, cd / 2 - 6 * f
         local dead = missing or not fxi
         local newv

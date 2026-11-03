@@ -2,9 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 123).
+New items get the next free number (next: 124).
 
 ## Open
+
+- [ ] 123. (0.14.74) A control with the limits arc is no longer cropped at the column's edge: it moves to the middle of its space (a little toward the value box), on both sides (rows with the name left and right), at normal size and widened. The arc doesn't touch the value box. Controls without the arc stay where they were.
 
 - [ ] 122. (0.14.73) Limits without the full range: instead of two marks, a thin sky-blue arc (orange in Daylight) runs outside the encoder from Min to Max, with a short handle at each end down to the ring. The min/max, dB and default marks sit between the arc and the ring, drawn over it. Easy to see with the default mark right next to a limit? Not cut off at the top or bottom of the row, at normal size and widened? Also in the parameter window's preview.
 
