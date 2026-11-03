@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Performance mode: a rack made with **Duplicate rack** (menu or Cmd-drag) or **Use as template** keeps its parameter rows working: they now control the copy's own FX. Before, they still pointed at the original's FX and showed as removed.
+
 - For editing only: a `.luarc.json` settings file tells VS Code's Lua checker about the names REAPER and FOHMate.lua provide, so it no longer marks them as errors. Nothing changes in REAPER.
 
 - Test versions only: the status bar shows a **debug timer** after the latency: how many milliseconds FOH-Mate's script takes per frame, and how much of it the racks area takes (Performance rows included). Its tooltip adds the slowest frame of the last 2 seconds. Public versions have it switched off.

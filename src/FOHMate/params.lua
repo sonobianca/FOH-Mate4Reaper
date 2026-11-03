@@ -84,6 +84,26 @@ function fx_guid_map(tr)
   return m
 end
 
+-- A duplicated rack (or a template) has the same FX in the same order, but REAPER gives each of
+-- them a new GUID: the copied rows are pointed at the copy's own FX, place by place.
+function params_copy(src, new)
+  local rows = params_read(src)
+  if #rows == 0 then return end
+  local a, b = chain_info(src).list, chain_info(new).list
+  local map = {}
+  for i, it in ipairs(a) do
+    if b[i] then map[reaper.TrackFX_GetFXGUID(src, it.fx)] = reaper.TrackFX_GetFXGUID(new, b[i].fx) end
+  end
+  local out = {}
+  for _, r in ipairs(rows) do
+    local n = {}
+    for k, v in pairs(r) do n[k] = v end
+    n.guid = map[r.guid] or r.guid
+    out[#out + 1] = n
+  end
+  params_write(new, out)
+end
+
 -- how many parameters of the rack are in the Performance
 function params_count(tr)
   return #params_read(tr)
