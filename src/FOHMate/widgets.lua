@@ -430,15 +430,42 @@ function vfont_advance(ch)
   return (VWIDTH[ch] or 5) + 2
 end
 
--- Draws `text` rotated a quarter turn inside the box (bx, by, bw, bh), centered, as big as fits.
--- ccw: reads from bottom to top (a control on the left); otherwise top to bottom (control on the right).
-function draw_vtext(dl, text, bx, by, bw, bh, col, ccw, zoom)
-  zoom = zoom or 1
+-- A character's strokes as runs that can each be drawn in one call (a polyline): a stroke is cut
+-- where it turns sharply (more than 100 degrees, the tips of V, W, M...), where a joined line would
+-- grow a spike, so those corners look as before. Found once per character.
+VRUNS = {}
+function vfont_runs(ch)
+  local runs = VRUNS[ch]
+  if runs then return runs end
+  runs = {}
+  for _, st in ipairs(VFONT[ch] or {}) do
+    local run = { st[1], st[2] }
+    for j = 3, #st, 2 do
+      run[#run + 1], run[#run + 2] = st[j], st[j + 1]
+      if j + 3 <= #st then
+        local ax, ay = st[j] - st[j - 2], st[j + 1] - st[j - 1]
+        local bx, by = st[j + 2] - st[j], st[j + 3] - st[j + 1]
+        local cos = (ax * bx + ay * by) / math.sqrt((ax * ax + ay * ay) * (bx * bx + by * by))
+        if cos < math.cos(math.rad(100)) then
+          runs[#runs + 1] = run
+          run = { st[j], st[j + 1] }
+        end
+      end
+    end
+    runs[#runs + 1] = run
+  end
+  VRUNS[ch] = runs
+  return runs
+end
+
+-- the runs of `text` placed in the box, as point arrays for DrawList_AddPolyline
+function vtext_paths(text, bx, by, bw, bh, ccw, zoom)
+  local paths = {}
   local units = 0
   for i = 1, #text do units = units + vfont_advance(text:sub(i, i)) end
   units = units - 2
   local s = math.min(1.15 * zoom, (bh - 12) / units, (bw - 6) / 8)      -- a bit smaller than the box allows
-  if s <= 0 then return end
+  if s <= 0 then return paths end
   local len, thick = units * s, 8 * s
   local cx, cy = bx + bw / 2, by + bh / 2
   local ox, oy, dux, duy, dvx, dvy
@@ -450,20 +477,36 @@ function draw_vtext(dl, text, bx, by, bw, bh, col, ccw, zoom)
   local u = 0
   for i = 1, #text do
     local ch = text:sub(i, i)
-    local strokes = VFONT[ch]
-    if strokes then
-      for _, st in ipairs(strokes) do
-        local px, py
-        for j = 1, #st, 2 do
-          local gu, gv = u + st[j] * s, st[j + 1] * s
-          local x, y = ox + dux * gu + dvx * gv, oy + duy * gu + dvy * gv
-          if px then ig.DrawList_AddLine(dl, px, py, x, y, col, 1.5 * zoom) end
-          px, py = x, y
+    if VFONT[ch] then
+      for _, run in ipairs(vfont_runs(ch)) do
+        local arr = reaper.new_array(#run)
+        for j = 1, #run, 2 do
+          local gu, gv = u + run[j] * s, run[j + 1] * s
+          arr[j], arr[j + 1] = ox + dux * gu + dvx * gv, oy + duy * gu + dvy * gv
         end
+        paths[#paths + 1] = arr
       end
     end
     u = u + vfont_advance(ch) * s
   end
+  return paths
+end
+
+-- Draws `text` rotated a quarter turn inside the box (bx, by, bw, bh), centered, as big as fits.
+-- ccw: reads from bottom to top (a control on the left); otherwise top to bottom (control on the right).
+-- memo (a table kept by the caller, optional): the placed strokes are kept there and drawn again as
+-- they are while the text and the box don't change.
+function draw_vtext(dl, text, bx, by, bw, bh, col, ccw, zoom, memo)
+  zoom = zoom or 1
+  local paths
+  if memo then
+    local key = text .. '|' .. bx .. '|' .. by .. '|' .. bw .. '|' .. bh .. '|' .. (ccw and 1 or 0) .. '|' .. zoom
+    if memo.vkey ~= key then memo.vkey, memo.vpaths = key, vtext_paths(text, bx, by, bw, bh, ccw, zoom) end
+    paths = memo.vpaths
+  else
+    paths = vtext_paths(text, bx, by, bw, bh, ccw, zoom)
+  end
+  for i = 1, #paths do ig.DrawList_AddPolyline(dl, paths[i], col, 0, 1.5 * zoom) end
 end
 
 ---------------------------------------------------------------- rotary encoder, drop-down

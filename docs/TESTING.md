@@ -6,6 +6,8 @@ New items get the next free number (next: 92).
 
 ## Open
 
+- [ ] 100. (0.14.55) Vertical values drawn as joined lines. (a) Same setup as 98 and 99: is the "racks" number lower again? (b) Look closely at the values: same letters, same thickness, same spacing as before? Check the sharp ones (V, W, M, A, N, K, 4, 7) for spikes at the tips, and the rounded ones (0, 8, S, O) for clean corners. Also widened (bigger rows) and in Daylight mode. (c) Scroll a column and turn a control: the values follow without lag or leftovers.
+
 - [ ] 99. (0.14.54) Performance rows remember what the plug-in said. (a) Same setup as 98: is the "racks" number lower than before? (b) Turn a control, and move the same parameter in the plug-in's own window: the value box follows at once both ways. (c) A Kirchhoff Pan/Width: change the stereo placement in the plug-in, the row switches within half a second. (d) Replace or remove an FX that has rows: they grey out within half a second; Cmd-Z brings them back. (e) Rename a row, widen and fold a column: the names wrap as before.
 
 - [ ] 98. (0.14.53) Debug timer: the status bar shows "Script [x.x] ms  -  racks [x.x] ms" right after the latency boxes, and the tooltip gives the average, the racks part and the slowest frame of the last 2 seconds. Write down the numbers for one fixed setup (same project, Performance mode, same racks and rows visible, nothing playing or the same thing playing), so the next two versions can be compared to it. Also with a narrow window: nothing on the status bar overlaps.

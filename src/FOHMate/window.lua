@@ -591,7 +591,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         if ry + rh > cy and ry < cy + ch then
           ig.DrawList_AddRectFilled(dl, vx, ry, vx + vw, ry + rh, c.sec_bg, ROUNDING)
           ig.DrawList_AddRect(dl, vx, ry, vx + vw, ry + rh, c.sec_bd, ROUNDING, 0, 1)
-          draw_vtext(dl, vtxt, vx, ry, vw, rh, contrast_text(c.sec_bg, track_color(tr)), not left, f)
+          draw_vtext(dl, vtxt, vx, ry, vw, rh, contrast_text(c.sec_bg, track_color(tr)), not left, f, mm)
         end
         -- the control, a little further out than the middle of its box to leave room for the marks
         local kcx = kx + cd / 2 + (left and 1 or -1) * 3 * f
