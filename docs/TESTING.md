@@ -2,9 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 108).
+New items get the next free number (next: 109).
 
 ## Open
+
+- [ ] 108. (0.14.64) Right-click the + at the end of a column (Edit mode). (a) With greyed-out rows (delete an FX from REAPER's own FX window, or replace one): the menu says "Remove the N rows not linked any more"; clicking it removes exactly those, the working rows stay in their order. Cmd-Z brings them back. (b) With every row working: the menu item is greyed out ("Every row is linked: nothing to remove"). (c) A left click still opens the Performance parameters window. (d) The grey help line mentions the right-click.
 
 - [ ] 107. (0.14.63) New scale for the width band (Width band and Q band controls). (a) Kirchhoff Pan/Width in MS: at C (normal stereo) the band is a half circle, flat from 9 to 3 o'clock; at 100S it reaches the min and max marks (7:30 to 4:30, as before); towards 100M it shrinks to the thinnest line. (b) A stereo width (0-200%): 100% = the half circle. (c) The yellow default marks follow the same scale (a width whose default is 100% has its two marks at 9 and 3 o'clock). (d) Q band: the middle of the Q range is the half circle too. Does it read well, or should Q keep the old scale?
 

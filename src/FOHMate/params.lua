@@ -135,6 +135,23 @@ function params_move(tr, from, to)
   with_undo('Reorder Performance rows', function() params_write(tr, rows) end)
 end
 
+-- the rows whose parameter is gone (its FX removed, or the plug-in changed), as { guid, idx, name }
+-- each, for "Remove the rows not linked any more" (right-click on the +)
+PARAM_UNLINKED = nil
+function params_unlinked(tr)
+  local gm, out = fx_guid_map(tr), {}
+  for _, r in ipairs(params_read(tr)) do
+    local fxi = gm[r.guid]
+    local gone = not fxi or r.idx >= reaper.TrackFX_GetNumParams(tr, fxi)
+    if not gone then
+      local _, pn = reaper.TrackFX_GetParamName(tr, fxi, r.idx, '')
+      gone = (pn ~= r.pname)
+    end
+    if gone then out[#out + 1] = { guid = r.guid, idx = r.idx, name = r.pname } end
+  end
+  return out
+end
+
 -- how many parameters of the rack are in the Performance
 function params_count(tr)
   return #params_read(tr)

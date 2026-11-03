@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Performance mode: right-click the **+** at the end of a column to remove the rows that aren't linked to a parameter any more (their FX removed or changed).
+
 - Performance mode: the **Width band** and **Q band** have a new scale. The middle of the range (a normal stereo width, the center of an M-S width) is a half circle, from 9 to 3 o'clock; the maximum still reaches the min and max marks, the minimum is still the thinnest line.
 
 - Performance mode, Edit mode: parameter rows can be **reordered by dragging** their name box, with the same look as dragging an FX (a bar follows the pointer, the row stays behind faded, the target is outlined). Drop on a row to take its place, or on the + to put it at the end.

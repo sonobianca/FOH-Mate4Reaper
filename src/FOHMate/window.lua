@@ -717,6 +717,19 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
       ig.DrawList_AddLine(dl, pcx - pl, pcy, pcx + pl, pcy, pcol, hov and 3 or 2)
       ig.DrawList_AddLine(dl, pcx, pcy - pl, pcx, pcy + pl, pcol, hov and 3 or 2)
       if hov then ig.SetTooltip(ctx, 'Add or remove parameters') end
+      hint_hovered('Click: add or remove parameters  \194\183  right-click: remove the rows not linked any more')
+      -- right-click: clean up the rows whose parameter is gone (found once, when the menu opens)
+      if hov and ig.IsMouseClicked(ctx, 1) then
+        PARAM_UNLINKED = params_unlinked(tr)
+        ig.OpenPopup(ctx, 'plus_menu')
+      end
+      if ig.BeginPopup(ctx, 'plus_menu') then
+        local nu = PARAM_UNLINKED and #PARAM_UNLINKED or 0
+        local label = nu > 0 and ('Remove the %d row%s not linked any more'):format(nu, nu == 1 and '' or 's')
+                              or 'Every row is linked: nothing to remove'
+        if ig.MenuItem(ctx, label, nil, false, nu > 0) then params_apply(tr, PARAM_UNLINKED, false) end
+        ig.EndPopup(ctx)
+      end
     end
     if row_drop and row_from then                          -- the rows are rewritten once the frame is drawn
       local to = row_drop
