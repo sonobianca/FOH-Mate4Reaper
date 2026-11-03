@@ -2,9 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 114).
+New items get the next free number (next: 115).
 
 ## Open
+
+- [ ] 114. (0.14.68) Performance parameters window (the + of a column): under an FX, parameters with the same prefix are in a branch of their own (Kirchhoff: Band 1, Band 2...; ReaEQ: Band 1...), folded at first, where the first of them was in the plug-in's list. The other parameters stay where they were. (a) A branch shows a check box (all / some / none, like an FX) and "n of m in the Performance"; its check box puts all of them in or out at once. (b) Clicking a branch selects it: Add / Remove to Performance and the control section on the right work on all of its parameters; Shift-click and Cmd-click work across branches and parameters. (c) Search: branches with a match open and show only the matching parameters. (d) A plug-in with many bands: no lag when opening the window.
 
 - [ ] 113. (0.14.67: stronger shift than 0.14.66, which was too subtle) Group colors. In a Kirchhoff (or any EQ), add rows of band 1 and band 2 (and a parameter without a band number, like Output). The band 1 rows are a slightly different shade from the band 2 rows (band 3 like band 1, band 4 like band 2...), the rows without a band keep the rack's color. Subtle but visible? In Daylight too. Also ReaEQ ("Freq-Band 1"...). Changing the rack's color: the shades follow.
 
