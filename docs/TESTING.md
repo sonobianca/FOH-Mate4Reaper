@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 138).
+New items get the next free number (next: 139).
 
 ## Open
 
+- [ ] 138. (0.14.90) The parameter window's layout. (a) At the top: the parameter's name, big and bold (bigger than the section titles); under it the nickname box, then the FX name, dimmed. (b) Type a nickname, press Enter or click elsewhere: the row in the Performance shows it, Ctrl+Z undoes it; empty the box: its own name is back. Type one and click another parameter in the list without pressing Enter: the first one still gets it. Not in the Performance: the box is greyed out. (c) Sections Control, Direction and default, Limit values (Use limits inside), Curve, Preview, Details: each title bold, a bit bigger than the text; click a title to fold or unfold it; Details starts folded. (d) Several parameters selected: the title says how many, only Control is shown.
 - [ ] 137. (0.14.89) The curve section. (a) The graph is a little bigger (10%). (b) Under it: Save this curve... and Delete a curve... side by side (Delete only when you saved a curve), then Type and Strength (or Smooth): their right edges, captions included, line up with the right edge of the graph; their left edges with its left edge. (c) Type > Saved curves: S curve, Fine in the middle, Rising wave (climbs while waving), Parabola (up then down), Valley (down then up), Staircase (4 flat steps), Wave, Zigzag. No Ease in / Ease out among them.
 - [ ] 136. (0.14.88) Click a rack's **Out**: "Hardware out: mono" comes before "Hardware out: stereo pair", and both still set the output.
 - [ ] 135. (0.14.87) Drop-down for word values. Remove the hand-made correction first (right-click Kirchhoff Band 1 Type > Control > Automatic). (a) Kirchhoff-EQ: every band's Type is a drop-down without the "Reserved" values. (b) A stepped numeric parameter (a ratio 1:1, 2:1... or an oversampling 1x, 2x...) is still a stepped encoder. (c) Mono / Stereo-style two-word parameters are still drop-downs, on/off still toggles.

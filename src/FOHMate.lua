@@ -27,13 +27,15 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.14.89'   -- major.minor.revision, shown in the window's title bar
+VERSION         = '0.14.90'   -- major.minor.revision, shown in the window's title bar
 DEBUG_TIMER     = true      -- status bar shows how long the script takes per frame; must be false in a
                             -- public version (tools/make_reapack_index.sh refuses to build otherwise)
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
 GLOW_M          = 6         -- room left around the racks for the selection glow
 NAME_FONT_SIZE  = 16        -- rack name font (bold)
 TITLE_FONT_SIZE = 24        -- "Plugins Host" title font (bold)
+HEAD_FONT_SIZE  = 19        -- the parameter's name at the top of the parameter window (bold)
+SECT_FONT_SIZE  = 15        -- section titles of the parameter window (bold)
 
 LEVEL_MIN, LEVEL_MAX = -60.0, 12.0   -- dB range of the level box
 

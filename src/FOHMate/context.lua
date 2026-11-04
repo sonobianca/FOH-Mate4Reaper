@@ -32,7 +32,7 @@ function make_bold_font(size)
   return nil
 end
 
-name_font, title_font = nil, nil
+name_font, title_font, head_font, sect_font = nil, nil, nil, nil
 
 -- ReaImGui discards a context that does not run a frame soon after creation,
 -- so the context (and its fonts) is created right before the first frame,
@@ -41,6 +41,8 @@ function create_ctx()
   ctx = reaper.ImGui_CreateContext('FOH-Mate', cfg_flags)
   name_font  = make_bold_font(NAME_FONT_SIZE)
   title_font = new_font_api and name_font or make_bold_font(TITLE_FONT_SIZE)
+  head_font  = new_font_api and name_font or make_bold_font(HEAD_FONT_SIZE)
+  sect_font  = new_font_api and name_font or make_bold_font(SECT_FONT_SIZE)
 end
 
 function ctx_is_valid()

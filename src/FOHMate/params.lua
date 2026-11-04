@@ -515,15 +515,20 @@ function param_prompt_nick(tr, guid, idx)
     if not r then return end
     local ok, nick = reaper.GetUserInputs('Nickname parameter', 1, 'Nickname (empty: its own name):,extrawidth=160',
                                           r.name or r.pname or '')
-    if not ok then return end
-    nick = nick:match('^%s*(.-)%s*$')
-    if nick == r.pname then nick = '' end
-    with_undo('Nickname parameter', function()
-      params_update(tr, guid, idx, { name = nick ~= '' and nick or false })
-    end)
-    local fxi = fx_index_by_guid(tr, guid)
-    if fxi and CFG.remember_nicks ~= 0 then param_nick_set(param_fx_key(tr, fxi), r.pname, nick ~= '' and nick or nil) end
+    if ok then param_set_nick(tr, r, nick) end
   end
+end
+
+-- gives a row (r) a nickname; empty, or its own name = none
+function param_set_nick(tr, r, nick)
+  nick = nick:match('^%s*(.-)%s*$')
+  if nick == r.pname then nick = '' end
+  if nick == (r.name or '') then return end
+  with_undo('Nickname parameter', function()
+    params_update(tr, r.guid, r.idx, { name = nick ~= '' and nick or false })
+  end)
+  local fxi = fx_index_by_guid(tr, r.guid)
+  if fxi and CFG.remember_nicks ~= 0 then param_nick_set(param_fx_key(tr, fxi), r.pname, nick ~= '' and nick or nil) end
 end
 
 -- the plug-in's name without its type, the way the corrections are filed
@@ -902,6 +907,14 @@ function fx_name_type(name)
   return name, nil
 end
 
+-- a section of the parameter window: a title a little bigger than the text, that folds the section
+function param_section(title, open)
+  local pushed = push_bold(sect_font, SECT_FONT_SIZE)
+  local shown = ig.CollapsingHeader(ctx, title, nil, open and ig.TreeNodeFlags_DefaultOpen() or 0)
+  if pushed then ig.PopFont(ctx) end
+  return shown
+end
+
 -- the right-hand section: pick and set up the control of the selected parameter(s)
 function draw_param_control_panel(P, fxs, gm, targets)
   local tr = P.tr
@@ -913,67 +926,91 @@ function draw_param_control_panel(P, fxs, gm, targets)
   local fxi = gm[first.guid]
   local fxname = ''
   for _, fx in ipairs(fxs) do if fx.guid == first.guid then fxname = fx.name end end
+  -- the title: the parameter's name, big and bold, its nickname right under it, then its FX
+  local row = #targets == 1 and params_find(tr, first.guid, first.idx)
+  local pushed = push_bold(head_font, HEAD_FONT_SIZE)
+  ig.TextWrapped(ctx, #targets == 1 and first.name or ('%d parameters selected'):format(#targets))
+  if pushed then ig.PopFont(ctx) end
   if #targets == 1 then
-    ig.Text(ctx, first.name)
+    -- the nickname is kept with the row (a parameter in the Performance); it is set when the box is left,
+    -- also by picking another parameter while typing
+    local nkey = first.guid .. ':' .. first.idx
+    if P.nick_key ~= nkey and P.nick_edit and P.nick_row and valid(P.nick_tr) then
+      param_set_nick(P.nick_tr, P.nick_row, P.nick)
+      P.nick_edit = false
+    end
+    if P.nick_key ~= nkey or not P.nick_edit then
+      P.nick_key, P.nick, P.nick_row, P.nick_tr = nkey, row and row.name or '', row, tr
+    end
+    ig.SetNextItemWidth(ctx, -1)
+    if not row then ig.BeginDisabled(ctx) end
+    local rv, nv = ig.InputTextWithHint(ctx, '##nick' .. nkey, row and 'Nickname (empty: its own name)'
+                                        or 'Nickname: put it in the Performance first', P.nick)
+    if rv then P.nick = nv end
+    P.nick_edit = ig.IsItemActive(ctx)
+    if row and ig.IsItemDeactivatedAfterEdit(ctx) then param_set_nick(tr, row, P.nick) end
+    if not row then ig.EndDisabled(ctx) end
     ig.TextDisabled(ctx, (fx_name_type(fxname)))
   else
-    ig.Text(ctx, ('%d parameters selected'):format(#targets))
     ig.TextDisabled(ctx, 'The choice applies to all of them.')
   end
   if not fxi then return end
   local r1 = { guid = first.guid, idx = first.idx, pname = first.name }
   local k = param_kind(tr, fxi, r1)
-  ig.Separator(ctx)
-  ig.Text(ctx, 'Control')
-  for _, o in ipairs(PARAM_CONTROL_OPTS) do
-    local on = #targets == 1 and ((o[1] == nil and not k.overridden) or (o[1] ~= nil and k.overridden and k.kind == o[1]))
-    local label = o[2] .. ((o[1] == nil and #targets == 1) and (' (now: ' .. PARAM_KIND_LABEL[k.guess] .. ')') or '')
-    if ig.RadioButton(ctx, label .. '##ctl' .. tostring(o[1]), on) then
-      for _, t in ipairs(targets) do
-        local f = gm[t.guid]
-        if f then param_set_override(tr, f, { guid = t.guid, idx = t.idx, pname = t.name }, o[1]) end
-      end
-    end
-  end
-  ig.TextDisabled(ctx, 'Your choice is added to the training data.')
-  if #targets ~= 1 then return end
-
-  -- how this row behaves (saved with the project: only for a parameter that is in the Performance)
-  local row = params_find(tr, first.guid, first.idx)
-  ig.Separator(ctx)
-  ig.Text(ctx, 'This parameter')
-  if not row then
-    ig.TextDisabled(ctx, 'Put the parameter in the Performance\nto set these.')
-  else
-    local inv = row.inv == true
-    local rv, v = ig.Checkbox(ctx, 'Invert (turns the other way)', inv)
-    if rv then params_update(tr, first.guid, first.idx, { inv = v }) end
-    local has_def = row.def ~= nil
-    local rv2, v2 = ig.Checkbox(ctx, 'Default mark', has_def)
-    if rv2 then
-      params_update(tr, first.guid, first.idx, { def = v2 and reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx) or false })
-    end
-    if has_def then
-      ig.TextDisabled(ctx, 'Put it at:')
-      local at = { { 'Now', nil }, { 'Minimum', 0 }, { 'Middle', 0.5 }, { 'Maximum', 1 } }
-      for i, a_ in ipairs(at) do
-        if i > 1 then ig.SameLine(ctx) end
-        if ig.SmallButton(ctx, a_[1] .. '##defat' .. i) then
-          params_update(tr, first.guid, first.idx,
-                        { def = a_[2] or reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx) })
+  ig.Spacing(ctx)
+  if param_section('Control', true) then
+    for _, o in ipairs(PARAM_CONTROL_OPTS) do
+      local on = #targets == 1 and ((o[1] == nil and not k.overridden) or (o[1] ~= nil and k.overridden and k.kind == o[1]))
+      local label = o[2] .. ((o[1] == nil and #targets == 1) and (' (now: ' .. PARAM_KIND_LABEL[k.guess] .. ')') or '')
+      if ig.RadioButton(ctx, label .. '##ctl' .. tostring(o[1]), on) then
+        for _, t in ipairs(targets) do
+          local f = gm[t.guid]
+          if f then param_set_override(tr, f, { guid = t.guid, idx = t.idx, pname = t.name }, o[1]) end
         end
       end
     end
+    ig.TextDisabled(ctx, 'Your choice is added to the training data.')
+    ig.Spacing(ctx)
+  end
+  if #targets ~= 1 then return end
+
+  -- how this row behaves (saved with the project: only for a parameter that is in the Performance)
+  if not row then
+    ig.TextDisabled(ctx, 'Put the parameter in the Performance\nto set the rest.')
+  else
+    if param_section('Direction and default', true) then
+      local inv = row.inv == true
+      local rv, v = ig.Checkbox(ctx, 'Invert (turns the other way)', inv)
+      if rv then params_update(tr, first.guid, first.idx, { inv = v }) end
+      local has_def = row.def ~= nil
+      local rv2, v2 = ig.Checkbox(ctx, 'Default mark', has_def)
+      if rv2 then
+        params_update(tr, first.guid, first.idx, { def = v2 and reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx) or false })
+      end
+      if has_def then
+        ig.AlignTextToFramePadding(ctx)
+        ig.TextDisabled(ctx, 'Put it at:')
+        local at = { { 'Now', nil }, { 'Minimum', 0 }, { 'Middle', 0.5 }, { 'Maximum', 1 } }
+        for i, a_ in ipairs(at) do
+          ig.SameLine(ctx)
+          if ig.SmallButton(ctx, a_[1] .. '##defat' .. i) then
+            params_update(tr, first.guid, first.idx,
+                          { def = a_[2] or reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx) })
+          end
+        end
+      end
+      ig.Spacing(ctx)
+    end
     -- Limit values: Min / Max (the controls that turn, param_limit_ok) or a list (param_list_ok)
     local can_mm, can_list = param_limit_ok(k.kind), param_list_ok(k.kind)
-    if can_mm or can_list then
+    if (can_mm or can_list) and param_section('Limit values', true) then
       local g, ix = first.guid, first.idx
       local function mm_on() params_update(tr, g, ix, { lim = 'mm', lo = row.lo or 0, hi = row.hi or 1 }) end
       local function list_on()
         params_update(tr, g, ix, { lim = 'list' })
         param_list_snap(tr, fxi, ix, row.vals)
       end
-      local rv3, v3 = ig.Checkbox(ctx, 'Limit values', row.lim ~= nil)
+      local rv3, v3 = ig.Checkbox(ctx, 'Use limits', row.lim ~= nil)
       if ig.IsItemHovered(ctx) then
         ig.SetTooltip(ctx, 'When it is moved from the Performance, the parameter only takes\nthe values between a Min and a Max, or the values of a list.')
       end
@@ -1093,22 +1130,36 @@ function draw_param_control_panel(P, fxs, gm, targets)
         end
         if #vals == 1 then ig.TextDisabled(ctx, 'A single value is always a drop-down.') end
       end
+      ig.Spacing(ctx)
     end
     -- the value curve (curves.lua), for encoders and width / Q bands
-    if param_curve_ok(k.kind) then
-      ig.Separator(ctx)
+    if param_curve_ok(k.kind) and param_section('Curve', true) then
       if row.lim == 'list' then
-        ig.TextDisabled(ctx, 'Curve: not with a list of values.')
+        ig.TextDisabled(ctx, 'Not with a list of values.')
       else
         local u = param_to_ctl(row, k.kind, reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx))
         local cvp = param_curve_of(row, k.kind)
         draw_curve_section(tr, row, cvp and curve_inv(cvp, u, param_row_memo(tr, row, fxi).cpos) or u)
       end
+      ig.Spacing(ctx)
     end
   end
 
   -- a preview of the control, and what REAPER says about the parameter
-  ig.Separator(ctx)
+  if param_section('Preview', true) then draw_param_preview(tr, fxi, first, row, k) end
+  if param_section('Details', false) then
+    local f = param_facts(tr, fxi, first.idx)
+    local _, now = reaper.TrackFX_GetFormattedParamValue(tr, fxi, first.idx)
+    ig.TextDisabled(ctx, ('Now: %s'):format(now or ''))
+    ig.TextDisabled(ctx, ('At the minimum: %s'):format(f.t0 or ''))
+    ig.TextDisabled(ctx, ('At the maximum: %s'):format(f.t1 or ''))
+    ig.TextDisabled(ctx, ('Range: %s to %s, step %s'):format(tostring(f.min), tostring(f.max), tostring(f.step)))
+    ig.TextDisabled(ctx, ('REAPER says toggle: %s'):format(f.toggle and 'yes' or 'no'))
+  end
+end
+
+-- the control as the Performance draws it, in the parameter window
+function draw_param_preview(tr, fxi, first, row, k)
   local norm = reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx)
   local px, py = ig.GetCursorScreenPos(ctx)
   local dl = ig.GetWindowDrawList(ctx)
@@ -1134,14 +1185,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
                  style = k.kind == 'pan' and 'pan' or (k.kind == 'band' or k.kind == 'qband') and 'band' or 'line', narrow = k.kind == 'qband', steps = k.steps, marks = pm, def = pd,
                  range = range })
   end
-  ig.Dummy(ctx, 1, 76)
-  local f = param_facts(tr, fxi, first.idx)
-  local _, now = reaper.TrackFX_GetFormattedParamValue(tr, fxi, first.idx)
-  ig.TextDisabled(ctx, ('Now: %s'):format(now or ''))
-  ig.TextDisabled(ctx, ('At the minimum: %s'):format(f.t0 or ''))
-  ig.TextDisabled(ctx, ('At the maximum: %s'):format(f.t1 or ''))
-  ig.TextDisabled(ctx, ('Range: %s to %s, step %s'):format(tostring(f.min), tostring(f.max), tostring(f.step)))
-  ig.TextDisabled(ctx, ('REAPER says toggle: %s'):format(f.toggle and 'yes' or 'no'))
+  ig.Dummy(ctx, 1, 72)
 end
 
 function draw_param_picker()
