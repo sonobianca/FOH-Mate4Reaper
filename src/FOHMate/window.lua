@@ -670,7 +670,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           draw_vtext(dl, vtxt, vx, ry, vw, rh, contrast_text(rc.sec_bg, rcol), not left, f, mm)
         end
         -- Limit values, list: a stepped encoder or a drop-down of the listed values (param_list_view)
-        local lv = not dead and kind and param_list_view(tr, fxi, r, kind.kind, mm, norm)
+        local lv = not dead and kind and param_list_view(tr, fxi, r, kind.kind, mm, norm, kind)
         if off then
           draw_encoder('k' .. k, kcx, kcy, kr, norm, { body = rc.sec_bg, col = rc.border, ptr = T.dim, s = f, static = true,
                        style = 'pan' })

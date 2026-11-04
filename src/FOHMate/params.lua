@@ -301,13 +301,20 @@ end
 -- the list as the row draws it, or nil without one: { items = { label, norm }, show, pos (the item
 -- nearest to the value now), def (the step of the default mark, 0..1) }. The texts are asked once per
 -- list, kept in the row's memo (mm).
-function param_list_view(tr, fxi, r, kind, mm, norm)
-  if r.lim ~= 'list' or not r.vals or #r.vals == 0 or not param_list_ok(kind) then return nil end
-  local key = r.vraw .. '|' .. tostring(r.vshow) .. '|' .. kind
+-- k: the parameter's kind (param_kind): a stepped parameter some of whose values are placeholders
+-- (sparse) is drawn like a list of its other values
+function param_list_view(tr, fxi, r, kind, mm, norm, k)
+  local own = r.lim == 'list' and r.vals and #r.vals > 0 and param_list_ok(kind)
+  if not own and not (k and k.sparse and kind == 'steps' and r.lim ~= 'list') then return nil end
+  local key = own and (r.vraw .. '|' .. tostring(r.vshow) .. '|' .. kind) or ('sparse|' .. #k.items)
   if mm.lkey ~= key then
     local items = {}
-    for i, v in ipairs(r.vals) do items[i] = { label = param_text_at(tr, fxi, r.idx, v), norm = v } end
-    mm.lkey, mm.lv = key, { items = items, show = param_list_show(r, kind, #items) }
+    if own then
+      for i, v in ipairs(r.vals) do items[i] = { label = param_text_at(tr, fxi, r.idx, v), norm = v } end
+    else
+      for i, it in ipairs(k.items) do items[i] = it end
+    end
+    mm.lkey, mm.lv = key, { items = items, show = own and param_list_show(r, kind, #items) or 'steps' }
   end
   local lv = mm.lv
   local function nearest(v)
@@ -674,6 +681,11 @@ function param_kind(tr, fxi, r)
   k = { kind = kind, guess = guess, overridden = overridden, label = PARAM_KIND_LABEL[kind], marks = marks,
         dual = not overridden and dual or nil }
   if (kind == 'steps' or kind == 'list') and items then
+    -- values that are placeholders ("Reserved"...) are left out; a stepped encoder that lost some then
+    -- goes through the others only (sparse: param_list_view)
+    local kept = {}
+    for _, it in ipairs(items) do if not param_hidden_value(it.label) then kept[#kept + 1] = it end end
+    if #kept >= 2 and #kept < #items then items, n, k.sparse = kept, #kept, true end
     k.steps, k.items = n, items
     k.label = ('%s (%d)'):format(PARAM_KIND_LABEL[kind], n)
   end
@@ -705,9 +717,55 @@ end
 -- adds to the selection, Shift-click selects a stretch. "Add to Performance" and "Remove from
 -- Performance" work on the selection; selecting an FX means all of its parameters.
 
--- parameters a plug-in only keeps as placeholders ("Reserved", "Reserved 2"...) are left out of the window
+-- Parameters that are not meant for the user are left out of the window: placeholders ("Reserved",
+-- "Unused", "-", nameless, "Param 12"), and the MIDI CC entries many VST3 plug-ins add by the hundred
+-- ("MIDI CC 0|1"). "Show hidden", next to the search in the window, brings them back.
 function param_hidden(name)
-  return name:lower():find('^%s*reserved') ~= nil
+  local l = name:lower():gsub('^%s+', ''):gsub('%s+$', '')
+  return l == '' or l:find('^%-+$') ~= nil or l:find('^reserved') ~= nil or l:find('^unused') ~= nil
+         or l:find('^midi cc%s*%d') ~= nil or l:find('^param%s*%d+$') ~= nil or l:find('^parameter%s*%d+$') ~= nil
+end
+
+-- the same for the values of a drop-down or a stepped parameter (a band type's "Reserved" choices)
+function param_hidden_value(label)
+  local l = label:lower():gsub('^%s+', ''):gsub('%s+$', '')
+  return l:find('^%-+$') ~= nil or l:find('^reserved') ~= nil or l:find('^unused') ~= nil
+end
+
+-- REAPER adds Bypass, Wet and Delta at the end of every FX's parameters: they get a branch of their
+-- own ("REAPER") at the end of the FX. names: the FX's parameter names (1-based); returns a set of indexes.
+REAPER_PARAMS = { bypass = true, wet = true, delta = true }
+function param_reaper_set(names)
+  local set = {}
+  for p = #names - 1, math.max(0, #names - 3), -1 do
+    if not REAPER_PARAMS[(names[p + 1] or ''):lower()] then break end
+    set[p] = true
+  end
+  return set
+end
+
+-- parameters hidden by hand ("Hide this parameter", right-click in the window), per plug-in, for every
+-- project: Data/FOHMate/param_hidden.txt (plug-in, parameter)
+PARAM_UHIDE = nil
+PARAM_UHIDE_FILE = LATDB_DIR .. '/param_hidden.txt'
+function param_uhidden(plug, pname)
+  if not PARAM_UHIDE then
+    PARAM_UHIDE = {}
+    for _, ln in ipairs(read_lines(PARAM_UHIDE_FILE)) do
+      if ln:find('\t', 1, true) then PARAM_UHIDE[ln] = true end
+    end
+  end
+  return PARAM_UHIDE[plug .. '\t' .. pname] == true
+end
+
+function param_set_uhidden(plug, pname, on)
+  param_uhidden(plug, pname)
+  PARAM_UHIDE[plug .. '\t' .. pname] = on or nil
+  local t = {}
+  for k in pairs(PARAM_UHIDE) do t[#t + 1] = k end
+  table.sort(t)
+  write_lines(PARAM_UHIDE_FILE, t)
+  if PARAM_PICK then PARAM_PICK.cache = nil end      -- the window's lists are made again
 end
 
 -- sel_key: a parameter to select at once ('p:' .. FX guid .. ':' .. index), for the row menu
@@ -722,14 +780,21 @@ end
 function param_pick_groups(fx)
   local count = {}
   for p = 0, #fx.names - 1 do
-    if not fx.hide[p] then
+    if not fx.hide[p] and not fx.reaper[p] then
       local _, lbl = param_group(fx.names[p + 1])
       if lbl then count[lbl] = (count[lbl] or 0) + 1 end
     end
   end
   local items, at = {}, {}
   for p = 0, #fx.names - 1 do
-    if not fx.hide[p] then
+    if fx.reaper[p] then
+      -- REAPER's own (Bypass, Wet, Delta): their branch, at the end
+      if not fx.hide[p] then
+        if not at.REAPER then at.REAPER = { group = 'REAPER', ps = {} } end
+        local ps = at.REAPER.ps
+        ps[#ps + 1] = p
+      end
+    elseif not fx.hide[p] then
       local _, lbl = param_group(fx.names[p + 1])
       if lbl and count[lbl] > 1 then
         if not at[lbl] then at[lbl] = { group = lbl, ps = {} }; items[#items + 1] = at[lbl] end
@@ -740,6 +805,7 @@ function param_pick_groups(fx)
       end
     end
   end
+  if at.REAPER then items[#items + 1] = at.REAPER end
   fx.items = items
 end
 
@@ -1040,7 +1106,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
   local body = ig.GetStyleColor(ctx, ig.Col_FrameBg())
   local ring = ig.GetStyleColor(ctx, ig.Col_Text())
   local cx, cy, r = px + 36, py + 34, 20
-  local lv = row and param_list_view(tr, fxi, row, k.kind, param_row_memo(tr, row, fxi), norm)
+  local lv = row and param_list_view(tr, fxi, row, k.kind, param_row_memo(tr, row, fxi), norm, k)
   if k.kind == 'toggle' then
     ig.DrawList_AddCircleFilled(dl, cx, cy, r, body, 0)
     ig.DrawList_AddCircle(dl, cx, cy, r, ring, 0, 2)
@@ -1082,13 +1148,17 @@ function draw_param_picker()
       local g = reaper.TrackFX_GetFXGUID(tr, it.fx)
       local f = P.cache and P.cache[g]
       if not f or f.fx ~= it.fx or f.name ~= it.name then
-        local names, hide, nvis = {}, {}, 0
+        -- hidden: by the rules above (auto) or by hand (uhid); shown anyway with Show hidden
+        local names, hide, auto, uhid, nvis = {}, {}, {}, {}, 0
+        local plug = param_plugin_key(it.name)
         for p = 0, reaper.TrackFX_GetNumParams(tr, it.fx) - 1 do
           local _, nm = reaper.TrackFX_GetParamName(tr, it.fx, p, '')
           names[p + 1] = nm
-          if param_hidden(nm) then hide[p] = true else nvis = nvis + 1 end
+          auto[p], uhid[p] = param_hidden(nm), param_uhidden(plug, nm)
+          if (auto[p] or uhid[p]) and not P.show_hidden then hide[p] = true else nvis = nvis + 1 end
         end
-        f = { guid = g, fx = it.fx, name = it.name, names = names, hide = hide, nvis = nvis }
+        f = { guid = g, fx = it.fx, name = it.name, names = names, hide = hide, auto = auto, uhid = uhid,
+              plug = plug, nvis = nvis, reaper = param_reaper_set(names) }
         param_pick_groups(f)
         P.cache = P.cache or {}
         P.cache[g] = f
@@ -1096,9 +1166,16 @@ function draw_param_picker()
       fxs[#fxs + 1] = f
     end
 
-    ig.SetNextItemWidth(ctx, -1)
+    ig.SetNextItemWidth(ctx, -ig.CalcTextSize(ctx, 'Show hidden') - ig.GetFrameHeight(ctx) - 16)
     local rv, ftxt = ig.InputTextWithHint(ctx, '##pf', 'Search parameters', P.filter)
     if rv then P.filter = ftxt end
+    ig.SameLine(ctx)
+    local rvh, vh = ig.Checkbox(ctx, 'Show hidden', P.show_hidden == true)
+    if rvh then P.show_hidden, P.cache = vh, nil end
+    if ig.IsItemHovered(ctx) then
+      ig.SetTooltip(ctx, 'Also list the parameters that are hidden: placeholders ("Reserved"...), MIDI CC\n'
+                      .. 'entries, and those you hid (right-click a parameter > Hide this parameter).')
+    end
     local low = P.filter:lower()
 
     local have = {}
@@ -1190,9 +1267,22 @@ function draw_param_picker()
                     click(key, has_mod('shift'), has_mod('ctrl'))
                   end
                 end
+                -- right-click: hide it (for this plug-in, everywhere), or show it again
+                if ig.BeginPopupContextItem(ctx, 'pph' .. key) then
+                  if fx.uhid[p] then
+                    if ig.MenuItem(ctx, 'Show this parameter again') then param_set_uhidden(fx.plug, nm, false) end
+                  elseif fx.auto[p] then
+                    ig.TextDisabled(ctx, 'Hidden by FOH-Mate (a placeholder or a MIDI CC entry)')
+                  elseif ig.MenuItem(ctx, 'Hide this parameter') then
+                    param_set_uhidden(fx.plug, nm, true)
+                  end
+                  ig.EndPopup(ctx)
+                end
                 local dl2 = ig.GetWindowDrawList(ctx)
                 draw_check(dl2, ix + 4, iy + 2, box, TXT, inn)
-                ig.DrawList_AddText(dl2, ix + box + 12, iy, TXT, fit_text(nm, iw * 0.45 - box))
+                local hid = fx.auto[p] or fx.uhid[p]
+                ig.DrawList_AddText(dl2, ix + box + 12, iy, hid and T.dim or TXT,
+                                    fit_text(nm .. (hid and '  (hidden)' or ''), iw * 0.45 - box))
                 -- the kind of value and its value now
                 local kind = param_kind(tr, fxi, { guid = fx.guid, idx = p, pname = nm })
                 local _, txt = reaper.TrackFX_GetFormattedParamValue(tr, fxi, p)
