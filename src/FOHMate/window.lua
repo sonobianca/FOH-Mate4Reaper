@@ -1312,7 +1312,7 @@ function draw_settings()
         if S.settings_focus == group then
           ig.SetNextItemOpen(ctx, true, ig.Cond_Always())
         end
-        group_open = ig.CollapsingHeader(ctx, group, nil, (group == 'Colors') and ig.TreeNodeFlags_DefaultOpen() or 0)
+        group_open = section_header(group, group == 'Colors')
         if S.settings_focus == group then
           ig.SetScrollHereY(ctx, 0)
           S.settings_focus = nil

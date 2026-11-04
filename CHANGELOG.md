@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Settings: the sections have the same bold, slightly bigger titles as the parameter window (every folding section in FOH-Mate now looks this way). Parameter window: the tree is indented the right way: an FX's parameters sit one step further in than the FX, like its groups (REAPER, Band 1...), and a group's parameters one step further in than the group. The kind and value column lines up on every line, however deep.
+
 - Parameter window, Curve: right-click the graph of a custom curve (not on a point) > **Reset the curve (a straight line)** starts it again from its two ends. Right-clicking a point still removes it.
 
 - Parameter window: the right side is in sections that fold, each with a clear title a little bigger than the text: **Control**, **Direction and default**, **Limit values**, **Curve**, **Preview** and **Details** (what REAPER says about the parameter, folded at first). The parameter's name at the top is bigger and bold; right under it, a box for its **nickname** (set when you leave the box, or press Enter; empty gives back its own name; only for a parameter in the Performance). The Limit values check box is now called **Use limits**.

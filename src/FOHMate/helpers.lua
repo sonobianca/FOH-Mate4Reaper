@@ -206,6 +206,15 @@ function floating_host()
   return best
 end
 
+-- A section that folds, the way every one in FOH-Mate looks: its title bold and a little bigger
+-- than the text (SECT_FONT_SIZE). open: unfolded at first. Returns true while it is unfolded.
+function section_header(title, open)
+  local pushed = push_bold(sect_font, SECT_FONT_SIZE)
+  local shown = ig.CollapsingHeader(ctx, title, nil, open and ig.TreeNodeFlags_DefaultOpen() or 0)
+  if pushed then ig.PopFont(ctx) end
+  return shown
+end
+
 -- id: only for popups that are not critical. The box then has a "Don't show this
 -- again" checkbox; once hidden, the popup is answered "yes" without showing.
 -- alt: a second answer, { label = ..., fn = ... }, as a button between the first one and Cancel.

@@ -907,14 +907,6 @@ function fx_name_type(name)
   return name, nil
 end
 
--- a section of the parameter window: a title a little bigger than the text, that folds the section
-function param_section(title, open)
-  local pushed = push_bold(sect_font, SECT_FONT_SIZE)
-  local shown = ig.CollapsingHeader(ctx, title, nil, open and ig.TreeNodeFlags_DefaultOpen() or 0)
-  if pushed then ig.PopFont(ctx) end
-  return shown
-end
-
 -- the right-hand section: pick and set up the control of the selected parameter(s)
 function draw_param_control_panel(P, fxs, gm, targets)
   local tr = P.tr
@@ -958,7 +950,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
   local r1 = { guid = first.guid, idx = first.idx, pname = first.name }
   local k = param_kind(tr, fxi, r1)
   ig.Spacing(ctx)
-  if param_section('Control', true) then
+  if section_header('Control', true) then
     for _, o in ipairs(PARAM_CONTROL_OPTS) do
       local on = #targets == 1 and ((o[1] == nil and not k.overridden) or (o[1] ~= nil and k.overridden and k.kind == o[1]))
       local label = o[2] .. ((o[1] == nil and #targets == 1) and (' (now: ' .. PARAM_KIND_LABEL[k.guess] .. ')') or '')
@@ -978,7 +970,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
   if not row then
     ig.TextDisabled(ctx, 'Put the parameter in the Performance\nto set the rest.')
   else
-    if param_section('Direction and default', true) then
+    if section_header('Direction and default', true) then
       local inv = row.inv == true
       local rv, v = ig.Checkbox(ctx, 'Invert (turns the other way)', inv)
       if rv then params_update(tr, first.guid, first.idx, { inv = v }) end
@@ -1003,7 +995,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
     end
     -- Limit values: Min / Max (the controls that turn, param_limit_ok) or a list (param_list_ok)
     local can_mm, can_list = param_limit_ok(k.kind), param_list_ok(k.kind)
-    if (can_mm or can_list) and param_section('Limit values', true) then
+    if (can_mm or can_list) and section_header('Limit values', true) then
       local g, ix = first.guid, first.idx
       local function mm_on() params_update(tr, g, ix, { lim = 'mm', lo = row.lo or 0, hi = row.hi or 1 }) end
       local function list_on()
@@ -1133,7 +1125,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
       ig.Spacing(ctx)
     end
     -- the value curve (curves.lua), for encoders and width / Q bands
-    if param_curve_ok(k.kind) and param_section('Curve', true) then
+    if param_curve_ok(k.kind) and section_header('Curve', true) then
       if row.lim == 'list' then
         ig.TextDisabled(ctx, 'Not with a list of values.')
       else
@@ -1146,8 +1138,8 @@ function draw_param_control_panel(P, fxs, gm, targets)
   end
 
   -- a preview of the control, and what REAPER says about the parameter
-  if param_section('Preview', true) then draw_param_preview(tr, fxi, first, row, k) end
-  if param_section('Details', false) then
+  if section_header('Preview', true) then draw_param_preview(tr, fxi, first, row, k) end
+  if section_header('Details', false) then
     local f = param_facts(tr, fxi, first.idx)
     local _, now = reaper.TrackFX_GetFormattedParamValue(tr, fxi, first.idx)
     ig.TextDisabled(ctx, ('Now: %s'):format(now or ''))
@@ -1260,6 +1252,11 @@ function draw_param_picker()
     local avail_w, avail_h = ig.GetContentRegionAvail(ctx)
     local foot = ig.GetFrameHeightWithSpacing(ctx) + 4
     if ig.BeginChild(ctx, 'pptree', avail_w * 0.62, avail_h - foot) then
+      -- the kind and value column, at the same place on every line (however deep)
+      local colx = ig.GetCursorScreenPos(ctx) + select(1, ig.GetContentRegionAvail(ctx)) * 0.5
+      -- a parameter's check box sits where a branch's would, at the same depth: under an FX or a
+      -- group, they are all one step further in than its own check box
+      local tls = ig.GetTreeNodeToLabelSpacing(ctx)
       local rname = track_name(tr)
       ig.SetNextItemOpen(ctx, true, ig.Cond_Once())
       if ig.TreeNode(ctx, rname .. '##rack') then
@@ -1313,8 +1310,9 @@ function draw_param_picker()
                 local ix, iy = ig.GetItemRectMin(ctx)
                 local iw = ig.GetItemRectSize(ctx)
                 local inn = have[fx.guid .. ':' .. p]
+                local bx = ix + tls
                 if clicked then
-                  if mx >= ix and mx <= ix + box + 8 then   -- the check box: this parameter in or out
+                  if mx >= bx - 4 and mx <= bx + box + 4 then   -- the check box: this parameter in or out
                     params_apply(tr, { { guid = fx.guid, idx = p, name = nm } }, not inn)
                   else
                     click(key, has_mod('shift'), has_mod('ctrl'))
@@ -1332,15 +1330,15 @@ function draw_param_picker()
                   ig.EndPopup(ctx)
                 end
                 local dl2 = ig.GetWindowDrawList(ctx)
-                draw_check(dl2, ix + 4, iy + 2, box, TXT, inn)
+                draw_check(dl2, bx, iy + 2, box, TXT, inn)
                 local hid = fx.auto[p] or fx.uhid[p]
-                ig.DrawList_AddText(dl2, ix + box + 12, iy, hid and T.dim or TXT,
-                                    fit_text(nm .. (hid and '  (hidden)' or ''), iw * 0.45 - box))
+                ig.DrawList_AddText(dl2, bx + box + 8, iy, hid and T.dim or TXT,
+                                    fit_text(nm .. (hid and '  (hidden)' or ''), colx - bx - box - 16))
                 -- the kind of value and its value now
                 local kind = param_kind(tr, fxi, { guid = fx.guid, idx = p, pname = nm })
                 local _, txt = reaper.TrackFX_GetFormattedParamValue(tr, fxi, p)
                 local right = ('%s:  %s'):format(kind.label, txt or '')
-                ig.DrawList_AddText(dl2, ix + iw * 0.5, iy, T.dim, fit_text(right, iw * 0.5 - 6))
+                ig.DrawList_AddText(dl2, colx, iy, T.dim, fit_text(right, ix + iw - colx - 6))
               else
                 ig.Dummy(ctx, 1, lh)
               end
