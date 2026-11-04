@@ -940,7 +940,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
           ig.TextDisabled(ctx, 'The control stops at Min and Max.')
         end
       elseif row.lim == 'list' and can_list then
-        -- the values, in the list's order (any order): move up, move down, remove
+        -- the values, in the list's order (any order), with on the right: move up, move down, remove (red)
         local vals = row.vals or {}
         local function put(nv)
           params_update(tr, g, ix, { vals = #nv > 0 and nv or false })
@@ -948,8 +948,14 @@ function draw_param_control_panel(P, fxs, gm, targets)
         end
         local function copy() local nv = {}; for i, v in ipairs(vals) do nv[i] = v end; return nv end
         if #vals == 0 then ig.TextDisabled(ctx, 'No values yet: add some below.') end
+        local bw = ig.GetFrameHeight(ctx)
+        local sp = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
+        local bx = ig.GetCursorPosX(ctx) + math.max(0, select(1, ig.GetContentRegionAvail(ctx)) - 3 * bw - 2 * sp)
         for i, v in ipairs(vals) do
           ig.PushID(ctx, 'lv' .. i)
+          ig.AlignTextToFramePadding(ctx)
+          ig.Text(ctx, param_text_at(tr, fxi, ix, v))
+          ig.SameLine(ctx, bx)
           if ig.ArrowButton(ctx, 'up', ig.Dir_Up()) and i > 1 then
             local nv = copy(); nv[i], nv[i - 1] = nv[i - 1], nv[i]; put(nv)
           end
@@ -958,10 +964,13 @@ function draw_param_control_panel(P, fxs, gm, targets)
             local nv = copy(); nv[i], nv[i + 1] = nv[i + 1], nv[i]; put(nv)
           end
           ig.SameLine(ctx)
-          if ig.Button(ctx, 'x') then local nv = copy(); table.remove(nv, i); put(nv) end
+          ig.PushStyleColor(ctx, ig.Col_Button(), 0xB03030FF)
+          ig.PushStyleColor(ctx, ig.Col_ButtonHovered(), 0xD04040FF)
+          ig.PushStyleColor(ctx, ig.Col_ButtonActive(), 0x902020FF)
+          ig.PushStyleColor(ctx, ig.Col_Text(), 0xFFFFFFFF)
+          if ig.Button(ctx, 'x', bw, bw) then local nv = copy(); table.remove(nv, i); put(nv) end
+          ig.PopStyleColor(ctx, 4)
           if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Remove this value from the list') end
-          ig.SameLine(ctx)
-          ig.Text(ctx, ('%d.  %s'):format(i, param_text_at(tr, fxi, ix, v)))
           ig.PopID(ctx)
         end
         -- adding, at the end: the value it has now, one of the plug-in's own values, or one picked
