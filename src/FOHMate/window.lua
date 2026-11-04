@@ -643,7 +643,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         -- the control, a little further out than the middle of its box to leave room for the marks;
         -- in the middle when it has the arc of its limits (Limit values without the full range), which
         -- reaches farther out: it then stays inside the column and clear of the value box
-        local arc = r.lo and kind and param_limit_ok(kind.kind) and not (r.fit and param_fit_ok(kind.kind))
+        local arc = r.lim == 'mm' and kind and param_limit_ok(kind.kind) and not (r.fit and param_fit_ok(kind.kind))
         local kcx = kx + cd / 2 + (arc and 0 or (left and 1 or -1) * 3 * f)
         local kcy, kr = ry + rh / 2, cd / 2 - 6 * f
         local dead = missing or not fxi
@@ -669,6 +669,8 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           ig.DrawList_AddRect(dl, vx, ry, vx + vw, ry + rh, rc.sec_bd, ROUNDING, 0, 1)
           draw_vtext(dl, vtxt, vx, ry, vw, rh, contrast_text(rc.sec_bg, rcol), not left, f, mm)
         end
+        -- Limit values, list: a stepped encoder or a drop-down of the listed values (param_list_view)
+        local lv = not dead and kind and param_list_view(tr, fxi, r, kind.kind, mm, norm)
         if off then
           draw_encoder('k' .. k, kcx, kcy, kr, norm, { body = rc.sec_bg, col = rc.border, ptr = T.dim, s = f, static = true,
                        style = 'pan' })
@@ -677,6 +679,13 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           draw_encoder('k' .. k, kcx, kcy, kr, 0, { body = rc.sec_bg, col = rc.border, ptr = T.dim, s = f, static = true })
           ig.DrawList_AddRectFilled(dl, rx, ry, rx + rw2, ry + rh, (c.bg & 0xFFFFFF00) | 0xB0, ROUNDING)
           if over then ig.SetTooltip(ctx, 'This parameter is not there any more (the FX was removed or changed).') end
+        elseif lv and lv.show == 'list' then
+          newv = draw_dropdown('k' .. k, kcx, kcy, kr, lv.items[lv.pos].norm, lv.items, { body = rc.sec_bg, col = rc.border, ptr = T.dots, s = f })
+        elseif lv then
+          local n_ = #lv.items
+          local c_ = draw_encoder('k' .. k, kcx, kcy, kr, (lv.pos - 1) / (n_ - 1), { body = rc.sec_bg, col = rc.border, ptr = T.dots, s = f,
+                                  style = 'line', steps = n_, def = lv.def })
+          if c_ then newv = lv.items[math.floor(c_ * (n_ - 1) + 0.5) + 1].norm end
         elseif kind.kind == 'list' then
           newv = draw_dropdown('k' .. k, kcx, kcy, kr, norm, kind.items, { body = rc.sec_bg, col = rc.border, ptr = T.dots, s = f })
         else
@@ -810,7 +819,8 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           end
           ig.EndMenu(ctx)
         end
-        if mfx and param_limit_ok(param_kind(tr, mfx, mr).kind) and ig.MenuItem(ctx, 'Limit values...') then
+        local mkind = mfx and param_kind(tr, mfx, mr).kind
+        if mfx and (param_limit_ok(mkind) or param_list_ok(mkind)) and ig.MenuItem(ctx, 'Limit values...') then
           param_picker_open(tr, 'p:' .. mr.guid .. ':' .. mr.idx)
         end
         ig.Separator(ctx)
