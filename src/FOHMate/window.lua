@@ -702,7 +702,8 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
             local marks, def, range = param_ctl_view(r, ekind, kind.marks)
             newv = draw_encoder('k' .. k, kcx, kcy, kr, shown, { body = rc.sec_bg, col = rc.border, ptr = T.dots, s = f,
                                 style = ekind == 'pan' and 'pan' or (ekind == 'band' or ekind == 'qband') and 'band' or 'line', narrow = ekind == 'qband', steps = kind.steps, marks = marks,
-                                def = def, range = range, curve = cv, pos = cpos, def_pos = cv and def and curve_inv(cv, def, cpos) })
+                                def = def, range = range, curve = cv, pos = cpos, def_pos = cv and def and curve_inv(cv, def, cpos),
+                                show = mm })
           end
           if newv then
             if cv then newv = curve_ctl_value(cv, newv, mm, kind.steps) end

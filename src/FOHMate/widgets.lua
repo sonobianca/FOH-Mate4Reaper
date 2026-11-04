@@ -516,7 +516,6 @@ end
 -- (minimum) clockwise to the 4:30 mark (maximum), 270 degrees, and stops there.
 
 ENC = {}                    -- per encoder: what the current drag started from
-ENC_SHOW = {}               -- per encoder (its ImGui ID): where its pointer was drawn, and when
 ENC_DEFAULT_COL = 0xFFD21EFF   -- the default value's mark: yellow
 ENC_A0, ENC_A1 = math.rad(135), math.rad(405)   -- screen angles of 7:30 and 4:30 (y points down)
 
@@ -604,16 +603,15 @@ function draw_encoder(id, cx, cy, r, norm, o)
   -- the pointer moves at most so far per frame (the whole range in about a sixth of a second): a value
   -- that jumps (a steep curve dragged quickly, the plug-in, automation) sweeps over the top, instead of
   -- seeming to pass under the encoder. Only the drawing; the value is set at once.
-  if not o.static then
-    local key, now = ig.GetID(ctx, id), reaper.time_precise()
-    local ds = ENC_SHOW[key]
-    if ds then
-      local step = math.max(0.02, (now - ds.t) * 6)
-      if math.abs(v - ds.v) > step then v = ds.v + (v > ds.v and step or -step) end
-      ds.v, ds.t = v, now
-    else
-      ENC_SHOW[key] = { v = v, t = now }
+  -- (o.show: a table of the caller's, one per encoder, that keeps where the pointer was drawn and when)
+  local ds = o.show
+  if ds then
+    local now = reaper.time_precise()
+    if ds.sv then
+      local step = math.max(0.02, (now - ds.st) * 6)
+      if math.abs(v - ds.sv) > step then v = ds.sv + (v > ds.sv and step or -step) end
     end
+    ds.sv, ds.st = v, now
   end
   ig.DrawList_AddCircleFilled(dl, cx, cy, r, o.body, 0)
   if o.range then

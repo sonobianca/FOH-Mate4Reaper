@@ -6,7 +6,7 @@ New items get the next free number (next: 133).
 
 ## Open
 
-- [ ] 132. (0.14.83) The pointer never seems to go under the encoder: with a steep curve (like the one in your screenshot), drag fast across the steep part: the pointer sweeps over the top, quickly. Also: move the parameter from minimum to maximum in the plug-in, or with automation: a quick sweep over the top. Does the short lag (about a sixth of a second for the whole range) bother you while dragging normally? Width / Q bands and pans too. CPU unchanged.
+- [ ] 132. (0.14.84; 0.14.83 stopped on an error: GetID is not in ReaImGui) The pointer never seems to go under the encoder: with a steep curve (like the one in your screenshot), drag fast across the steep part: the pointer sweeps over the top, quickly. Also: move the parameter from minimum to maximum in the plug-in, or with automation: a quick sweep over the top. Does the short lag (about a sixth of a second for the whole range) bother you while dragging normally? Width / Q bands and pans too. CPU unchanged.
 
 - [ ] 131. (0.14.82) The encoder follows the curve: with Wave or Up and down, drag one way only: the pointer (or the band, for a width / Q band) swings up and down with the value, smoothly, and the value box agrees. Let go and drag again: it carries on from where it was along the curve, no jump. Move the parameter in the plug-in: the encoder shows the new value. dB marks and the default mark are back on curved encoders, where those values are; double-click goes to the default. Min / Max without full range: the arc is back, and the pointer never goes past it. Stepped encoder with a curve: the pointer jumps from value to value as the curve says.
 
