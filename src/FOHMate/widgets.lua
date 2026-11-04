@@ -549,7 +549,7 @@ end
 --    s (scale), style ('line' pointer, or 'pan' for a pan or balance, or 'band' for a width: a band centered at the top, wider with the value),
 --    steps (n values: stepped, with a mark per value), marks (positions 0..1 of extra marks, like a fader's), def (default position 0..1, yellow mark),
 --    range ({ lo, hi }: it stops there, shown by an arc in the link color outside the marks, with a handle
---    from each end to the ring), static (draw only, no mouse).
+--    from each end to the ring; for a band, two arcs: where its edges can go), static (draw only, no mouse).
 -- Returns the new position 0..1 when the user changed it.
 function draw_encoder(id, cx, cy, r, norm, o)
   local s = o.s or 1
@@ -596,12 +596,24 @@ function draw_encoder(id, cx, cy, r, norm, o)
   if o.range then
     -- the limits: under the ring and every mark, far enough out for the marks to sit between it and the ring
     local ra = r + 8.5 * s
-    local a, b = ENC_A0 + (ENC_A1 - ENC_A0) * o.range[1], ENC_A0 + (ENC_A1 - ENC_A0) * o.range[2]
     -- one line: from the ring out, along the arc, and back in to the ring, so the corners join cleanly
-    ig.DrawList_PathLineTo(dl, cx + math.cos(a) * r, cy + math.sin(a) * r)
-    ig.DrawList_PathArcTo(dl, cx, cy, ra, a, b)
-    ig.DrawList_PathLineTo(dl, cx + math.cos(b) * r, cy + math.sin(b) * r)
-    ig.DrawList_PathStroke(dl, T.link, 0, 1.5 * s)
+    local function limit_arc(a, b)
+      ig.DrawList_PathLineTo(dl, cx + math.cos(a) * r, cy + math.sin(a) * r)
+      ig.DrawList_PathArcTo(dl, cx, cy, ra, a, b)
+      ig.DrawList_PathLineTo(dl, cx + math.cos(b) * r, cy + math.sin(b) * r)
+      ig.DrawList_PathStroke(dl, T.link, 0, 1.5 * s)
+    end
+    if o.style == 'band' then
+      -- a band: where its two edges can go, one arc on each side of the top
+      local function half(x) return band_half(o.narrow and 1 - x or x) end
+      local h1, h2 = half(o.range[1]), half(o.range[2])
+      if h1 > h2 then h1, h2 = h2, h1 end
+      local mid = (ENC_A0 + ENC_A1) / 2
+      limit_arc(mid - h2, mid - h1)
+      limit_arc(mid + h1, mid + h2)
+    else
+      limit_arc(ENC_A0 + (ENC_A1 - ENC_A0) * o.range[1], ENC_A0 + (ENC_A1 - ENC_A0) * o.range[2])
+    end
   end
   ig.DrawList_AddCircle(dl, cx, cy, r, hover and mix(o.col, WHITE, 0.3) or o.col, 0, 2 * s)
   enc_tick(dl, cx, cy, r, ENC_A0, o.col, s)

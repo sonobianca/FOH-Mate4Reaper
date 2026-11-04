@@ -2,9 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 127).
+New items get the next free number (next: 128).
 
 ## Open
+
+- [ ] 127. (0.14.78) Min / Max on a width band and a Q band, full range off: instead of one arc, two mirrored arcs (each with its two handles), left and right of the top, covering only where the band's edges can go: the band at Min ends at their inner handles, at Max at their outer handles. Try Min at the minimum (the arcs almost meet at the top) and Max at the maximum (they reach the min/max marks). With Invert. With full range on: no arcs. An encoder and a pan keep the single arc.
 
 - [ ] 126. (0.14.77) Limit values, list. (a) Right-click a parameter > Limit values..., tick Limit values: for an encoder there are two choices, Min / Max and List of values; for a drop-down parameter only the list (no Min / Max); not offered for a toggle. (b) List of values: "No values yet"; add with **Add the value it has now** (turn it in the plug-in first), with the slider + **Add** (shows the plug-in's values), and for a stepped or drop-down parameter with **Add one of its values...**. The same value can't be added twice. Values show with the plug-in's text, numbered. Up/down arrows reorder, x removes. (c) Make a list out of order, like 1 kHz, 250 Hz, 4 kHz, 632 Hz: the row becomes a **stepped encoder** with 4 steps, which go through the values in that order; the plug-in and the value box follow. (d) Show as: Automatic (says what it chose), Stepped encoder, Drop-down: the drop-down lists the values in the list's order with the current one highlighted. More than 12 values, or a drop-down parameter: Automatic picks Drop-down. One value: always a drop-down. (e) When the list changes or you switch to it, a value that's not in the list jumps to the nearest one. (f) Default mark on a stepped list: on the nearest step; double-click goes there. (g) Switch to Min / Max and back, untick and tick again: the list and the Min / Max are both kept. (h) The preview in the window shows the stepped encoder or the drop-down. (i) Save, close, reopen; duplicate the rack: kept. Rows saved by 0.14.72 to 0.14.76 with a Min / Max still have it.
 
