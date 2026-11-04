@@ -2,9 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 131).
+New items get the next free number (next: 132).
 
 ## Open
+
+- [ ] 131. (0.14.82) The encoder follows the curve: with Wave or Up and down, drag one way only: the pointer (or the band, for a width / Q band) swings up and down with the value, smoothly, and the value box agrees. Let go and drag again: it carries on from where it was along the curve, no jump. Move the parameter in the plug-in: the encoder shows the new value. dB marks and the default mark are back on curved encoders, where those values are; double-click goes to the default. Min / Max without full range: the arc is back, and the pointer never goes past it. Stepped encoder with a curve: the pointer jumps from value to value as the curve says.
 
 - [ ] 130. (0.14.81) Value curves. In the parameter window, select a parameter in the Performance (an encoder): under Limit values, a **Curve** menu and a graph. (a) Linear: a straight diagonal, the blue dot follows the encoder as you turn it (and when moved in the plug-in). (b) Ease in / Ease out + Strength: the curve bends; turning the encoder, the value changes slowly then fast (or the other way); the value box and the plug-in agree. (c) Custom points: starts from the current curve; click to add a point, drag points (the ends only move up and down, the others stay between their neighbours), right-click removes one; Smooth on/off. (d) Saved curves in the Curve menu: the examples (S curve, Fine in the middle, Up and down, Wave, Zigzag, Ease in/out). With **Wave**, one turn of the encoder makes the value go up and down twice; turn back and forth: the encoder doesn't jump around. Move the parameter in the plug-in: the encoder goes to a sensible place. (e) **Save this curve...** asks a name; it appears in the menu, also for other parameters, and after restarting FOH-Mate. Same name: replaced. **Delete a saved curve...**: asks, then it's gone. (f) A stepped encoder with a curve: still on steps, values follow the curve. A width band and a Q band with a curve. A pan, toggle or drop-down: no Curve section. A list of values: "not with a list of values". (g) With Min / Max + full range: the curve fits between Min and Max. Without full range: no arc, the value still stays inside. With Invert. (h) Default mark and double-click with a curve. (i) Save, reopen, duplicate the rack: the curve is kept. CPU with several rows with curves.
 

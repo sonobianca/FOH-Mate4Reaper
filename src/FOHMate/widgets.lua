@@ -550,6 +550,9 @@ end
 --    steps (n values: stepped, with a mark per value), marks (positions 0..1 of extra marks, like a fader's), def (default position 0..1, yellow mark),
 --    range ({ lo, hi }: it stops there, shown by an arc in the link color outside the marks, with a handle
 --    from each end to the ring; for a band, two arcs: where its edges can go), static (draw only, no mouse).
+--    With a curve (o.curve, curves.lua), what is dragged is the position along the curve (o.pos), and
+--    what is drawn is the value the curve gives (norm): the encoder rises and falls with the curve as
+--    it is turned one way. o.def is then a value, o.def_pos where double-click goes.
 -- Returns the new position 0..1 when the user changed it.
 function draw_encoder(id, cx, cy, r, norm, o)
   local s = o.s or 1
@@ -563,12 +566,14 @@ function draw_encoder(id, cx, cy, r, norm, o)
     hover = ig.IsItemHovered(ctx)
     local st = ENC[id]
     if not st then st = {}; ENC[id] = st end
-    if ig.IsItemActivated(ctx) then st.raw, st.a = norm, nil end
+    local base = o.pos or norm                         -- where the drag starts from
+    if ig.IsItemActivated(ctx) then st.raw, st.a = base, nil end
     if hover and ig.IsMouseDoubleClicked(ctx, 0) and o.def then
-      changed, st.raw = o.def, o.def
+      local d = o.def_pos or o.def
+      changed, st.raw = d, d
     elseif ig.IsItemActive(ctx) then
       local mx, my = ig.GetMousePos(ctx)
-      local raw = st.raw or norm
+      local raw = st.raw or base
       if CFG.enc_mode == 'circle' then
         local a = math.atan(my - cy, mx - cx)
         if st.a then
@@ -584,14 +589,17 @@ function draw_encoder(id, cx, cy, r, norm, o)
         raw = raw - dy * k
       end
       raw = math.max(0, math.min(1, raw))
-      if o.range then raw = math.max(o.range[1], math.min(o.range[2], raw)) end
+      if o.range and not o.curve then raw = math.max(o.range[1], math.min(o.range[2], raw)) end
       st.raw = raw
       local v = raw
       if o.steps and o.steps > 1 then v = math.floor(raw * (o.steps - 1) + 0.5) / (o.steps - 1) end
-      if v ~= norm then changed = v end
+      if v ~= base then changed = v end
     end
   end
-  local v = changed or norm
+  local v = norm
+  if changed then v = o.curve and curve_eval(o.curve, changed) or changed end
+  -- with a curve and limits, the value is kept inside them by the caller: draw it there
+  if o.curve and o.range then v = math.max(o.range[1], math.min(o.range[2], v)) end
   ig.DrawList_AddCircleFilled(dl, cx, cy, r, o.body, 0)
   if o.range then
     -- the limits: under the ring and every mark, far enough out for the marks to sit between it and the ring

@@ -644,7 +644,6 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         -- in the middle when it has the arc of its limits (Limit values without the full range), which
         -- reaches farther out: it then stays inside the column and clear of the value box
         local arc = r.lim == 'mm' and kind and param_limit_ok(kind.kind) and not (r.fit and param_fit_ok(kind.kind))
-                    and not param_curve_of(r, kind.kind)
         local kcx = kx + cd / 2 + (arc and 0 or (left and 1 or -1) * 3 * f)
         local kcy, kr = ry + rh / 2, cd / 2 - 6 * f
         local dead = missing or not fxi
@@ -691,21 +690,19 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           newv = draw_dropdown('k' .. k, kcx, kcy, kr, norm, kind.items, { body = rc.sec_bg, col = rc.border, ptr = T.dots, s = f })
         else
           -- the control shows (and sets) the value through the row's invert and limits (param_to_ctl),
-          -- and its curve (curves.lua): the control turns evenly, the value follows the curve
+          -- and its curve (curves.lua): the drag moves evenly along the curve (cpos), the encoder
+          -- shows the value it gives, rising and falling with the curve
           local cv = param_curve_of(r, ekind)
           local shown = param_to_ctl(r, ekind, norm)
-          if cv then shown = curve_ctl_pos(cv, shown, mm, kind.steps) end
+          local cpos = cv and curve_ctl_pos(cv, shown, mm, kind.steps)
           if kind.kind == 'toggle' then
             local d = 2 * (kr + 3 * f)
             if circle_check(dl, 'k' .. k, kcx - d / 2, kcy - d / 2, d, shown > 0.5) then newv = shown > 0.5 and 0 or 1 end
           else
             local marks, def, range = param_ctl_view(r, ekind, kind.marks)
-            -- with a curve: no dB marks or limits arc (they'd be in the wrong places), the default where
-            -- the curve first reaches it
-            if cv then marks, range, def = nil, nil, def and curve_inv(cv, def) end
             newv = draw_encoder('k' .. k, kcx, kcy, kr, shown, { body = rc.sec_bg, col = rc.border, ptr = T.dots, s = f,
                                 style = ekind == 'pan' and 'pan' or (ekind == 'band' or ekind == 'qband') and 'band' or 'line', narrow = ekind == 'qband', steps = kind.steps, marks = marks,
-                                def = def, range = range })
+                                def = def, range = range, curve = cv, pos = cpos, def_pos = cv and def and curve_inv(cv, def, cpos) })
           end
           if newv then
             if cv then newv = curve_ctl_value(cv, newv, mm, kind.steps) end

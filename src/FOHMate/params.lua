@@ -1055,13 +1055,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
   else
     local rr = row or {}
     local pm, pd, range = param_ctl_view(rr, k.kind, k.marks)
-    local pv = param_to_ctl(rr, k.kind, norm)
-    local cvp = row and param_curve_of(row, k.kind)
-    if cvp then
-      pv = curve_inv(cvp, pv, param_row_memo(tr, row, fxi).cpos)
-      pm, range, pd = nil, nil, pd and curve_inv(cvp, pd)
-    end
-    draw_encoder('pv', cx, cy, r, pv, { body = body, col = ring, ptr = T.dots, s = 1, static = true,
+    draw_encoder('pv', cx, cy, r, param_to_ctl(rr, k.kind, norm), { body = body, col = ring, ptr = T.dots, s = 1, static = true,
                  style = k.kind == 'pan' and 'pan' or (k.kind == 'band' or k.kind == 'qband') and 'band' or 'line', narrow = k.kind == 'qband', steps = k.steps, marks = pm, def = pd,
                  range = range })
   end
