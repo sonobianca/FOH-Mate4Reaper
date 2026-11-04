@@ -6,10 +6,6 @@ New items get the next free number (next: 130).
 
 ## Open
 
-- [ ] 129. (0.14.80) List of values: the first value has no up arrow, the last no down arrow (an empty space in their place, so the buttons of every line stay lined up). A single value: only the red x. After moving a value to the top or bottom, the arrows follow.
-
-- [ ] 128. (0.14.79) The list of values reads better: no numbers, each value's text on the left, and on the right of the same line, lined up for every value: up, down and a red x (lighter red under the pointer). The text sits level with the buttons. Do the buttons still work, and stay on the right when the window is resized?
-
 - [ ] 121. (0.14.72) Limit values. (Bianca: the sliders (b) and the full range (d) work; the rest still to check.) (a) Right-click a parameter (an encoder, e.g. a Kirchhoff gain) > **Limit values...**: the parameter window opens with it selected; "Limit values (Min / Max)" is under Invert and Default mark. Not offered for a toggle or a drop-down. (b) Tick it: Min and Max sliders appear, showing the plug-in's values (Hz, dB...; a percentage when the plug-in can't say). Move them, and try **Now** on each: Min can't go above Max. A value outside the new limits jumps inside. (c) Full range off: two marks in sky blue (orange in Daylight) on the encoder show Min and Max, and the encoder stops there, in both drag modes (up/down and around). No dead zone when you drag past a limit and come back. (d) Full range on: the encoder turns from its minimum to its maximum mark for Min to Max, finer than before; the value box and the plug-in agree; dB marks outside the limits are gone, the default mark only shows when it's inside. (e) With Invert on too, in both modes. (f) A width band, a Q band and a pan (both modes; with full range, does a pan's center still make sense?). A stepped encoder: stops at the limits, no full-range option. (g) Double-click to the default mark. (h) Untick Limit values: back to normal. (i) Save, close, reopen: kept; duplicate the rack: the copy has them too. (Like Invert, changing the limits is not an undo step.)
 
 - [ ] 120. (0.14.71) The Display menu: Daylight mode, Colors > (Recolor every rack, Choose default color..., a line, New racks use automatic color / default color, with the check mark on the one in use); a line; Performance mode, Hide disabled parameters; a line; Rack latency box > (Off / Always / Only when a rack has latency, check mark on the one in use), Dock >. Each item still does what it did. Recolor every rack is greyed out in Show mode.
@@ -91,6 +87,10 @@ New items get the next free number (next: 130).
   with a plug-in whose rows were all added. (Rollback point before this: tag `perf-checkpoint-3`.)
 
 ## Done
+
+- [x] 129. (0.14.80) List of values: the first value has no up arrow, the last no down arrow (an empty space in their place, so the buttons of every line stay lined up). A single value: only the red x. After moving a value to the top or bottom, the arrows follow. Found: works.
+
+- [x] 128. (0.14.79) The list of values reads better: no numbers, each value's text on the left, and on the right of the same line, lined up for every value: up, down and a red x (lighter red under the pointer). The text sits level with the buttons. Do the buttons still work, and stay on the right when the window is resized? Found: works, reads well.
 
 - [x] 127. (0.14.78) Min / Max on a width band and a Q band, full range off: instead of one arc, two mirrored arcs (each with its two handles), left and right of the top, covering only where the band's edges can go: the band at Min ends at their inner handles, at Max at their outer handles. Try Min at the minimum (the arcs almost meet at the top) and Max at the maximum (they reach the min/max marks). With Invert. With full range on: no arcs. An encoder and a pan keep the single arc. Found: works.
 
