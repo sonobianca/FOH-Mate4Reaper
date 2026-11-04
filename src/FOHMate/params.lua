@@ -1382,16 +1382,32 @@ function draw_param_picker()
       -- (its arrow is left of it).
       local L = ig.GetCursorScreenPos(ctx) + 6
       local aw = 10                                       -- the arrow
-      local function cxof(depth) return L + aw + 6 + depth * (box + 8) end
+      -- an FX is one more step in than its rack's name, so its arrow sits under the name's first letter
+      local function cxof(depth) return L + aw + 6 + (aw + 4) + depth * (box + 8) end
+      -- a thin dotted line down a branch, from under its row to its last line (only what is in view)
+      local wx, wy = ig.GetWindowPos(ctx)
+      local ww, wh = ig.GetWindowSize(ctx)
+      local lastbot = 0                                   -- where the last line drawn ends
+      local guide_col = (T.dim & 0xFFFFFF00) | 0xB0
+      local function guide(x, y1, y2)
+        for y = math.max(y1, wy), math.min(y2, wy + wh), 4 do
+          ig.DrawList_AddRectFilled(ig.GetWindowDrawList(ctx), x - 0.5, y, x + 1, y + 1.5, guide_col)
+        end
+      end
 
       -- sp: id, sel (the key it selects by), depth, h, font + size (of the name), arrow + open + okey (the
       -- branches), check + on + part (the check box), name, col, type, count, right, tip, on_check, menu
       local function draw_row(sp)
         if sp.sel then order[#order + 1] = sp.sel end
-        if not ig.IsRectVisible(ctx, 1, sp.h) then ig.Dummy(ctx, 1, sp.h); return end
+        if not ig.IsRectVisible(ctx, 1, sp.h) then
+          ig.Dummy(ctx, 1, sp.h)
+          lastbot = select(2, ig.GetItemRectMax(ctx))
+          return
+        end
         local clicked = ig.Selectable(ctx, '##' .. sp.id, sp.sel ~= nil and P.sel[sp.sel] == true, 0, 0, sp.h)
         local ix, iy = ig.GetItemRectMin(ctx)
         local iw = ig.GetItemRectSize(ctx)
+        lastbot = iy + sp.h
         local midy = iy + sp.h / 2
         local cx = sp.check and cxof(sp.depth) or nil
         local ax = cx and (cx - aw - 4) or L
@@ -1498,7 +1514,11 @@ function draw_param_picker()
           on_toggle = function() P.open[gkey] = not opened end,
           -- the check box: every parameter of the branch in or out
           on_check = function() params_apply(fx.tr, targets_of(fx, nd.ps), g_have < #nd.ps) end })
-        if opened then draw_nodes(fx, nd.children, depth + 1, rack_col) end
+        if opened then
+          local y1 = lastbot
+          draw_nodes(fx, nd.children, depth + 1, rack_col)
+          guide(cxof(depth) - aw / 2 - 4, y1, lastbot - 5)
+        end
       end
       draw_nodes = function(fx, nodes, depth, rack_col)
         for _, nd in ipairs(nodes) do
@@ -1520,6 +1540,7 @@ function draw_param_picker()
             if ropen then param_pick_forget(P, rk.tr) end
           end })
         if ropen then
+          local rk_y1 = lastbot
           local rack_col = track_color(rk.tr)
           if #rk.fxs == 0 then ig.Indent(ctx, cxof(0) - L); ig.TextDisabled(ctx, 'This rack has no FX yet.'); ig.Unindent(ctx, cxof(0) - L) end
           for _, fx in ipairs(rk.fxs) do
@@ -1540,27 +1561,16 @@ function draw_param_picker()
                 for p = 0, #fx.names - 1 do if not fx.hide[p] then all[#all + 1] = p end end
                 params_apply(fx.tr, targets_of(fx, all), n_have < fx.nvis)
               end })
-            if opened then draw_nodes(fx, fx.items or {}, 1, rack_col) end
+            if opened then
+              local y1 = lastbot
+              draw_nodes(fx, fx.items or {}, 1, rack_col)
+              guide(cxof(0) - aw / 2 - 4, y1, lastbot - 5)
+            end
           end
+          guide(L + aw / 2, rk_y1, lastbot - 5)
         end
       end
       P.reveal = nil
-
-      -- a thin dotted outline around the tree
-      local wx, wy = ig.GetWindowPos(ctx)
-      local ww, wh = ig.GetWindowSize(ctx)
-      local odl = ig.GetWindowDrawList(ctx)
-      local oc = (T.dim & 0xFFFFFF00) | 0xB0
-      if ig.DrawList_PushClipRectFullScreen then ig.DrawList_PushClipRectFullScreen(odl) else ig.DrawList_PushClipRect(odl, wx, wy, wx + ww, wy + wh) end
-      for x = wx + 1, wx + ww - 3, 4 do
-        ig.DrawList_AddRectFilled(odl, x, wy + 1, x + 1.5, wy + 2.5, oc)
-        ig.DrawList_AddRectFilled(odl, x, wy + wh - 2.5, x + 1.5, wy + wh - 1, oc)
-      end
-      for y = wy + 1, wy + wh - 3, 4 do
-        ig.DrawList_AddRectFilled(odl, wx + 1, y, wx + 2.5, y + 1.5, oc)
-        ig.DrawList_AddRectFilled(odl, wx + ww - 2.5, y, wx + ww - 1, y + 1.5, oc)
-      end
-      ig.DrawList_PopClipRect(odl)
       ig.EndChild(ctx)
     end
     P.order = order
