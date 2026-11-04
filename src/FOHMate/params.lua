@@ -443,6 +443,30 @@ function param_group(pname)
   return tonumber(n), word .. ' ' .. n
 end
 
+-- The name of a parameter without its group ("Band1 Type" > "Type", "Gain-Band 2" > "Gain"), for the
+-- tree, where the group is the branch it sits in.
+function param_group_rest(pname)
+  local s, e = pname:find('%a+%s*[%-_]?%s*%d+')
+  if not s then return pname end
+  local rest = pname:sub(1, s - 1) .. ' ' .. pname:sub(e + 1)
+  rest = rest:gsub('^[%s%-_:]+', ''):gsub('[%s%-_:]+$', ''):gsub('%s%s+', ' ')
+  return (rest)
+end
+
+-- A color shifted to be readable on the window: lighter on a dark window, darker on a light one.
+PARAM_READ = {}
+function param_name_color(c, dark)
+  local key = c * 2 + (dark and 1 or 0)
+  local v = PARAM_READ[key]
+  if v then return v end
+  local h, sat, l = rgb_to_hsl((c >> 24) & 255, (c >> 16) & 255, (c >> 8) & 255)
+  l = dark and math.max(l, 0.66) or math.min(l, 0.34)
+  local r, g, b = hsl_to_rgb(h, sat, l)
+  v = (r << 24) | (g << 16) | (b << 8) | 0xFF
+  PARAM_READ[key] = v
+  return v
+end
+
 -- The color a row is drawn in (0xRRGGBBAA): its own (Recolor parameters), or the rack's. Rows of a
 -- group (an EQ's band...) get the rack's color shifted a little, one way for odd groups and the other
 -- way for even ones, so neighbouring groups stand apart.
@@ -785,12 +809,74 @@ end
 -- sel_key: a parameter to select at once ('p:' .. FX guid .. ':' .. index), for the row menu
 function param_picker_open(tr, sel_key)
   PARAM_PICK = { tr = tr, filter = '', sel = {}, anchor = sel_key, order = {} }
-  if sel_key then PARAM_PICK.sel[sel_key] = true end
+  if sel_key then
+    PARAM_PICK.sel[sel_key] = true
+    local g, ix = sel_key:match('^p:({[^}]+}):(%d+)$')      -- its branches are opened to show it
+    if g then PARAM_PICK.reveal = { guid = g, idx = tonumber(ix) } end
+  end
 end
 
--- The tree of an FX: parameters with the same prefix (param_group: "Band 1"...) go in a branch of
--- their own, where the first of them is; the others stay as they are. fx.items is that list, in the
--- plug-in's order: { p = index } or { group = "Band 1", ps = { indexes } }.
+-- the racks of the project, in track order
+function param_racks()
+  local out = {}
+  for i = 0, reaper.CountTracks(0) - 1 do
+    local tr = reaper.GetTrack(0, i)
+    local name = track_name(tr)
+    if is_rack_name(name) then out[#out + 1] = { tr = tr, guid = reaper.GetTrackGUID(tr), name = name } end
+  end
+  return out
+end
+
+-- a rack folded: what was selected in its FX is not selected any more (it can't be seen)
+function param_pick_forget(P, tr)
+  local guids = {}
+  for i = 0, reaper.TrackFX_GetCount(tr) - 1 do guids[reaper.TrackFX_GetFXGUID(tr, i)] = true end
+  for k in pairs(P.sel) do
+    local g = k:match('^%a:({[^}]+})')
+    if g and guids[g] then P.sel[k] = nil end
+  end
+end
+
+-- The tree of an FX: parameters of the same group (param_group: "Band 1"...) go in a branch of their
+-- own, where the first of them is; the others stay as they are. In a group, parameters that start
+-- with the same word ("Dyn. Threshold", "Dyn. Ratio"...) go in a branch of their own too, and so on
+-- (3 levels at most). A branch is { label, path, ps = { every index in it }, pset, children }, a
+-- parameter is { p = index, label = its name without the groups }. fx.items is the list, in the
+-- plug-in's order; fx.gps has the indexes of each branch by its key (for the selection).
+local function param_split(fx, node, mem, depth)
+  node.children, node.pset = {}, {}
+  for _, m in ipairs(mem) do node.pset[m.p] = true end
+  fx.gps['G:' .. fx.guid .. ':' .. node.path] = node.ps
+  local first, cnt = {}, {}
+  if depth <= 2 then
+    for i, m in ipairs(mem) do
+      local w = m.rest:match('^(%S+)%s+%S')
+      first[i] = w
+      if w then cnt[w] = (cnt[w] or 0) + 1 end
+    end
+  end
+  local sub, subs = {}, {}
+  for i, m in ipairs(mem) do
+    local w = first[i]
+    local c = w and cnt[w] or 0
+    -- a word shared by 3 or more (2 when it ends with a dot or a colon: "Dyn."), but not by all
+    if w and c < #mem and (c >= 3 or (c >= 2 and w:find('[%.:]$'))) then
+      local sg = sub[w]
+      if not sg then
+        sg = { label = w, path = node.path .. '/' .. w, ps = {}, mem = {} }
+        sub[w] = sg
+        subs[#subs + 1] = sg
+        node.children[#node.children + 1] = sg
+      end
+      sg.ps[#sg.ps + 1] = m.p
+      sg.mem[#sg.mem + 1] = { p = m.p, rest = m.rest:match('^%S+%s+(.*)$') }
+    else
+      node.children[#node.children + 1] = { p = m.p, label = m.rest ~= '' and m.rest or fx.names[m.p + 1] }
+    end
+  end
+  for _, sg in ipairs(subs) do param_split(fx, sg, sg.mem, depth + 1) end
+end
+
 function param_pick_groups(fx)
   local count = {}
   for p = 0, #fx.names - 1 do
@@ -799,27 +885,31 @@ function param_pick_groups(fx)
       if lbl then count[lbl] = (count[lbl] or 0) + 1 end
     end
   end
-  local items, at = {}, {}
+  local items, at, rp = {}, {}, nil
+  fx.gps = {}
   for p = 0, #fx.names - 1 do
     if fx.reaper[p] then
       -- REAPER's own (Bypass, Wet, Delta): their branch, at the end
       if not fx.hide[p] then
-        if not at.REAPER then at.REAPER = { group = 'REAPER', ps = {} } end
-        local ps = at.REAPER.ps
-        ps[#ps + 1] = p
+        rp = rp or { label = 'REAPER', path = 'REAPER', ps = {}, mem = {} }
+        rp.ps[#rp.ps + 1] = p
+        rp.mem[#rp.mem + 1] = { p = p, rest = '' }          -- (rest empty: the parameter's own name)
       end
     elseif not fx.hide[p] then
-      local _, lbl = param_group(fx.names[p + 1])
+      local nm = fx.names[p + 1]
+      local _, lbl = param_group(nm)
       if lbl and count[lbl] > 1 then
-        if not at[lbl] then at[lbl] = { group = lbl, ps = {} }; items[#items + 1] = at[lbl] end
-        local ps = at[lbl].ps
-        ps[#ps + 1] = p
+        if not at[lbl] then at[lbl] = { label = lbl, path = lbl, ps = {}, mem = {} }; items[#items + 1] = at[lbl] end
+        local g = at[lbl]
+        g.ps[#g.ps + 1] = p
+        g.mem[#g.mem + 1] = { p = p, rest = param_group_rest(nm) }
       else
-        items[#items + 1] = { p = p }
+        items[#items + 1] = { p = p, label = nm }
       end
     end
   end
-  if at.REAPER then items[#items + 1] = at.REAPER end
+  for _, it in ipairs(items) do if it.mem then param_split(fx, it, it.mem, 1) end end
+  if rp then param_split(fx, rp, rp.mem, 9); items[#items + 1] = rp end     -- (depth 9: no sub-branches)
   fx.items = items
 end
 
@@ -828,16 +918,14 @@ function param_pick_targets(P, fxs)
   local out, seen = {}, {}
   local function add(fx, p)
     local key = fx.guid .. ':' .. p
-    if not seen[key] then seen[key] = true; out[#out + 1] = { guid = fx.guid, idx = p, name = fx.names[p + 1] } end
+    if not seen[key] then seen[key] = true; out[#out + 1] = { guid = fx.guid, idx = p, name = fx.names[p + 1], tr = fx.tr } end
   end
   for _, fx in ipairs(fxs) do
     if P.sel['P:' .. fx.guid] then
       for p = 0, #fx.names - 1 do if not fx.hide[p] then add(fx, p) end end
     end
-    for _, it in ipairs(fx.items or {}) do
-      if it.group and P.sel['G:' .. fx.guid .. ':' .. it.group] then
-        for _, p in ipairs(it.ps) do add(fx, p) end
-      end
+    for key, ps in pairs(fx.gps or {}) do
+      if P.sel[key] then for _, p in ipairs(ps) do add(fx, p) end end
     end
     for p = 0, #fx.names - 1 do
       if P.sel['p:' .. fx.guid .. ':' .. p] then add(fx, p) end
@@ -846,8 +934,14 @@ function param_pick_targets(P, fxs)
   return out
 end
 
+-- the selection may be in several racks: each gets its own
 function param_pick_apply(P, fxs, adding)
-  params_apply(P.tr, param_pick_targets(P, fxs), adding)
+  local by, order = {}, {}
+  for _, t in ipairs(param_pick_targets(P, fxs)) do
+    if not by[t.tr] then by[t.tr] = {}; order[#order + 1] = t.tr end
+    table.insert(by[t.tr], t)
+  end
+  for _, tr in ipairs(order) do params_apply(tr, by[tr], adding) end
 end
 
 -- adds (or removes) parameters, { guid, idx, name } each, to the rack's Performance
@@ -909,7 +1003,7 @@ end
 
 -- the right-hand section: pick and set up the control of the selected parameter(s)
 function draw_param_control_panel(P, fxs, gm, targets)
-  local tr = P.tr
+  local tr = targets[1] and targets[1].tr or P.tr
   if #targets == 0 then
     ig.TextDisabled(ctx, 'Select a parameter to choose\nits control.')
     return
@@ -957,7 +1051,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
       if ig.RadioButton(ctx, label .. '##ctl' .. tostring(o[1]), on) then
         for _, t in ipairs(targets) do
           local f = gm[t.guid]
-          if f then param_set_override(tr, f, { guid = t.guid, idx = t.idx, pname = t.name }, o[1]) end
+          if f then param_set_override(t.tr or tr, f, { guid = t.guid, idx = t.idx, pname = t.name }, o[1]) end
         end
       end
     end
@@ -1187,28 +1281,40 @@ function draw_param_picker()
   local tr = P.tr
   local vis, open = begin_window('parampick', 'Performance parameters###parampick', 760, 560, true)
   if vis then
-    -- the rack's FX and the names of their parameters, read once per FX
-    local fxs = {}
-    for _, it in ipairs(chain_info(tr).list) do
-      local g = reaper.TrackFX_GetFXGUID(tr, it.fx)
-      local f = P.cache and P.cache[g]
-      if not f or f.fx ~= it.fx or f.name ~= it.name then
-        -- hidden: by the rules above (auto) or by hand (uhid); shown anyway with Show hidden
-        local names, hide, auto, uhid, nvis = {}, {}, {}, {}, 0
-        local plug = param_plugin_key(it.name)
-        for p = 0, reaper.TrackFX_GetNumParams(tr, it.fx) - 1 do
-          local _, nm = reaper.TrackFX_GetParamName(tr, it.fx, p, '')
-          names[p + 1] = nm
-          auto[p], uhid[p] = param_hidden(nm), param_uhidden(plug, nm)
-          if (auto[p] or uhid[p]) and not P.show_hidden then hide[p] = true else nvis = nvis + 1 end
+    -- every rack of the project is a branch; the FX of the racks that are open, and the names of their
+    -- parameters, are read once per FX
+    local racks = param_racks()
+    P.open = P.open or {}
+    if not P.open_init then P.open['R:' .. reaper.GetTrackGUID(P.tr)], P.open_init = true, true end
+    local fxs, gm = {}, {}
+    for _, rk in ipairs(racks) do
+      rk.fxs = {}
+      if P.open['R:' .. rk.guid] then
+        for _, it in ipairs(chain_info(rk.tr).list) do
+          local g = reaper.TrackFX_GetFXGUID(rk.tr, it.fx)
+          local f = P.cache and P.cache[g]
+          if not f or f.fx ~= it.fx or f.name ~= it.name then
+            -- hidden: by the rules above (auto) or by hand (uhid); shown anyway with Show hidden
+            local names, hide, auto, uhid, nvis = {}, {}, {}, {}, 0
+            local plug = param_plugin_key(it.name)
+            for p = 0, reaper.TrackFX_GetNumParams(rk.tr, it.fx) - 1 do
+              local _, nm = reaper.TrackFX_GetParamName(rk.tr, it.fx, p, '')
+              names[p + 1] = nm
+              auto[p], uhid[p] = param_hidden(nm), param_uhidden(plug, nm)
+              if (auto[p] or uhid[p]) and not P.show_hidden then hide[p] = true else nvis = nvis + 1 end
+            end
+            f = { guid = g, fx = it.fx, name = it.name, names = names, hide = hide, auto = auto, uhid = uhid,
+                  plug = plug, nvis = nvis, reaper = param_reaper_set(names) }
+            param_pick_groups(f)
+            P.cache = P.cache or {}
+            P.cache[g] = f
+          end
+          f.tr = rk.tr
+          gm[g] = it.fx
+          rk.fxs[#rk.fxs + 1] = f
+          fxs[#fxs + 1] = f
         end
-        f = { guid = g, fx = it.fx, name = it.name, names = names, hide = hide, auto = auto, uhid = uhid,
-              plug = plug, nvis = nvis, reaper = param_reaper_set(names) }
-        param_pick_groups(f)
-        P.cache = P.cache or {}
-        P.cache[g] = f
       end
-      fxs[#fxs + 1] = f
     end
 
     ig.SetNextItemWidth(ctx, -ig.CalcTextSize(ctx, 'Show hidden') - ig.GetFrameHeight(ctx) - 16)
@@ -1223,13 +1329,20 @@ function draw_param_picker()
     end
     local low = P.filter:lower()
 
-    local have = {}
-    for _, r in ipairs(params_read(tr)) do have[r.guid .. ':' .. r.idx] = true end
-    local gm = fx_guid_map(tr)
+    local have, rowof = {}, {}
+    for _, rk in ipairs(racks) do
+      if P.open['R:' .. rk.guid] then
+        for _, r in ipairs(params_read(rk.tr)) do
+          have[r.guid .. ':' .. r.idx], rowof[r.guid .. ':' .. r.idx] = true, r
+        end
+      end
+    end
     local lh = ig.GetTextLineHeightWithSpacing(ctx)
     local TXT = ig.GetStyleColor(ctx, ig.Col_Text())
+    local bgc = ig.GetStyleColor(ctx, ig.Col_WindowBg())
+    local dark = ((bgc >> 24) & 255) * 0.3 + ((bgc >> 16) & 255) * 0.59 + ((bgc >> 8) & 255) * 0.11 < 128
     local order = {}
-    local box = lh - 6                                   -- the check boxes
+    local box = lh - 6                                   -- the check boxes: this size whatever the text
     local function click(key, shift, ctrl)
       if shift and P.anchor then
         local a, b
@@ -1249,146 +1362,205 @@ function draw_param_picker()
     end
     local mx = ig.GetMousePos(ctx)
 
+    -- the height of a line by what it holds: a rack (big name), an FX or a group (a smaller one), a parameter
+    local function line_h(font, size)
+      local pushed = push_bold(font, size)
+      local h = ig.GetTextLineHeight(ctx)
+      if pushed then ig.PopFont(ctx) end
+      return math.floor(h)
+    end
+    local th0 = ig.GetTextLineHeight(ctx)
+    local h_rack, h_grp, h_par = line_h(head_font, HEAD_FONT_SIZE) + 8, line_h(sect_font, SECT_FONT_SIZE) + 6, lh - 2
+
     local avail_w, avail_h = ig.GetContentRegionAvail(ctx)
     local foot = ig.GetFrameHeightWithSpacing(ctx) + 4
     if ig.BeginChild(ctx, 'pptree', avail_w * 0.62, avail_h - foot) then
-      -- the kind and value column, at the same place on every line (however deep)
-      local colx = ig.GetCursorScreenPos(ctx) + select(1, ig.GetContentRegionAvail(ctx)) * 0.5
-      -- a parameter's check box sits where a branch's would, at the same depth: under an FX or a
-      -- group, they are all one step further in than its own check box
-      local tls = ig.GetTreeNodeToLabelSpacing(ctx)
-      local rname = track_name(tr)
-      ig.SetNextItemOpen(ctx, true, ig.Cond_Once())
-      if ig.TreeNode(ctx, rname .. '##rack') then
-        if #fxs == 0 then ig.TextDisabled(ctx, 'This rack has no FX yet.') end
-        for _, fx in ipairs(fxs) do
-          local pname, ptype = fx_name_type(fx.name)
-          local pkey = 'P:' .. fx.guid
-          local n_have = 0
-          for p = 0, #fx.names - 1 do if not fx.hide[p] and have[fx.guid .. ':' .. p] then n_have = n_have + 1 end end
-          if low ~= '' then ig.SetNextItemOpen(ctx, true, ig.Cond_Always()) end
-          local flags = ig.TreeNodeFlags_OpenOnArrow() | ig.TreeNodeFlags_SpanAvailWidth()
-          if P.sel[pkey] then flags = flags | ig.TreeNodeFlags_Selected() end
-          order[#order + 1] = pkey
-          local opened = ig.TreeNodeEx(ctx, pkey, '', flags)
-          local x1, y1 = ig.GetItemRectMin(ctx)
-          local lx = x1 + ig.GetTreeNodeToLabelSpacing(ctx)
-          if ig.IsItemClicked(ctx, 0) and not ig.IsItemToggledOpen(ctx) then
-            if mx >= lx and mx <= lx + box + 4 then
-              -- the check box: every parameter of the FX in or out
-              local all = {}
-              for p = 0, #fx.names - 1 do
-                if not fx.hide[p] then all[#all + 1] = { guid = fx.guid, idx = p, name = fx.names[p + 1] } end
-              end
-              params_apply(tr, all, n_have < fx.nvis)
-            else
-              click(pkey, has_mod('shift'), has_mod('ctrl'))
-            end
-          end
-          -- the label, drawn over the node: a check box, the name, then (TYPE) in its color
-          local dl = ig.GetWindowDrawList(ctx)
-          draw_check(dl, lx, y1 + 2, box, TXT, n_have == fx.nvis and n_have > 0, n_have > 0)
-          local tx = lx + box + 8
-          ig.DrawList_AddText(dl, tx, y1, TXT, pname)
-          local nx = tx + ig.CalcTextSize(ctx, pname) + 6
-          if ptype then
-            local ttxt = '(' .. ptype .. ')'
-            ig.DrawList_AddText(dl, nx, y1, type_color(ptype), ttxt)
-            nx = nx + ig.CalcTextSize(ctx, ttxt) + 8
-          end
-          ig.DrawList_AddText(dl, nx, y1, T.dim, ('%d of %d in the Performance'):format(n_have, fx.nvis))
-          if opened then
-            local fxi = gm[fx.guid]
-            local function matches(p) return low == '' or fx.names[p + 1]:lower():find(low, 1, true) end
-            local function draw_param(p)
-              local nm = fx.names[p + 1]
-              local key = 'p:' .. fx.guid .. ':' .. p
-              order[#order + 1] = key
-              if ig.IsRectVisible(ctx, 1, lh) then
-                local selected = P.sel[key] == true
-                local clicked = ig.Selectable(ctx, '##' .. key, selected, 0, 0, lh - 2)
-                local ix, iy = ig.GetItemRectMin(ctx)
-                local iw = ig.GetItemRectSize(ctx)
-                local inn = have[fx.guid .. ':' .. p]
-                local bx = ix + tls
-                if clicked then
-                  if mx >= bx - 4 and mx <= bx + box + 4 then   -- the check box: this parameter in or out
-                    params_apply(tr, { { guid = fx.guid, idx = p, name = nm } }, not inn)
-                  else
-                    click(key, has_mod('shift'), has_mod('ctrl'))
-                  end
-                end
-                -- right-click: hide it (for this plug-in, everywhere), or show it again
-                if ig.BeginPopupContextItem(ctx, 'pph' .. key) then
-                  if fx.uhid[p] then
-                    if ig.MenuItem(ctx, 'Show this parameter again') then param_set_uhidden(fx.plug, nm, false) end
-                  elseif fx.auto[p] then
-                    ig.TextDisabled(ctx, 'Hidden by FOH-Mate (a placeholder or a MIDI CC entry)')
-                  elseif ig.MenuItem(ctx, 'Hide this parameter') then
-                    param_set_uhidden(fx.plug, nm, true)
-                  end
-                  ig.EndPopup(ctx)
-                end
-                local dl2 = ig.GetWindowDrawList(ctx)
-                draw_check(dl2, bx, iy + 2, box, TXT, inn)
-                local hid = fx.auto[p] or fx.uhid[p]
-                ig.DrawList_AddText(dl2, bx + box + 8, iy, hid and T.dim or TXT,
-                                    fit_text(nm .. (hid and '  (hidden)' or ''), colx - bx - box - 16))
-                -- the kind of value and its value now
-                local kind = param_kind(tr, fxi, { guid = fx.guid, idx = p, pname = nm })
-                local _, txt = reaper.TrackFX_GetFormattedParamValue(tr, fxi, p)
-                local right = ('%s:  %s'):format(kind.label, txt or '')
-                ig.DrawList_AddText(dl2, colx, iy, T.dim, fit_text(right, ix + iw - colx - 6))
-              else
-                ig.Dummy(ctx, 1, lh)
-              end
-            end
-            for _, it in ipairs(fx.items or {}) do
-              if it.p then
-                if matches(it.p) then draw_param(it.p) end
-              else
-                -- a group ("Band 1"): folded at first, open while searching when something in it matches
-                local shown = {}
-                for _, p in ipairs(it.ps) do if matches(p) then shown[#shown + 1] = p end end
-                if #shown > 0 then
-                  local gkey = 'G:' .. fx.guid .. ':' .. it.group
-                  local g_have = 0
-                  for _, p in ipairs(it.ps) do if have[fx.guid .. ':' .. p] then g_have = g_have + 1 end end
-                  if low ~= '' then ig.SetNextItemOpen(ctx, true, ig.Cond_Always()) end
-                  local gflags = ig.TreeNodeFlags_OpenOnArrow() | ig.TreeNodeFlags_SpanAvailWidth()
-                  if P.sel[gkey] then gflags = gflags | ig.TreeNodeFlags_Selected() end
-                  order[#order + 1] = gkey
-                  local gopen = ig.TreeNodeEx(ctx, gkey, '', gflags)
-                  local gx, gy = ig.GetItemRectMin(ctx)
-                  local glx = gx + ig.GetTreeNodeToLabelSpacing(ctx)
-                  if ig.IsItemClicked(ctx, 0) and not ig.IsItemToggledOpen(ctx) then
-                    if mx >= glx and mx <= glx + box + 4 then
-                      -- the check box: every parameter of the group in or out
-                      local all = {}
-                      for _, p in ipairs(it.ps) do all[#all + 1] = { guid = fx.guid, idx = p, name = fx.names[p + 1] } end
-                      params_apply(tr, all, g_have < #it.ps)
-                    else
-                      click(gkey, has_mod('shift'), has_mod('ctrl'))
-                    end
-                  end
-                  local gdl = ig.GetWindowDrawList(ctx)
-                  draw_check(gdl, glx, gy + 2, box, TXT, g_have == #it.ps, g_have > 0)
-                  local gtx = glx + box + 8
-                  ig.DrawList_AddText(gdl, gtx, gy, TXT, it.group)
-                  ig.DrawList_AddText(gdl, gtx + ig.CalcTextSize(ctx, it.group) + 8, gy, T.dim,
-                                      ('%d of %d in the Performance'):format(g_have, #it.ps))
-                  if gopen then
-                    for _, p in ipairs(shown) do draw_param(p) end
-                    ig.TreePop(ctx)
-                  end
-                end
-              end
-            end
-            ig.TreePop(ctx)
+      -- Every line is drawn here, not by ImGui's tree: a branch has its arrow, then (FX, groups,
+      -- parameters) a check box, then its name. What a branch holds is one step in, and the step is
+      -- the width of a check box and its gap: the check boxes of what is in a branch start where the
+      -- name of the branch starts, and a branch inside a branch has its check box with its siblings'
+      -- (its arrow is left of it).
+      local L = ig.GetCursorScreenPos(ctx) + 6
+      local aw = 10                                       -- the arrow
+      local function cxof(depth) return L + aw + 6 + depth * (box + 8) end
+
+      -- sp: id, sel (the key it selects by), depth, h, font + size (of the name), arrow + open + okey (the
+      -- branches), check + on + part (the check box), name, col, type, count, right, tip, on_check, menu
+      local function draw_row(sp)
+        if sp.sel then order[#order + 1] = sp.sel end
+        if not ig.IsRectVisible(ctx, 1, sp.h) then ig.Dummy(ctx, 1, sp.h); return end
+        local clicked = ig.Selectable(ctx, '##' .. sp.id, sp.sel ~= nil and P.sel[sp.sel] == true, 0, 0, sp.h)
+        local ix, iy = ig.GetItemRectMin(ctx)
+        local iw = ig.GetItemRectSize(ctx)
+        local midy = iy + sp.h / 2
+        local cx = sp.check and cxof(sp.depth) or nil
+        local ax = cx and (cx - aw - 4) or L
+        local tx = cx and (cx + box + 8) or (L + aw + 6)
+        if sp.tip and ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, sp.tip) end
+        if sp.menu and ig.BeginPopupContextItem(ctx, 'pph' .. sp.id) then sp.menu(); ig.EndPopup(ctx) end
+        if clicked then
+          local toggle = sp.arrow and mx >= ax - 3 and mx <= ax + aw + 3
+          if toggle or (sp.arrow and not sp.sel) then
+            sp.on_toggle()
+          elseif cx and mx >= cx - 3 and mx <= cx + box + 3 then
+            sp.on_check()
+          elseif sp.sel then
+            click(sp.sel, has_mod('shift'), has_mod('ctrl'))
           end
         end
-        ig.TreePop(ctx)
+        local dl = ig.GetWindowDrawList(ctx)
+        if sp.arrow then
+          if sp.open then
+            ig.DrawList_AddTriangleFilled(dl, ax, midy - 2.5, ax + aw, midy - 2.5, ax + aw / 2, midy + 3.5, TXT)
+          else
+            ig.DrawList_AddTriangleFilled(dl, ax + 2, midy - 4.5, ax + 2, midy + 4.5, ax + aw, midy, TXT)
+          end
+        end
+        if cx then draw_check(dl, cx, midy - box / 2, box, TXT, sp.on, sp.part) end
+        local rcol = sp.right and (ix + iw * 0.5)           -- the kind and value column: the same place on every line
+        local pushed = sp.font and push_bold(sp.font, sp.size)
+        local th = ig.GetTextLineHeight(ctx)
+        local name = sp.name
+        if rcol then name = fit_text(name, rcol - tx - 10) end
+        ig.DrawList_AddText(dl, tx, midy - th / 2, sp.col or TXT, name)
+        local nx = tx + ig.CalcTextSize(ctx, name) + 8
+        if pushed then ig.PopFont(ctx) end
+        local ty = midy - th0 / 2
+        if sp.type then
+          local ttxt = '(' .. sp.type .. ')'
+          ig.DrawList_AddText(dl, nx, ty, type_color(sp.type), ttxt)
+          nx = nx + ig.CalcTextSize(ctx, ttxt) + 8
+        end
+        if sp.count then ig.DrawList_AddText(dl, nx, ty, T.dim, sp.count) end
+        if rcol then ig.DrawList_AddText(dl, rcol, ty, T.dim, fit_text(sp.right(), ix + iw - rcol - 6)) end
       end
+
+      local function matches(fx, p) return low == '' or fx.names[p + 1]:lower():find(low, 1, true) end
+      local function targets_of(fx, ps)
+        local t = {}
+        for _, p in ipairs(ps) do t[#t + 1] = { guid = fx.guid, idx = p, name = fx.names[p + 1] } end
+        return t
+      end
+      local function count_have(fx, ps)
+        local n = 0
+        for _, p in ipairs(ps) do if have[fx.guid .. ':' .. p] then n = n + 1 end end
+        return n
+      end
+
+      local function draw_leaf(fx, p, label, depth, rack_col)
+        local nm = fx.names[p + 1]
+        local key = 'p:' .. fx.guid .. ':' .. p
+        local inn = have[fx.guid .. ':' .. p] == true
+        local hid = fx.auto[p] or fx.uhid[p]
+        local col = TXT
+        if ig.IsRectVisible(ctx, 1, h_par) then
+          -- the name in the color it has in the rack (its own, or the group's shift of the rack's), made readable
+          col = hid and T.dim or param_name_color(
+            param_row_color(rack_col, { col = rowof[fx.guid .. ':' .. p] and rowof[fx.guid .. ':' .. p].col, pname = nm }), dark)
+        end
+        draw_row({ id = key, sel = key, depth = depth, h = h_par, check = true, on = inn, col = col,
+          name = label .. (hid and '  (hidden)' or ''),
+          tip = label ~= nm and nm or nil,
+          right = function()
+            -- the kind of value and its value now
+            local kind = param_kind(fx.tr, gm[fx.guid], { guid = fx.guid, idx = p, pname = nm })
+            local _, txt = reaper.TrackFX_GetFormattedParamValue(fx.tr, gm[fx.guid], p)
+            return ('%s:  %s'):format(kind.label, txt or '')
+          end,
+          on_check = function() params_apply(fx.tr, { { guid = fx.guid, idx = p, name = nm } }, not inn) end,
+          -- right-click: hide it (for this plug-in, everywhere), or show it again
+          menu = function()
+            if fx.uhid[p] then
+              if ig.MenuItem(ctx, 'Show this parameter again') then param_set_uhidden(fx.plug, nm, false) end
+            elseif fx.auto[p] then
+              ig.TextDisabled(ctx, 'Hidden by FOH-Mate (a placeholder or a MIDI CC entry)')
+            elseif ig.MenuItem(ctx, 'Hide this parameter') then
+              param_set_uhidden(fx.plug, nm, true)
+            end
+          end })
+      end
+
+      local draw_nodes
+      -- a group ("Band 1"), or a branch of one ("Dyn."): folded at first, open while searching when something in it matches
+      local function draw_group(fx, nd, depth, rack_col)
+        if low ~= '' then
+          local any = false
+          for _, p in ipairs(nd.ps) do if matches(fx, p) then any = true; break end end
+          if not any then return end
+        end
+        local gkey = 'G:' .. fx.guid .. ':' .. nd.path
+        if P.reveal and P.reveal.guid == fx.guid and nd.pset[P.reveal.idx] then P.open[gkey] = true end
+        local opened = low ~= '' or P.open[gkey] == true
+        local g_have = count_have(fx, nd.ps)
+        draw_row({ id = gkey, sel = gkey, depth = depth, h = h_grp, font = sect_font, size = SECT_FONT_SIZE,
+          arrow = true, open = opened, check = true, on = g_have == #nd.ps, part = g_have > 0, name = nd.label,
+          count = ('%d of %d in the Performance'):format(g_have, #nd.ps),
+          on_toggle = function() P.open[gkey] = not opened end,
+          -- the check box: every parameter of the branch in or out
+          on_check = function() params_apply(fx.tr, targets_of(fx, nd.ps), g_have < #nd.ps) end })
+        if opened then draw_nodes(fx, nd.children, depth + 1, rack_col) end
+      end
+      draw_nodes = function(fx, nodes, depth, rack_col)
+        for _, nd in ipairs(nodes) do
+          if nd.p then
+            if matches(fx, nd.p) then draw_leaf(fx, nd.p, nd.label, depth, rack_col) end
+          else
+            draw_group(fx, nd, depth, rack_col)
+          end
+        end
+      end
+
+      for _, rk in ipairs(racks) do
+        local rkey = 'R:' .. rk.guid
+        local ropen = P.open[rkey] == true
+        draw_row({ id = rkey, h = h_rack, font = head_font, size = HEAD_FONT_SIZE, arrow = true, open = ropen,
+          name = rk.name,
+          on_toggle = function()
+            P.open[rkey] = not ropen
+            if ropen then param_pick_forget(P, rk.tr) end
+          end })
+        if ropen then
+          local rack_col = track_color(rk.tr)
+          if #rk.fxs == 0 then ig.Indent(ctx, cxof(0) - L); ig.TextDisabled(ctx, 'This rack has no FX yet.'); ig.Unindent(ctx, cxof(0) - L) end
+          for _, fx in ipairs(rk.fxs) do
+            local pname, ptype = fx_name_type(fx.name)
+            local pkey = 'P:' .. fx.guid
+            local fkey = 'F:' .. fx.guid
+            if P.reveal and P.reveal.guid == fx.guid then P.open[fkey] = true end
+            local n_have = 0
+            for p = 0, #fx.names - 1 do if not fx.hide[p] and have[fx.guid .. ':' .. p] then n_have = n_have + 1 end end
+            local opened = low ~= '' or P.open[fkey] == true
+            draw_row({ id = pkey, sel = pkey, depth = 0, h = h_grp, font = sect_font, size = SECT_FONT_SIZE,
+              arrow = true, open = opened, check = true, on = n_have == fx.nvis and n_have > 0, part = n_have > 0,
+              name = pname, type = ptype, count = ('%d of %d in the Performance'):format(n_have, fx.nvis),
+              on_toggle = function() P.open[fkey] = not opened end,
+              -- the check box: every parameter of the FX in or out
+              on_check = function()
+                local all = {}
+                for p = 0, #fx.names - 1 do if not fx.hide[p] then all[#all + 1] = p end end
+                params_apply(fx.tr, targets_of(fx, all), n_have < fx.nvis)
+              end })
+            if opened then draw_nodes(fx, fx.items or {}, 1, rack_col) end
+          end
+        end
+      end
+      P.reveal = nil
+
+      -- a thin dotted outline around the tree
+      local wx, wy = ig.GetWindowPos(ctx)
+      local ww, wh = ig.GetWindowSize(ctx)
+      local odl = ig.GetWindowDrawList(ctx)
+      local oc = (T.dim & 0xFFFFFF00) | 0xB0
+      if ig.DrawList_PushClipRectFullScreen then ig.DrawList_PushClipRectFullScreen(odl) else ig.DrawList_PushClipRect(odl, wx, wy, wx + ww, wy + wh) end
+      for x = wx + 1, wx + ww - 3, 4 do
+        ig.DrawList_AddRectFilled(odl, x, wy + 1, x + 1.5, wy + 2.5, oc)
+        ig.DrawList_AddRectFilled(odl, x, wy + wh - 2.5, x + 1.5, wy + wh - 1, oc)
+      end
+      for y = wy + 1, wy + wh - 3, 4 do
+        ig.DrawList_AddRectFilled(odl, wx + 1, y, wx + 2.5, y + 1.5, oc)
+        ig.DrawList_AddRectFilled(odl, wx + ww - 2.5, y, wx + ww - 1, y + 1.5, oc)
+      end
+      ig.DrawList_PopClipRect(odl)
       ig.EndChild(ctx)
     end
     P.order = order
