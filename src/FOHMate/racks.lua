@@ -471,7 +471,7 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
     ig.SetCursorScreenPos(ctx, wx + iow + spx, io_y)
     if ig.Button(ctx, 'Out: ' .. out_text(tr) .. '##out', iow, fh) then ig.OpenPopup(ctx, 'out_pop') end
     if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Output: ' .. out_text(tr) .. ' (' .. width_text(io_out) .. ')') end
-    hint_hovered('Click: choose the hardware output (stereo pair or mono)')
+    hint_hovered('Click: choose the hardware output (mono or stereo pair)')
     lock_end(locked)
 
     if ig.BeginPopup(ctx, 'in_pop') then
@@ -517,17 +517,17 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
         end
       end
       if ig.MenuItem(ctx, 'No hardware output', nil, nh == 0) then set_hw_out(tr, nil) end
-      if n >= 2 and ig.BeginMenu(ctx, 'Hardware out: stereo pair') then
-        for i = 0, n - 2, pair_step() do
-          local nm = reaper.GetOutputChannelName(i) or ''
-          if ig.MenuItem(ctx, ('%d/%d  %s'):format(i + 1, i + 2, nm), nil, d0 == i) then set_hw_out(tr, i) end
-        end
-        ig.EndMenu(ctx)
-      end
       if n >= 1 and ig.BeginMenu(ctx, 'Hardware out: mono') then
         for i = 0, n - 1 do
           local nm = reaper.GetOutputChannelName(i) or ''
           if ig.MenuItem(ctx, ('%d  %s'):format(i + 1, nm), nil, d0 == (i | 1024)) then set_hw_out(tr, i | 1024) end
+        end
+        ig.EndMenu(ctx)
+      end
+      if n >= 2 and ig.BeginMenu(ctx, 'Hardware out: stereo pair') then
+        for i = 0, n - 2, pair_step() do
+          local nm = reaper.GetOutputChannelName(i) or ''
+          if ig.MenuItem(ctx, ('%d/%d  %s'):format(i + 1, i + 2, nm), nil, d0 == i) then set_hw_out(tr, i) end
         end
         ig.EndMenu(ctx)
       end

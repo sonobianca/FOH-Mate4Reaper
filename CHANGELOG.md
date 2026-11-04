@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Racks: the **Out** menu lists **mono** outputs before stereo pairs, like everywhere else.
+
 - Performance mode: a parameter whose values are all words (no numbers) gets a **drop-down** automatically, also when it has many values: a band type with 72 values, most of them "Reserved" (Kirchhoff-EQ), was a smooth encoder. Placeholder values no longer count when telling numbers from words.
 
 - Performance mode, Edit mode: a **"..."** in the top right corner of the parameters, above the position bar, has what the right-click menu of the **+** had (remove the parameters not linked any more, Clear all). The **+** only opens the parameter window. Right-click a parameter > **Inspect parameter...** opens the parameter window on it (it replaces "Limit values...").
