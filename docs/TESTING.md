@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 135).
+New items get the next free number (next: 136).
 
 ## Open
 
+- [ ] 135. (0.14.87) Drop-down for word values. Remove the hand-made correction first (right-click Kirchhoff Band 1 Type > Control > Automatic). (a) Kirchhoff-EQ: every band's Type is a drop-down without the "Reserved" values. (b) A stepped numeric parameter (a ratio 1:1, 2:1... or an oversampling 1x, 2x...) is still a stepped encoder. (c) Mono / Stereo-style two-word parameters are still drop-downs, on/off still toggles.
 - [ ] 134. (0.14.86) The "..." menu of the parameters (Edit mode). (a) Top right of each parameter column, above the position bar: three dots that light up on hover; click: "Remove the N parameters not linked any more" and "Clear all" (with its confirmation). Not shown in Show mode. (b) The widen band still widens / folds when clicked anywhere else. (c) The **+** opens the parameter window; right-click on it does nothing now. (d) Right-click a parameter > **Inspect parameter...**: the parameter window opens with that parameter selected.
 - [ ] 133. (0.14.85) Hidden parameters and values. (a) The parameter window: no "Reserved", "Unused", "-", nameless or "Param 12" parameters; a JUCE VST3 plug-in (most of them: try one with lots of parameters) has no "MIDI CC 0|1"... entries. The "n of m" counts leave them out. (b) Each FX ends with a **REAPER** branch: Bypass, Wet, Delta (Delta only on REAPER versions that have it), with its check box. (c) Right-click a parameter > **Hide this parameter**: it goes, for that plug-in, on every rack and after a restart. **Show hidden** (next to the search): every hidden one is back, dimmed, "(hidden)"; right-click a hand-hidden one > **Show this parameter again**; an automatic one says why it's hidden. A hidden parameter already in the Performance stays there. (d) Kirchhoff band type (and any drop-down with "Reserved" values): the drop-down no longer lists them; as a stepped encoder it only steps through the real types, and the value box follows. The list of values' "Add one of its values..." leaves them out too. (e) A plug-in that names every parameter "Param 1, Param 2..." would show nothing: tick Show hidden. Tell me if you meet one.
 

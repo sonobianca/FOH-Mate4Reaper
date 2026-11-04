@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Performance mode: a parameter whose values are all words (no numbers) gets a **drop-down** automatically, also when it has many values: a band type with 72 values, most of them "Reserved" (Kirchhoff-EQ), was a smooth encoder. Placeholder values no longer count when telling numbers from words.
+
 - Performance mode, Edit mode: a **"..."** in the top right corner of the parameters, above the position bar, has what the right-click menu of the **+** had (remove the parameters not linked any more, Clear all). The **+** only opens the parameter window. Right-click a parameter > **Inspect parameter...** opens the parameter window on it (it replaces "Limit values...").
 
 - Performance parameters window: parameters that aren't meant for the user are hidden: placeholders ("Reserved", "Unused", "-", nameless, "Param 12") and the MIDI CC entries many VST3 plug-ins add by the hundred. Right-click a parameter > **Hide this parameter** hides one by hand, for that plug-in in every project (Data/FOHMate/param_hidden.txt). **Show hidden**, next to the search, lists them all again, dimmed and marked "(hidden)", where a hand-hidden one can be shown again. REAPER's own **Bypass**, **Wet** and **Delta** are in a **REAPER** branch at the end of each FX. Placeholder values (a band type's "Reserved" choices) are left out of drop-downs, of stepped encoders (which then go through the other values only) and of the list of values.

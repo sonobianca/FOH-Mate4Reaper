@@ -598,24 +598,31 @@ function param_kind(tr, fxi, r)
   if k then return k end
   if not PARAM_OVR then param_ovr_load() end
 
-  -- how many values there are, when there are few (the step is in the parameter's own units)
+  -- how many values there are, when there are few (the step is in the parameter's own units). Up to
+  -- 128 values are read: past 32, they are only kept when every one is a word (a band's types, many
+  -- of them "Reserved"), which makes a drop-down
   local ok, step, _, _, istoggle = reaper.TrackFX_GetParameterStepSizes(tr, fxi, r.idx)
   local _, mn, mx = reaper.TrackFX_GetParamEx(tr, fxi, r.idx)
   local n
   if ok and step and step > 0 and mn and mx and mx > mn then
     local cnt = (mx - mn) / step
-    if cnt <= 31.5 then n = math.floor(cnt + 0.5) + 1 end
+    if cnt <= 127.5 then n = math.floor(cnt + 0.5) + 1 end
   end
   local items, numeric
   if n and n >= 2 then
     items, numeric = {}, true
+    local words = true                                     -- no value is a number (placeholders aside)
     for i = 0, n - 1 do
       local v = i / (n - 1)
       local _, txt = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, r.idx, v, '')
       if txt == '' then txt = ('%d%%'):format(math.floor(v * 100 + 0.5)) end
       items[#items + 1] = { label = txt, norm = v }
-      if not tonumber((txt:match('^%s*([%-%+]?[%d%.]+)'))) then numeric = false end
+      if not param_hidden_value(txt) then
+        if tonumber((txt:match('^%s*([%-%+]?[%d%.]+)'))) then words = false else numeric = false end
+      end
+      if n > 32 and not words then break end
     end
+    if n > 32 and not words then n, items, numeric = nil, nil, nil end
   end
 
   -- the guess
@@ -636,6 +643,8 @@ function param_kind(tr, fxi, r)
   elseif (ok and istoggle) or n == 2 or low:find('bypass', 1, true) or low:find('^enable') or low:find('on/off', 1, true)
      or low:find('^mute') or low == 'on' or low:find('^power') then
     guess = 'toggle'
+  elseif n and n > 32 then
+    guess = 'list'      -- only words (see above)
   elseif n and n >= 3 then
     guess = numeric and 'steps' or 'list'
   elseif low == 'pan' or low:find('^pan[%s%-_]') or low:find('[%s%-_]pan$') or low:find('balance', 1, true) then
