@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 139).
+New items get the next free number (next: 140).
 
 ## Open
 
+- [ ] 139. (0.14.91) Curve reset. On a Custom points curve, right-click the graph away from the points (or on an end point): a menu with "Reset the curve (a straight line)"; choose it: only the two end points are left, in a straight line, Smooth as it was. Right-click a middle point: it is still removed, no menu. The tooltip mentions the reset.
 - [ ] 138. (0.14.90) The parameter window's layout. (a) At the top: the parameter's name, big and bold (bigger than the section titles); under it the nickname box, then the FX name, dimmed. (b) Type a nickname, press Enter or click elsewhere: the row in the Performance shows it, Ctrl+Z undoes it; empty the box: its own name is back. Type one and click another parameter in the list without pressing Enter: the first one still gets it. Not in the Performance: the box is greyed out. (c) Sections Control, Direction and default, Limit values (Use limits inside), Curve, Preview, Details: each title bold, a bit bigger than the text; click a title to fold or unfold it; Details starts folded. (d) Several parameters selected: the title says how many, only Control is shown.
 - [ ] 137. (0.14.89) The curve section. (a) The graph is a little bigger (10%). (b) Under it: Save this curve... and Delete a curve... side by side (Delete only when you saved a curve), then Type and Strength (or Smooth): their right edges, captions included, line up with the right edge of the graph; their left edges with its left edge. (c) Type > Saved curves: S curve, Fine in the middle, Rising wave (climbs while waving), Parabola (up then down), Valley (down then up), Staircase (4 flat steps), Wave, Zigzag. No Ease in / Ease out among them.
 - [ ] 136. (0.14.88) Click a rack's **Out**: "Hardware out: mono" comes before "Hardware out: stereo pair", and both still set the output.

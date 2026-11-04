@@ -258,15 +258,26 @@ function draw_curve_section(tr, row, pos)
     elseif not act then
       CURVE_DRAG = nil
     end
-    -- right-click a point (not an end): remove it
+    -- right-click a point (not an end): remove it; anywhere else: a menu to reset the curve
     if hov and ig.IsMouseClicked(ctx, 1) then
       local i = near()
       if i and i > 1 and i < #pts then
         table.remove(pts, i)
         set(curve_spec({ kind = 'pts', smooth = cv.smooth, pts = pts }))
+      else
+        ig.OpenPopup(ctx, 'crv_menu')
       end
     end
-    if hov then ig.SetTooltip(ctx, 'Click: add a point  \194\183  drag a point: move it  \194\183  right-click a point: remove it') end
+    if ig.BeginPopup(ctx, 'crv_menu') then
+      if ig.MenuItem(ctx, 'Reset the curve (a straight line)') then
+        set(curve_spec({ kind = 'pts', smooth = cv.smooth, pts = { { x = 0, y = 0 }, { x = 1, y = 1 } } }))
+      end
+      ig.EndPopup(ctx)
+    end
+    if hov then
+      ig.SetTooltip(ctx, 'Click: add a point  \194\183  drag a point: move it  \194\183  right-click a point: remove it\n'
+                      .. 'Right-click elsewhere: reset the curve')
+    end
   end
 
   -- under the graph, as wide as it (captions included): saving and the saved curves, then the kind of

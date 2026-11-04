@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Parameter window, Curve: right-click the graph of a custom curve (not on a point) > **Reset the curve (a straight line)** starts it again from its two ends. Right-clicking a point still removes it.
+
 - Parameter window: the right side is in sections that fold, each with a clear title a little bigger than the text: **Control**, **Direction and default**, **Limit values**, **Curve**, **Preview** and **Details** (what REAPER says about the parameter, folded at first). The parameter's name at the top is bigger and bold; right under it, a box for its **nickname** (set when you leave the box, or press Enter; empty gives back its own name; only for a parameter in the Performance). The Limit values check box is now called **Use limits**.
 
 - Parameter window, Curve: the graph is 10% bigger; under it come **Save this curve...** and **Delete a curve...** side by side, then **Type** (the kind of curve) and its **Strength** or **Smooth**, none wider than the graph, captions included. The examples are all different from Ease in / Ease out: S curve, Fine in the middle, **Rising wave**, **Parabola**, **Valley**, **Staircase**, Wave, Zigzag (a row that used the old "Ease in" or "Ease out" example keeps its curve).
