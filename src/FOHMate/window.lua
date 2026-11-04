@@ -446,8 +446,9 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
   -- back to widen, face to face to fold back. The whole width is the button.
   local bh = HANDLE_H + PAD
   ig.PushID(ctx, guid)
+  local menu_w = is_locked() and 0 or 18                 -- Edit mode: the "..." menu takes the right corner
   ig.SetCursorScreenPos(ctx, x + 2, y + 2)
-  if ig.InvisibleButton(ctx, 'widen', w - 4, bh - 2) then
+  if ig.InvisibleButton(ctx, 'widen', w - 4 - menu_w, bh - 2) then
     ps.open = not ps.open
     PERF_ACT = reaper.time_precise()
     if ps.open then
@@ -458,6 +459,21 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
   local band_hov = ig.IsItemHovered(ctx)
   if band_hov then ig.SetTooltip(ctx, ps.open and 'Fold the parameters back' or 'Widen the parameters') end
   hint_hovered('Click: widen the parameters over the other columns, or fold them back')
+  -- the "..." in the right corner, above the position bar (Edit mode): clean up the parameters
+  if menu_w > 0 then
+    ig.SetCursorScreenPos(ctx, x + w - 2 - menu_w, y + 2)
+    if ig.InvisibleButton(ctx, 'pmenu', menu_w, bh - 2) then
+      PARAM_UNLINKED = params_unlinked(tr)                 -- found once, when the menu opens
+      ig.OpenPopup(ctx, 'plus_menu')
+    end
+    local mhov = ig.IsItemHovered(ctx)
+    if mhov then ig.SetTooltip(ctx, 'Parameter menu') end
+    hint_hovered('Click: remove the parameters not linked any more, or all of them')
+    local dcol = (c.name_txt & 0xFFFFFF00) | (mhov and 0xFF or 0xA0)
+    local rx, dy = x + w - PAD - 1, math.floor(y + bh / 2) + 1   -- the dots end where the position bar ends
+    for i = 0, 2 do ig.DrawList_AddCircleFilled(pdl, rx - 1.5 - i * 4, dy, 1.5, dcol) end
+    if ig.BeginPopup(ctx, 'plus_menu') then draw_param_menu(tr); ig.EndPopup(ctx) end
+  end
   ig.PopID(ctx)
   do
     local bx, by = math.floor(x + w / 2), math.floor(y + bh / 2) + 1
@@ -761,27 +777,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
       ig.DrawList_AddLine(dl, pcx - pl, pcy, pcx + pl, pcy, pcol, hov and 3 or 2)
       ig.DrawList_AddLine(dl, pcx, pcy - pl, pcx, pcy + pl, pcol, hov and 3 or 2)
       if hov then ig.SetTooltip(ctx, 'Add or remove parameters') end
-      hint_hovered('Click: add or remove parameters  \194\183  right-click: remove the parameters not linked any more, or all of them')
-      -- right-click: clean up the rows whose parameter is gone (found once, when the menu opens)
-      if hov and ig.IsMouseClicked(ctx, 1) then
-        PARAM_UNLINKED = params_unlinked(tr)
-        ig.OpenPopup(ctx, 'plus_menu')
-      end
-      if ig.BeginPopup(ctx, 'plus_menu') then
-        local nu = PARAM_UNLINKED and #PARAM_UNLINKED or 0
-        local label = nu > 0 and ('Remove the %d parameter%s not linked any more'):format(nu, nu == 1 and '' or 's')
-                              or 'Every parameter is linked: nothing to remove'
-        if ig.MenuItem(ctx, label, nil, false, nu > 0) then params_apply(tr, PARAM_UNLINKED, false) end
-        ig.Separator(ctx)
-        if ig.MenuItem(ctx, 'Clear all', nil, false, n > 0) then
-          request_confirm(('Remove all %d parameter%s of this rack from the Performance?\n(Ctrl+Z brings them back.)')
-                          :format(n, n == 1 and '' or 's'),
-            function()
-              if valid(tr) then with_undo('Clear Performance parameters', function() params_drop_fx(tr, nil) end) end
-            end, 'Clear all')
-        end
-        ig.EndPopup(ctx)
-      end
+      hint_hovered('Click: add or remove parameters')
     end
     if row_drop and row_from then                          -- the rows are rewritten once the frame is drawn
       local to = row_drop
@@ -827,8 +823,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           end
           ig.EndMenu(ctx)
         end
-        local mkind = mfx and param_kind(tr, mfx, mr).kind
-        if mfx and (param_limit_ok(mkind) or param_list_ok(mkind)) and ig.MenuItem(ctx, 'Limit values...') then
+        if mfx and ig.MenuItem(ctx, 'Inspect parameter...') then
           param_picker_open(tr, 'p:' .. mr.guid .. ':' .. mr.idx)
         end
         ig.Separator(ctx)
@@ -888,6 +883,23 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     ig.EndChild(ctx)
   end
   if outer then ig.EndChild(ctx) end
+end
+
+-- the "..." menu of a rack's parameters (Edit mode)
+function draw_param_menu(tr)
+  local n = #params_read(tr)
+  local nu = PARAM_UNLINKED and #PARAM_UNLINKED or 0
+  local label = nu > 0 and ('Remove the %d parameter%s not linked any more'):format(nu, nu == 1 and '' or 's')
+                        or 'Every parameter is linked: nothing to remove'
+  if ig.MenuItem(ctx, label, nil, false, nu > 0) then params_apply(tr, PARAM_UNLINKED, false) end
+  ig.Separator(ctx)
+  if ig.MenuItem(ctx, 'Clear all', nil, false, n > 0) then
+    request_confirm(('Remove all %d parameter%s of this rack from the Performance?\n(Ctrl+Z brings them back.)')
+                    :format(n, n == 1 and '' or 's'),
+      function()
+        if valid(tr) then with_undo('Clear Performance parameters', function() params_drop_fx(tr, nil) end) end
+      end, 'Clear all')
+  end
 end
 
 -- Performance mode, Show mode: each rack folds its FX section under the name. The state per
