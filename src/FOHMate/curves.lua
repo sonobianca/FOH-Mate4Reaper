@@ -123,13 +123,20 @@ end
 ---------------------------------------------------------------- saved curves
 
 CURVE_FILE = LATDB_DIR .. '/param_curves.txt'
--- the examples, always there (they can be changed on a row, not deleted)
+-- the examples, always there (they can be changed on a row, not deleted); none of them is one of
+-- the curves the Type menu already gives (Ease in, Ease out)
 CURVE_EXAMPLES = {
-  { 'Ease in',            'in:2.50' },
-  { 'Ease out',           'out:2.50' },
   { 'S curve',            'pts:1:0.000,0.000 0.250,0.080 0.500,0.500 0.750,0.920 1.000,1.000' },
   { 'Fine in the middle', 'pts:1:0.000,0.000 0.300,0.440 0.700,0.560 1.000,1.000' },
-  { 'Up and down',        'pts:1:0.000,0.000 0.500,1.000 1.000,0.000' },
+  { 'Rising wave',        'pts:1:0.000,0.000 0.042,0.112 0.083,0.183 0.125,0.196 0.167,0.167 0.208,0.138 0.250,0.150 '
+                          .. '0.292,0.221 0.333,0.333 0.375,0.446 0.417,0.517 0.458,0.529 0.500,0.500 0.542,0.471 '
+                          .. '0.583,0.483 0.625,0.554 0.667,0.667 0.708,0.779 0.750,0.850 0.792,0.862 0.833,0.833 '
+                          .. '0.875,0.804 0.917,0.817 0.958,0.888 1.000,1.000' },
+  { 'Parabola',           'pts:1:0.000,0.000 0.125,0.438 0.250,0.750 0.375,0.938 0.500,1.000 0.625,0.938 0.750,0.750 '
+                          .. '0.875,0.438 1.000,0.000' },
+  { 'Valley',             'pts:1:0.000,1.000 0.125,0.562 0.250,0.250 0.375,0.062 0.500,0.000 0.625,0.062 0.750,0.250 '
+                          .. '0.875,0.562 1.000,1.000' },
+  { 'Staircase',          'pts:0:0.000,0.000 0.240,0.000 0.260,0.333 0.490,0.333 0.510,0.667 0.740,0.667 0.760,1.000 1.000,1.000' },
   { 'Wave',               'pts:1:0.000,0.000 0.250,1.000 0.500,0.000 0.750,1.000 1.000,0.000' },
   { 'Zigzag',             'pts:0:0.000,0.000 0.333,1.000 0.667,0.000 1.000,1.000' },
 }
@@ -180,50 +187,15 @@ end
 
 CURVE_DRAG = nil   -- the point being dragged in the graph: its number
 
--- The "Curve" part of the parameter window, for a parameter in the Performance (row): the kind of
--- curve, its strength or its points, the graph, and the saved curves. pos = where the control is now.
+-- The "Curve" part of the parameter window, for a parameter in the Performance (row): the graph (and
+-- its points), then under it the saved curves, the kind of curve and its strength or smoothing.
+-- pos = where the control is now.
 function draw_curve_section(tr, row, pos)
   local g, ix = row.guid, row.idx
   local cv = row.curve and curve_parse(row.curve)
   local function set(spec) params_update(tr, g, ix, { curve = spec or false }) end
-  local kinds = { { nil, 'Linear' }, { 'in', 'Ease in' }, { 'out', 'Ease out' }, { 'pts', 'Custom points' } }
-  local now = 'Linear'
-  for _, o in ipairs(kinds) do if cv and o[1] == cv.kind then now = o[2] end end
-  ig.SetNextItemWidth(ctx, 220)
-  if ig.BeginCombo(ctx, 'Curve##crv', now) then
-    for _, o in ipairs(kinds) do
-      if ig.Selectable(ctx, o[2], (cv and cv.kind or nil) == o[1]) then
-        if not o[1] then set(nil)
-        elseif o[1] == 'pts' then
-          -- custom points start from the curve as it is (5 points of it), smooth
-          local pts = {}
-          for i = 0, 4 do pts[#pts + 1] = { x = i / 4, y = cv and curve_eval(cv, i / 4) or i / 4 } end
-          if not (cv and cv.kind == 'pts') then set(curve_spec({ kind = 'pts', smooth = true, pts = pts })) end
-        else
-          set(curve_spec({ kind = o[1], k = cv and cv.k or 2.5 }))
-        end
-      end
-    end
-    ig.Separator(ctx)
-    ig.TextDisabled(ctx, 'Saved curves')
-    for li, list in ipairs({ CURVE_EXAMPLES, curve_lib() }) do
-      for i, c in ipairs(list) do
-        if ig.Selectable(ctx, c[1] .. '##sv' .. li .. ':' .. i, row.curve == c[2]) then set(c[2]) end
-      end
-    end
-    ig.EndCombo(ctx)
-  end
-  if cv and cv.kind ~= 'pts' then
-    ig.SetNextItemWidth(ctx, 220)
-    local rv, k = ig.SliderDouble(ctx, 'Strength##crvk', cv.k, 1, 6, '%.1f')
-    if rv then set(curve_spec({ kind = cv.kind, k = k })) end
-  elseif cv then
-    local rv, sm = ig.Checkbox(ctx, 'Smooth (off: straight lines)', cv.smooth)
-    if rv then set(curve_spec({ kind = 'pts', smooth = sm, pts = cv.pts })) end
-  end
-
   -- the graph: position across, value up
-  local W, H, pad = 220, 150, 8
+  local W, H, pad = 242, 165, 8
   local x0, y0 = ig.GetCursorScreenPos(ctx)
   ig.InvisibleButton(ctx, '##crvgraph', W + 2 * pad, H + 2 * pad)
   local hov, act = ig.IsItemHovered(ctx), ig.IsItemActive(ctx)
@@ -297,15 +269,21 @@ function draw_curve_section(tr, row, pos)
     if hov then ig.SetTooltip(ctx, 'Click: add a point  \194\183  drag a point: move it  \194\183  right-click a point: remove it') end
   end
 
-  -- saving, and the user's saved curves
-  if cv then
-    if ig.Button(ctx, 'Save this curve...') then curve_prompt_save(row.curve) end
-  end
+  -- under the graph, as wide as it (captions included): saving and the saved curves, then the kind of
+  -- curve and its strength or smoothing
+  ig.Indent(ctx, pad)
+  local spx = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
+  local inner = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemInnerSpacing()))
+  local function fit(caption) return W - ig.CalcTextSize(ctx, caption) - inner end
   local lib = curve_lib()
+  local half = (cv and #lib > 0) and (W - spx) / 2 or W
+  if cv then
+    if ig.Button(ctx, 'Save this curve...', half) then curve_prompt_save(row.curve) end
+  end
   if #lib > 0 then
     if cv then ig.SameLine(ctx) end
-    ig.SetNextItemWidth(ctx, 150)
-    if ig.BeginCombo(ctx, '##crvdel', 'Delete a saved curve...') then
+    ig.SetNextItemWidth(ctx, half)
+    if ig.BeginCombo(ctx, '##crvdel', 'Delete a curve...') then
       for i, c in ipairs(lib) do
         if ig.Selectable(ctx, c[1] .. '##del' .. i, false) then
           local name = c[1]
@@ -316,4 +294,41 @@ function draw_curve_section(tr, row, pos)
       ig.EndCombo(ctx)
     end
   end
+  local kinds = { { nil, 'Linear' }, { 'in', 'Ease in' }, { 'out', 'Ease out' }, { 'pts', 'Custom points' } }
+  local now = 'Linear'
+  for _, o in ipairs(kinds) do if cv and o[1] == cv.kind then now = o[2] end end
+  ig.SetNextItemWidth(ctx, fit('Type'))
+  if ig.BeginCombo(ctx, 'Type##crv', now) then
+    for _, o in ipairs(kinds) do
+      if ig.Selectable(ctx, o[2], (cv and cv.kind or nil) == o[1]) then
+        if not o[1] then set(nil)
+        elseif o[1] == 'pts' then
+          -- custom points start from the curve as it is (5 points of it), smooth
+          local pts = {}
+          for i = 0, 4 do pts[#pts + 1] = { x = i / 4, y = cv and curve_eval(cv, i / 4) or i / 4 } end
+          if not (cv and cv.kind == 'pts') then set(curve_spec({ kind = 'pts', smooth = true, pts = pts })) end
+        else
+          set(curve_spec({ kind = o[1], k = cv and cv.k or 2.5 }))
+        end
+      end
+    end
+    ig.Separator(ctx)
+    ig.TextDisabled(ctx, 'Saved curves')
+    for li, list in ipairs({ CURVE_EXAMPLES, curve_lib() }) do
+      for i, c in ipairs(list) do
+        if ig.Selectable(ctx, c[1] .. '##sv' .. li .. ':' .. i, row.curve == c[2]) then set(c[2]) end
+      end
+    end
+    ig.EndCombo(ctx)
+  end
+  if cv and cv.kind ~= 'pts' then
+    ig.SetNextItemWidth(ctx, fit('Strength'))
+    local rv, k = ig.SliderDouble(ctx, 'Strength##crvk', cv.k, 1, 6, '%.1f')
+    if rv then set(curve_spec({ kind = cv.kind, k = k })) end
+  elseif cv then
+    local rv, sm = ig.Checkbox(ctx, 'Smooth (off: straight lines)', cv.smooth)
+    if rv then set(curve_spec({ kind = 'pts', smooth = sm, pts = cv.pts })) end
+  end
+
+  ig.Unindent(ctx, pad)
 end

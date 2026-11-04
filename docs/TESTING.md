@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 137).
+New items get the next free number (next: 138).
 
 ## Open
 
+- [ ] 137. (0.14.89) The curve section. (a) The graph is a little bigger (10%). (b) Under it: Save this curve... and Delete a curve... side by side (Delete only when you saved a curve), then Type and Strength (or Smooth): their right edges, captions included, line up with the right edge of the graph; their left edges with its left edge. (c) Type > Saved curves: S curve, Fine in the middle, Rising wave (climbs while waving), Parabola (up then down), Valley (down then up), Staircase (4 flat steps), Wave, Zigzag. No Ease in / Ease out among them.
 - [ ] 136. (0.14.88) Click a rack's **Out**: "Hardware out: mono" comes before "Hardware out: stereo pair", and both still set the output.
 - [ ] 135. (0.14.87) Drop-down for word values. Remove the hand-made correction first (right-click Kirchhoff Band 1 Type > Control > Automatic). (a) Kirchhoff-EQ: every band's Type is a drop-down without the "Reserved" values. (b) A stepped numeric parameter (a ratio 1:1, 2:1... or an oversampling 1x, 2x...) is still a stepped encoder. (c) Mono / Stereo-style two-word parameters are still drop-downs, on/off still toggles.
 - [ ] 134. (0.14.86) The "..." menu of the parameters (Edit mode). (a) Top right of each parameter column, above the position bar: three dots that light up on hover; click: "Remove the N parameters not linked any more" and "Clear all" (with its confirmation). Not shown in Show mode. (b) The widen band still widens / folds when clicked anywhere else. (c) The **+** opens the parameter window; right-click on it does nothing now. (d) Right-click a parameter > **Inspect parameter...**: the parameter window opens with that parameter selected.

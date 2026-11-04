@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Parameter window, Curve: the graph is 10% bigger; under it come **Save this curve...** and **Delete a curve...** side by side, then **Type** (the kind of curve) and its **Strength** or **Smooth**, none wider than the graph, captions included. The examples are all different from Ease in / Ease out: S curve, Fine in the middle, **Rising wave**, **Parabola**, **Valley**, **Staircase**, Wave, Zigzag (a row that used the old "Ease in" or "Ease out" example keeps its curve).
+
 - Racks: the **Out** menu lists **mono** outputs before stereo pairs, like everywhere else.
 
 - Performance mode: a parameter whose values are all words (no numbers) gets a **drop-down** automatically, also when it has many values: a band type with 72 values, most of them "Reserved" (Kirchhoff-EQ), was a smooth encoder. Placeholder values no longer count when telling numbers from words.
