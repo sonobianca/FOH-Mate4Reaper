@@ -603,13 +603,11 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
     end
     if not it.enabled then ig.PopStyleColor(ctx) end
     pop_native()
-    if ig.IsItemHovered(ctx) then hot_now_fx = fx_guid end   -- its Performance rows glow
-    if row_hot_prev == fx_guid then                          -- one of its Performance rows is pointed at
-      local base = T.link & 0xFFFFFF00
-      for i = 1, 3 do
-        local a = math.floor(170 * (1 - (i - 1) / 3) ^ 2)
-        ig.DrawList_AddRect(dl, wx - i, y - i, wx + WW + i, y + fh + i, base | a, ROUNDING + i, 0, 1)
-      end
+    local own_col = fxcol_read(tr)[fx_guid]                  -- a color given to this FX: a tab on the button
+    if own_col then ig.DrawList_AddRectFilled(dl, wx + fh + spx, y + 3, wx + fh + spx + 4, y + fh - 3, (own_col << 8) | 0xFF, 2) end
+    if ig.IsItemHovered(ctx) then hot_now_fx = fx_guid end   -- its Performance rows glow, in its color
+    if row_hot_prev == fx_guid then                          -- one of its Performance rows is pointed at: in that row's color
+      draw_link_glow(dl, wx, y, wx + WW, y + fh, row_hot_col_prev, ROUNDING)
     end
     if locked then
       hint_hovered('Click: open or close the FX window')
@@ -677,6 +675,7 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
         end)
         ig.EndMenu(ctx)
       end
+      if ig.MenuItem(ctx, 'Color...') then fx_open_picker(tr, fx_guid, it.name) end
       if ig.MenuItem(ctx, 'Delete FX...') then
         -- with rows in the Performance it always asks, even after "Don't show this again": remove
         -- the rows too, or keep them for a new FX of the same plug-in to take back

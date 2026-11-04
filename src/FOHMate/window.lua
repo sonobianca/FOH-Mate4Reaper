@@ -73,7 +73,7 @@ function draw_dialogs()
   if ig.BeginPopup(ctx, 'Color##picker') then
     if picker.kind == 'default' then
       ig.Text(ctx, 'Default rack color')
-    elseif picker.kind == 'param' then
+    elseif picker.kind == 'param' or picker.kind == 'fx' then
       ig.Text(ctx, picker.title or 'Parameter color')
     elseif picker.trs and #picker.trs > 1 then
       ig.Text(ctx, ('Color for the %d selected racks'):format(#picker.trs))
@@ -90,14 +90,23 @@ function draw_dialogs()
         end
       elseif picker.kind == 'param' then
         if valid(picker.tr) then params_set_color(picker.tr, picker.rows, new) end
+      elseif picker.kind == 'fx' then
+        if valid(picker.tr) then fxcol_set(picker.tr, picker.guid, new) end
       else
         S.default_rgb = new
         save_setting('defcolor', new)
       end
     end
-    if picker.kind == 'param' then                       -- back to the rack's color (shifted for a group)
+    if picker.kind == 'param' then                       -- back to the FX's color (shifted for a group)
       if ig.Button(ctx, 'Automatic', 80, 0) and valid(picker.tr) then params_set_color(picker.tr, picker.rows, nil) end
-      hint_hovered('The rack\'s color again (a group of parameters, like an EQ band, gets it slightly shifted)')
+      hint_hovered('The FX\'s color again (a group of parameters, like an EQ band, gets it slightly shifted)')
+      ig.SameLine(ctx)
+    elseif picker.kind == 'fx' then                      -- back to the rack's color
+      if ig.Button(ctx, 'Automatic', 80, 0) and valid(picker.tr) then
+        fxcol_set(picker.tr, picker.guid, nil)
+        picker.rgb = track_color(picker.tr) >> 8
+      end
+      hint_hovered('The rack\'s color again')
       ig.SameLine(ctx)
     end
     if ig.Button(ctx, 'Close', 80, 0) then ig.CloseCurrentPopup(ctx) end
@@ -607,16 +616,19 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           PARAM_MENU_ROW = k
           ig.OpenPopup(ctx, 'prm_menu')
         end
-        if over or hot then
-          local base = (over and T.glow or T.link) & 0xFFFFFF00
+        if over then
+          local base = T.glow & 0xFFFFFF00
           for i = 1, 3 do
             local a = math.floor(170 * (1 - (i - 1) / 3) ^ 2)
             ig.DrawList_AddRect(dl, rx - i, ry - i, rx + rw2 + i, ry + rh + i, base | a, ROUNDING + i, 0, 1)
           end
+        elseif hot then                                      -- its FX is pointed at: it glows in the FX's color
+          draw_link_glow(dl, rx, ry, rx + rw2, ry + rh, fx_color(tr, r.guid, rack_col), ROUNDING)
         end
         -- the row's colors: its own (Recolor parameters), or the rack's, shifted a little for a group of
         -- parameters such as an EQ band (param_row_color); worked out again only when one of them changes
-        local rcol = param_row_color(rack_col, r)
+        local rcol = param_row_color(fx_color(tr, r.guid, rack_col), r)
+        if over then row_hot_col_now = rcol end              -- its FX glows in this color
         local ckey = rcol .. '|' .. tostring(inf.bypassed) .. '|' .. tostring(S.daylight)
         if mm.ckey ~= ckey then mm.ckey, mm.rc = ckey, rack_colors(rcol, inf.bypassed) end
         local rc = mm.rc
@@ -1108,6 +1120,7 @@ function draw(dt, now)
   hover_prev_rack, hover_now_rack = hover_now_rack, nil
   hot_prev_fx, hot_now_fx = hot_now_fx, nil
   row_hot_prev, row_hot_now = row_hot_now, nil
+  row_hot_col_prev, row_hot_col_now = row_hot_col_now, nil
   lat_over_racks = 0
   HINT = nil
 

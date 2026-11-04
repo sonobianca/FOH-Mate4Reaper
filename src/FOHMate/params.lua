@@ -108,16 +108,63 @@ function fx_guid_map(tr)
   return m
 end
 
+-- The colors given to the FX of a rack (Performance mode: the parameters of an FX take its color): FX guid
+-- -> 0xRRGGBB, saved with the rack. An FX without one has the rack's color. Read again every 20 frames.
+FXCOL_CACHE = {}
+function fxcol_read(tr)
+  local g = reaper.GetTrackGUID(tr)
+  local c = FXCOL_CACHE[g]
+  if c and FRAME - c.frame < 20 then return c.map end
+  local ok, s = reaper.GetSetMediaTrackInfo_String(tr, EXT_FXCOL, '', false)
+  if not ok then s = '' end
+  if c and c.raw == s then c.frame = FRAME; return c.map end
+  local map = {}
+  for gd, hx in s:gmatch('({[^}]+})=(%x+)') do map[gd] = tonumber(hx, 16) end
+  FXCOL_CACHE[g] = { raw = s, map = map, frame = FRAME }
+  return map
+end
+
+-- gives an FX a color (0xRRGGBB), or with nil the rack's again; the colors of FX that are gone are dropped
+function fxcol_set(tr, guid, col)
+  local map = {}
+  for k, v in pairs(fxcol_read(tr)) do map[k] = v end
+  map[guid] = col
+  local gm, t = fx_guid_map(tr), {}
+  for k, v in pairs(map) do if gm[k] then t[#t + 1] = ('%s=%06X'):format(k, v) end end
+  table.sort(t)
+  reaper.GetSetMediaTrackInfo_String(tr, EXT_FXCOL, table.concat(t, ';'), true)
+  FXCOL_CACHE[reaper.GetTrackGUID(tr)] = nil
+end
+
+-- the color of an FX (0xRRGGBBAA): its own, or rack_col
+function fx_color(tr, guid, rack_col)
+  local c = fxcol_read(tr)[guid]
+  return c and ((c << 8) | 0xFF) or rack_col
+end
+
+-- the color picker for an FX (right-click it > Color...)
+function fx_open_picker(tr, guid, name)
+  picker.kind, picker.tr, picker.guid = 'fx', tr, guid
+  picker.title = 'Color of ' .. clean_fx_name(name)
+  picker.rgb = fx_color(tr, guid, track_color(tr)) >> 8
+  picker.open = true
+end
+
 -- A duplicated rack (or a template) has the same FX in the same order, but REAPER gives each of
 -- them a new GUID: the copied rows are pointed at the copy's own FX, place by place.
 function params_copy(src, new)
   local rows = params_read(src)
-  if #rows == 0 then return end
+  local cols = fxcol_read(src)
+  if #rows == 0 and next(cols) == nil then return end
   local a, b = chain_info(src).list, chain_info(new).list
   local map = {}
   for i, it in ipairs(a) do
     if b[i] then map[reaper.TrackFX_GetFXGUID(src, it.fx)] = reaper.TrackFX_GetFXGUID(new, b[i].fx) end
   end
+  for old, c in pairs(cols) do                              -- the colors given to FX go along
+    if map[old] then fxcol_set(new, map[old], c) end
+  end
+  if #rows == 0 then return end
   local out = {}
   for _, r in ipairs(rows) do
     local n = {}
@@ -484,7 +531,8 @@ end
 function param_open_picker(tr, targets, title)
   local r0 = params_find(tr, targets[1].guid, targets[1].idx)
   picker.kind, picker.tr, picker.rows, picker.title = 'param', tr, targets, title
-  picker.rgb = r0 and param_row_color(track_color(tr), r0) >> 8 or S.default_rgb
+  local fxg = targets[1].guid
+  picker.rgb = r0 and param_row_color(fx_color(tr, fxg, track_color(tr)), r0) >> 8 or S.default_rgb
   picker.open = true
 end
 
@@ -1473,6 +1521,7 @@ function draw_param_picker()
           -- the name in the color it has in the rack (its own, or the group's shift of the rack's), made readable
           col = hid and T.dim or param_name_color(
             param_row_color(rack_col, { col = rowof[fx.guid .. ':' .. p] and rowof[fx.guid .. ':' .. p].col, pname = nm }), dark)
+          -- (rack_col here is the color of the FX the parameter is in)
         end
         draw_row({ id = key, sel = key, depth = depth, h = h_par, check = true, on = inn, col = col,
           name = label .. (hid and '  (hidden)' or ''),
@@ -1509,6 +1558,7 @@ function draw_param_picker()
         local opened = low ~= '' or P.open[gkey] == true
         local g_have = count_have(fx, nd.ps)
         draw_row({ id = gkey, sel = gkey, depth = depth, h = h_grp, font = sect_font, size = SECT_FONT_SIZE,
+          col = param_name_color(param_row_color(rack_col, { pname = nd.label }), dark),
           arrow = true, open = opened, check = true, on = g_have == #nd.ps, part = g_have > 0, name = nd.label,
           count = ('%d of %d in the Performance'):format(g_have, #nd.ps),
           on_toggle = function() P.open[gkey] = not opened end,
@@ -1534,7 +1584,7 @@ function draw_param_picker()
         local rkey = 'R:' .. rk.guid
         local ropen = P.open[rkey] == true
         draw_row({ id = rkey, h = h_rack, font = head_font, size = HEAD_FONT_SIZE, arrow = true, open = ropen,
-          name = rk.name,
+          name = rk.name, col = param_name_color(track_color(rk.tr), dark),
           on_toggle = function()
             P.open[rkey] = not ropen
             if ropen then param_pick_forget(P, rk.tr) end
@@ -1551,7 +1601,10 @@ function draw_param_picker()
             local n_have = 0
             for p = 0, #fx.names - 1 do if not fx.hide[p] and have[fx.guid .. ':' .. p] then n_have = n_have + 1 end end
             local opened = low ~= '' or P.open[fkey] == true
+            local fcol = fx_color(fx.tr, fx.guid, rack_col)           -- the FX's color: its own, or the rack's
             draw_row({ id = pkey, sel = pkey, depth = 0, h = h_grp, font = sect_font, size = SECT_FONT_SIZE,
+              col = param_name_color(fcol, dark),
+              menu = function() if ig.MenuItem(ctx, 'Color...') then fx_open_picker(fx.tr, fx.guid, fx.name) end end,
               arrow = true, open = opened, check = true, on = n_have == fx.nvis and n_have > 0, part = n_have > 0,
               name = pname, type = ptype, count = ('%d of %d in the Performance'):format(n_have, fx.nvis),
               on_toggle = function() P.open[fkey] = not opened end,
@@ -1563,7 +1616,7 @@ function draw_param_picker()
               end })
             if opened then
               local y1 = lastbot
-              draw_nodes(fx, fx.items or {}, 1, rack_col)
+              draw_nodes(fx, fx.items or {}, 1, fcol)
               guide(cxof(0) - aw / 2 - 4, y1, lastbot - 5)
             end
           end

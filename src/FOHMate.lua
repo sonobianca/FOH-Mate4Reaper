@@ -27,7 +27,7 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.14.94'   -- major.minor.revision, shown in the window's title bar
+VERSION         = '0.14.95'   -- major.minor.revision, shown in the window's title bar
 DEBUG_TIMER     = true      -- status bar shows how long the script takes per frame; must be false in a
                             -- public version (tools/make_reapack_index.sh refuses to build otherwise)
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
@@ -60,6 +60,7 @@ ALERT_RED       = 0xE02828FF
 EXT_SHOWOFF     = 'P_EXT:FOHMate_showoff' -- guids of FX taken offline by Show mode
 EXT_SPLIT       = 'P_EXT:FOHMate_split' -- guid of the FX picked as the stereo point
 EXT_PARAMS      = 'P_EXT:FOHMate_params' -- Performance mode: the parameter rows of a rack
+EXT_FXCOL       = 'P_EXT:FOHMate_fxcolors' -- Performance mode: the colors given to FX of a rack (FX guid=RRGGBB;...)
 COPY_BADGE      = 0x2EB84EFF            -- the green "+" that follows the pointer when a drag copies
 
 -- Buttons that open a native REAPER window (FX windows, routing) use this
