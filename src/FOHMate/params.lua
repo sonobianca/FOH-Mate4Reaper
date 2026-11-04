@@ -956,11 +956,14 @@ function draw_param_control_panel(P, fxs, gm, targets)
           ig.AlignTextToFramePadding(ctx)
           ig.Text(ctx, param_text_at(tr, fxi, ix, v))
           ig.SameLine(ctx, bx)
-          if ig.ArrowButton(ctx, 'up', ig.Dir_Up()) and i > 1 then
+          -- no up arrow on the first value, no down arrow on the last: an empty space keeps the others lined up
+          if i == 1 then ig.Dummy(ctx, bw, bw)
+          elseif ig.ArrowButton(ctx, 'up', ig.Dir_Up()) then
             local nv = copy(); nv[i], nv[i - 1] = nv[i - 1], nv[i]; put(nv)
           end
           ig.SameLine(ctx)
-          if ig.ArrowButton(ctx, 'dn', ig.Dir_Down()) and i < #vals then
+          if i == #vals then ig.Dummy(ctx, bw, bw)
+          elseif ig.ArrowButton(ctx, 'dn', ig.Dir_Down()) then
             local nv = copy(); nv[i], nv[i + 1] = nv[i + 1], nv[i]; put(nv)
           end
           ig.SameLine(ctx)

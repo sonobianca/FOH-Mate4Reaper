@@ -2,9 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 129).
+New items get the next free number (next: 130).
 
 ## Open
+
+- [ ] 129. (0.14.80) List of values: the first value has no up arrow, the last no down arrow (an empty space in their place, so the buttons of every line stay lined up). A single value: only the red x. After moving a value to the top or bottom, the arrows follow.
 
 - [ ] 128. (0.14.79) The list of values reads better: no numbers, each value's text on the left, and on the right of the same line, lined up for every value: up, down and a red x (lighter red under the pointer). The text sits level with the buttons. Do the buttons still work, and stay on the right when the window is resized?
 
