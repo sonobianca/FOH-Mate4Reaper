@@ -36,13 +36,15 @@ function params_read(tr)
   if c and c.raw == s then c.frame = FRAME; return c.rows end
   local rows = {}
   for rec in s:gmatch('[^;]+') do
-    local g, i, pn, nm, df, iv, cl, lo, hi, ft, vl, lm, vs =
-      rec:match('^([^|]*)|(%d+)|([^|]*)|([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)$')
+    local g, i, pn, nm, df, iv, cl, lo, hi, ft, vl, lm, vs, cu =
+      rec:match('^([^|]*)|(%d+)|([^|]*)|([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)$')
     if g then
       local r = { guid = g, idx = tonumber(i), pname = param_unesc(pn),
                   name = nm ~= '' and param_unesc(nm) or nil, def = tonumber(df), inv = (iv == '1'),
                   col = tonumber(cl, 16), lo = tonumber(lo), hi = tonumber(hi), fit = (ft == '1'),
-                  vraw = vl, vshow = (vs == 's' and 'steps') or (vs == 'd' and 'list') or nil }
+                  vraw = vl, vshow = (vs == 's' and 'steps') or (vs == 'd' and 'list') or nil,
+                  curve = cu ~= '' and param_unesc(cu) or nil }   -- the value curve (curves.lua), nil = linear
+      if r.curve and not curve_parse(r.curve) then r.curve = nil end
       if not (r.lo and r.hi and r.lo < r.hi) then r.lo, r.hi = nil, nil end
       if vl ~= '' then
         r.vals = {}
@@ -65,13 +67,14 @@ function params_write(tr, rows)
     local lim = r.lo and r.hi
     local vl = {}
     for j, v in ipairs(r.vals or {}) do vl[j] = ('%.6f'):format(v) end
-    t[#t + 1] = ('%s|%d|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s'):format(r.guid, r.idx, param_esc(r.pname or ''), param_esc(r.name or ''),
+    t[#t + 1] = ('%s|%d|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s'):format(r.guid, r.idx, param_esc(r.pname or ''), param_esc(r.name or ''),
                                                 r.def and ('%.6f'):format(r.def) or '', r.inv and '1' or '',
                                                 r.col and ('%06X'):format(r.col) or '',
                                                 lim and ('%.6f'):format(r.lo) or '', lim and ('%.6f'):format(r.hi) or '',
                                                 r.fit and '1' or '', table.concat(vl, ','),
                                                 (r.lim == 'mm' and 'm') or (r.lim == 'list' and 'l') or 'o',
-                                                (r.vshow == 'steps' and 's') or (r.vshow == 'list' and 'd') or '')
+                                                (r.vshow == 'steps' and 's') or (r.vshow == 'list' and 'd') or '',
+                                                param_esc(r.curve or ''))
   end
   reaper.GetSetMediaTrackInfo_String(tr, EXT_PARAMS, table.concat(t, ';'), true)
   PARAM_CACHE[reaper.GetTrackGUID(tr)] = nil
@@ -1016,6 +1019,17 @@ function draw_param_control_panel(P, fxs, gm, targets)
         if #vals == 1 then ig.TextDisabled(ctx, 'A single value is always a drop-down.') end
       end
     end
+    -- the value curve (curves.lua), for encoders and width / Q bands
+    if param_curve_ok(k.kind) then
+      ig.Separator(ctx)
+      if row.lim == 'list' then
+        ig.TextDisabled(ctx, 'Curve: not with a list of values.')
+      else
+        local u = param_to_ctl(row, k.kind, reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx))
+        local cvp = param_curve_of(row, k.kind)
+        draw_curve_section(tr, row, cvp and curve_inv(cvp, u, param_row_memo(tr, row, fxi).cpos) or u)
+      end
+    end
   end
 
   -- a preview of the control, and what REAPER says about the parameter
@@ -1041,7 +1055,13 @@ function draw_param_control_panel(P, fxs, gm, targets)
   else
     local rr = row or {}
     local pm, pd, range = param_ctl_view(rr, k.kind, k.marks)
-    draw_encoder('pv', cx, cy, r, param_to_ctl(rr, k.kind, norm), { body = body, col = ring, ptr = T.dots, s = 1, static = true,
+    local pv = param_to_ctl(rr, k.kind, norm)
+    local cvp = row and param_curve_of(row, k.kind)
+    if cvp then
+      pv = curve_inv(cvp, pv, param_row_memo(tr, row, fxi).cpos)
+      pm, range, pd = nil, nil, pd and curve_inv(cvp, pd)
+    end
+    draw_encoder('pv', cx, cy, r, pv, { body = body, col = ring, ptr = T.dots, s = 1, static = true,
                  style = k.kind == 'pan' and 'pan' or (k.kind == 'band' or k.kind == 'qband') and 'band' or 'line', narrow = k.kind == 'qband', steps = k.steps, marks = pm, def = pd,
                  range = range })
   end
