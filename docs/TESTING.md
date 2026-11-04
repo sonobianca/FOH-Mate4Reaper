@@ -6,8 +6,6 @@ New items get the next free number (next: 126).
 
 ## Open
 
-- [ ] 125. (0.14.76) The limits arc and its two handles are one line now: both corners (Min and Max) join cleanly, no pixel off at either end, at normal size and widened.
-
 - [ ] 124. (0.14.75) The value box sits a little closer to the name (gap 2.5 px instead of 4) and farther from the control (5.5 px), on every row, both sides, normal size and widened. A control with the limits arc has room now? The name boxes keep their width.
 
 - [ ] 123. (0.14.74) A control with the limits arc is no longer cropped at the column's edge: it moves to the middle of its space (a little toward the value box), on both sides (rows with the name left and right), at normal size and widened. The arc doesn't touch the value box. Controls without the arc stay where they were.
@@ -95,6 +93,8 @@ New items get the next free number (next: 126).
   with a plug-in whose rows were all added. (Rollback point before this: tag `perf-checkpoint-3`.)
 
 ## Done
+
+- [x] 125. (0.14.76) The limits arc and its two handles are one line now: both corners (Min and Max) join cleanly, no pixel off at either end, at normal size and widened. Found: works, both corners join cleanly (Bianca: "it's great!").
 
 - [x] 87. (0.14.0) Performance mode rows show their value: a small vertical box between the control and
   the name, with placeholder values that fit the parameter ("-18 dB", "4:1", "12 ms", "250 Hz",
