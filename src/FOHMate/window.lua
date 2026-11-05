@@ -1362,7 +1362,15 @@ function draw(dt, now)
   ig.SetCursorScreenPos(ctx, wx, top)
   local ta = reaper.time_precise()
   if S.perf then
+    -- Performance mode: the racks only scroll sideways (no vertical bar, the wheel over them moves them
+    -- sideways); what scrolls up and down is each rack's parameter section
+    ig.SetNextWindowContentSize(ctx, 0, child_h - 2)
     if begin_child('racks_perf', bar_w, child_h, ig.WindowFlags_HorizontalScrollbar()) then
+      if ig.GetScrollY(ctx) ~= 0 then ig.SetScrollY(ctx, 0) end
+      if ig.IsWindowHovered(ctx) then
+        local wv, wh = ig.GetMouseWheel(ctx)
+        if wv ~= 0 and wh == 0 then ig.SetScrollX(ctx, ig.GetScrollX(ctx) - wv * 60) end
+      end
       draw_perf_area(infos, M, dt, now)
       ig.EndChild(ctx)
     end
