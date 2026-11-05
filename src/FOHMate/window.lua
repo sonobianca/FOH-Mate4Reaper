@@ -549,8 +549,12 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     local dl = ig.GetWindowDrawList(ctx)
     local cx, cy = ig.GetWindowPos(ctx)
     local cw, ch = ig.GetWindowSize(ctx)
-    local colw = RACK_W - 2 * PAD - 6 - PAD                -- width of a column of rows: room for the position bar (the gap left of it equals the gap right of it, 1 px + PAD)
     local grid = e > 0                                     -- widened (or moving): rows flow in columns
+    -- width of a column of rows: the column as wide as the rack (also when widened: the rows then just
+    -- grow), less the position bar (4 px, 1 px from the edge) and a 2 px gap when the rows don't all fit
+    -- (the rows' height doesn't depend on it, so it can't flicker)
+    local col0 = RACK_W - 2 * PAD
+    local colw = (grid or ig.GetScrollMaxY(ctx) > 1) and (col0 - 7) or col0
     local f = 1 + 0.5 * e                                  -- widened, every row is 1.5 times as wide and tall, with bigger text and controls
     local pad = 12 * e                                     -- and room around each row, to let it breathe
     local rw = colw * f
@@ -648,7 +652,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         end
         local cd = rh - 8 * f                                    -- the control, outside the name box
         -- the value box between control and name, a little closer to the name (gap vn) than to the control (vc)
-        local vw, vn, vc = 22 * f, 2.5 * f, 5.5 * f
+        local vw, vn, vc = 22 * f, 2.5 * f, 7.5 * f
         local box_w = rw2 - cd - vw - vn - vc
         local left = (j % 2 == 1)                            -- odd rows: name left; even rows: name right
         local bx = left and rx or (rx + rw2 - box_w)
@@ -737,10 +741,10 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           end
         end
         -- the control, a little further out than the middle of its box to leave room for the marks;
-        -- in the middle when it has the arc of its limits (Limit values without the full range), which
-        -- reaches farther out: it then stays inside the column and clear of the value box
+        -- a little further in when it has the arc of its limits (Limit values without the full range),
+        -- which reaches farther out: the arc then stays inside the row (and its glow), clear of the value box
         local arc = r.lim == 'mm' and kind and param_limit_ok(kind.kind) and not (r.fit and param_fit_ok(kind.kind))
-        local kcx = kx + cd / 2 + (arc and 0 or (left and 1 or -1) * 3 * f)
+        local kcx = kx + cd / 2 + (left and 1 or -1) * (arc and -(2.5 * f + 1) or 3 * f)
         local kcy, kr = ry + rh / 2, cd / 2 - 6 * f
         local dead = missing or not fxi
         local newv

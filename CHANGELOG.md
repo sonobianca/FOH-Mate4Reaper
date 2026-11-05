@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Performance mode, parameter columns: the rows reach closer to the position bar (a 2 px gap instead of the padding), and take the **whole width of the column when everything fits** (no bar). The gap between a control and its value box is 2 px wider, and a control with the arc of its limits sits a little further in, so the arc stays inside the row and its glow on both sides of a column.
+
 - Inspector: the top (the parameter's name, its nickname box, the FX) stays at the top; the sections under it (Control, Direction and default, Limit values, Curve, Preview, Details) scroll under it, with a line between the two.
 
 - Fix: FOH-Mate stopped on an error ("attempt to compare number with nil", curves.lua) when the Inspector showed a curve, and could do the same in Limit values > Min / Max and in Settings: a text width was compared with a missing second value.
