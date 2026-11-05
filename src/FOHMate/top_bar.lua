@@ -16,6 +16,27 @@ function toggle_setting(label, field, key, tip, enabled)
   return clicked
 end
 
+-- Display > Windows > Dock Parameters / Dock Inspector: floating, or one of REAPER's dockers (the
+-- window opens if it is closed; begin_window applies the request)
+DOCK_REQ = {}   -- window id -> the dock asked for (0 = floating, -n = docker n)
+
+function draw_win_dock_menu(label, id, which, enabled)
+  if not ig.BeginMenu(ctx, label, enabled) then return end
+  local st = WINSZ[id]
+  local cur = st and st.dock
+  local function go(d)
+    DOCK_REQ[id] = d
+    local P = PARAM_PICK
+    if not (P and P[which == 'tree' and 'tree_open' or 'insp_open']) then param_pick_toggle(which) end
+  end
+  if ig.MenuItem(ctx, 'Floating', nil, cur == 0) then go(0) end
+  ig.Separator(ctx)
+  for n = 1, 16 do
+    if ig.MenuItem(ctx, 'Docker ' .. n, nil, cur == -n) then go(-n) end
+  end
+  ig.EndMenu(ctx)
+end
+
 function open_settings_at(group)
   S.set_find = ''
   S.show_settings = true
@@ -68,6 +89,10 @@ function draw_display_menu()
     local can = not is_locked()                          -- (the parameter windows are for Edit mode)
     if ig.MenuItem(ctx, 'Show parameter treeview', nil, P ~= nil and P.tree_open == true, can) then param_pick_toggle('tree') end
     if ig.MenuItem(ctx, 'Show parameters inspector', nil, P ~= nil and P.insp_open == true, can) then param_pick_toggle('insp') end
+    ig.Separator(ctx)
+    -- REAPER's dockers: several dockers on the same side of REAPER's window sit side by side
+    draw_win_dock_menu('Dock Parameters', 'parampick', 'tree', can)
+    draw_win_dock_menu('Dock Inspector', 'paraminsp', 'insp', can)
     ig.EndMenu(ctx)
   end
   if ig.BeginMenu(ctx, 'Dock') then
@@ -237,6 +262,10 @@ function begin_window(id, title, def_w, def_h, p_open, flags, dock)
       -- opens next to the Racks window, so it can't come up off the screen (a remembered position can)
       ig.SetNextWindowPos(ctx, MAIN_X + 40, MAIN_Y + 70, ig.Cond_Always())
     end
+  end
+  if dock and DOCK_REQ[id] ~= nil and ig.SetNextWindowDockID then   -- asked from Display > Windows
+    ig.SetNextWindowDockID(ctx, DOCK_REQ[id], ig.Cond_Always())
+    DOCK_REQ[id] = nil
   end
   local vis, open = ig.Begin(ctx, title, p_open, (flags or 0) | ig.WindowFlags_NoCollapse())
   if vis then

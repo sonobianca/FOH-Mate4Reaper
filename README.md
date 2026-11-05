@@ -395,7 +395,9 @@ drag the window onto a docker. The window remembers its dock.
 In Performance mode (Edit mode), the **Parameters** window (the tree of the racks' parameters) and the
 **Inspector** (the settings of the selected parameter) are windows of their own: **Display > Windows**
 shows or hides each one. Each floats or docks on its own, with its own tab in a docker ("Racks",
-"Parameters", "Inspector"), and comes back where you left it.
+"Parameters", "Inspector"), and comes back where you left it. Dropped on a docker that already holds
+one, a window becomes a tab of it; to have them side by side, put them in different dockers on the same
+side of REAPER's window (**Display > Windows > Dock Parameters / Dock Inspector** picks the docker).
 
 ### Menus
 

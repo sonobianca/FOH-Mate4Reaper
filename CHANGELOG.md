@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- **Display > Windows** has **Dock Parameters** and **Dock Inspector**: Floating, or Docker 1 to 16 (the window opens if it is closed). Dropped on a docker that holds one already, a window becomes a tab of it (REAPER's dockers hold tabs); to have them side by side, put them in different dockers on the same side of REAPER's window.
+
 - Naming cleanup: the FX list module, its code identifiers, its menu label and the ReaPack About source now use the current names consistently. The FX list keeps its saved window ID, and parameter nicknames and hidden-parameter data keep their existing keys.
 
 - The window of the racks is now called **Racks** (it was Plugins Host). The **Parameters** window (the tree, until now "Performance parameters") and the **Inspector** each have a context of their own, so when they are docked, REAPER's docker tab shows their name: **Racks**, **Parameters**, **Inspector** (it said "FOH-Mate" for all of them). Parameters and Inspector come back where you left them, floating or in their docker. They only exist while open (Edit mode), so they cost nothing in Show mode. Settings and the FX list stay floating windows. (Tag v0.14.106-rollback marks the version before this change.)
