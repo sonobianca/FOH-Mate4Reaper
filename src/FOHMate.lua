@@ -1,5 +1,5 @@
 -- FOHMate.lua
--- FOH-Mate: live sound tools for REAPER. Its first module, Plugins Host, is a rack-based
+-- FOH-Mate: live sound tools for REAPER. Its first module, Racks, is a rack-based
 -- FX panel built with ReaImGui.
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
@@ -27,13 +27,13 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.14.106'   -- major.minor.revision, shown in the window's title bar
+VERSION         = '0.14.107'   -- major.minor.revision, shown in the window's title bar
 DEBUG_TIMER     = true      -- status bar shows how long the script takes per frame; must be false in a
                             -- public version (tools/make_reapack_index.sh refuses to build otherwise)
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
 GLOW_M          = 6         -- room left around the racks for the selection glow
 NAME_FONT_SIZE  = 16        -- rack name font (bold)
-TITLE_FONT_SIZE = 24        -- "Plugins Host" title font (bold)
+TITLE_FONT_SIZE = 24        -- "Racks" title font (bold)
 HEAD_FONT_SIZE  = 19        -- the parameter's name at the top of the parameter window (bold)
 SECT_FONT_SIZE  = 15        -- section titles of the parameter window (bold)
 
@@ -173,7 +173,7 @@ function loop()
 
   local nc = push_theme()
   local flags = ig.WindowFlags_NoScrollbar() | ig.WindowFlags_NoScrollWithMouse()
-  local visible, open = ig.Begin(ctx, 'Plugins Host v' .. VERSION .. '###Plugins Host', true, flags)
+  local visible, open = ig.Begin(ctx, 'Racks v' .. VERSION .. '###Plugins Host', true, flags)
   if visible then
     -- remember size (and detect the "minimized" shrink)
     local docked = ig.IsWindowDocked(ctx)

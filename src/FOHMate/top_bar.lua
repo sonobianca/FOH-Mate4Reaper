@@ -216,7 +216,9 @@ end
 WINSZ = {}
 FRAME = 0
 
-function begin_window(id, title, def_w, def_h, p_open, flags)
+-- dock: a window of its own context that docks (Parameters, Inspector): it comes back where it was,
+-- floating (where it was left) or in its docker
+function begin_window(id, title, def_w, def_h, p_open, flags, dock)
   local st = WINSZ[id]
   if not st then
     local w, h = reaper.GetExtState(EXT_SECTION, 'win_' .. id):match('^(%d+)x(%d+)$')
@@ -226,12 +228,26 @@ function begin_window(id, title, def_w, def_h, p_open, flags)
   local back = st.last ~= FRAME - 1          -- not shown last frame: coming back
   if back then
     ig.SetNextWindowSize(ctx, st.w, st.h, ig.Cond_Always())
-    -- opens next to the Plugins Host window, so it can't come up off the screen (a remembered position can)
-    if MAIN_X then ig.SetNextWindowPos(ctx, MAIN_X + 40, MAIN_Y + 70, ig.Cond_Always()) end
+    if dock then
+      -- the first time ever next to the Racks window; afterwards where it was left (its context remembers)
+      if MAIN_X then ig.SetNextWindowPos(ctx, MAIN_X + 40, MAIN_Y + 70, ig.Cond_FirstUseEver()) end
+      st.dock = tonumber(reaper.GetExtState(EXT_SECTION, 'dock_' .. id)) or 0
+      if st.dock ~= 0 and ig.SetNextWindowDockID then ig.SetNextWindowDockID(ctx, st.dock, ig.Cond_Always()) end
+    elseif MAIN_X then
+      -- opens next to the Racks window, so it can't come up off the screen (a remembered position can)
+      ig.SetNextWindowPos(ctx, MAIN_X + 40, MAIN_Y + 70, ig.Cond_Always())
+    end
   end
   local vis, open = ig.Begin(ctx, title, p_open, (flags or 0) | ig.WindowFlags_NoCollapse())
   if vis then
     st.last = FRAME
+    if dock and ig.GetWindowDockID then                -- where it is docked (0: floating), kept for next time
+      local did = ig.GetWindowDockID(ctx) or 0
+      if did ~= st.dock then
+        st.dock = did
+        reaper.SetExtState(EXT_SECTION, 'dock_' .. id, tostring(did), true)
+      end
+    end
     if ig.IsWindowFocused(ctx, ig.FocusedFlags_RootAndChildWindows()) then st.focused = FRAME end
     if not back and not ig.IsWindowDocked(ctx) then
       local w, h = ig.GetWindowSize(ctx)

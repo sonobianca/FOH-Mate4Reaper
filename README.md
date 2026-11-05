@@ -4,20 +4,20 @@ Live sound tools for [REAPER](https://www.reaper.fm).
 
 > **A note on the name.** This project was previously called *Live Rack*. It has been renamed
 > **FOH-Mate** (file name `FOHMate`) to avoid confusion with an existing trademark, and is not
-> affiliated with it. The rack panel is now the **Plugins Host** module of FOH-Mate. Your settings and
+> affiliated with it. The rack panel is now the **Racks** module of FOH-Mate (first called Plugins Host). Your settings and
 > data carry over automatically. FOH-Mate is an independent open-source project, not affiliated with or
 > endorsed by Cockos Incorporated; REAPER is a trademark of Cockos.
 
-**Plugins Host** is the first module: a rack-based FX panel for REAPER, made for live sound.
+**Racks** is the first module: a rack-based FX panel for REAPER, made for live sound.
 
-Plugins Host turns a handful of REAPER tracks into **racks**, each with its own input and output
+Racks turns a handful of REAPER tracks into **racks**, each with its own input and output
 routing, a chain of FX, a level, mute and bypass, and input/output meters. All racks live in one
 window, away from your playback tracks, so the mixer and the track view stay clean.
 
 > **Status: work in progress (v0.x).** It is used and tested on macOS with REAPER 7.84. Windows and
 > Linux are untested. Expect rough edges and changes between versions.
 
-![Plugins Host](docs/screenshot.png)
+![Racks](docs/screenshot.png)
 
 **Contents:** [What it does](#what-it-does) · [Quick start](#quick-start) · [Requirements](#requirements) ·
 [Installation on a fresh REAPER](#installation-on-a-fresh-reaper) · [Using FOH-Mate](#using-foh-mate) ·
@@ -159,7 +159,7 @@ Manual installs don't update by themselves: see [Updating](#updating-and-uninsta
 
 ### 6. Run it
 
-In the action list, find **Script: FOHMate.lua** and click **Run**. The Plugins Host window opens.
+In the action list, find **Script: FOHMate.lua** and click **Run**. The Racks window opens.
 It can float, or be docked (see [Docking](#docking)).
 
 To open it automatically when REAPER starts, set it as a startup action (for example with the SWS
@@ -173,7 +173,7 @@ REAPER doesn't let an installer change its menus, so this is a one-time step by 
 2. In the drop-down at the top, choose **Main menu: View**.
 3. Select the line it should go under, click **Add...**, pick **Script: FOHMate.lua** and click
    **Select/close**.
-4. Optional: right-click the new line, **Rename...**, and call it `Plugins Host`.
+4. Optional: right-click the new line, **Rename...**, and call it `Racks`.
 5. Click **Save**.
 
 The same window adds it to a toolbar: choose that toolbar in the drop-down instead. To give it a
@@ -392,13 +392,18 @@ track channels, so outputs, sends and meters always agree.
 Use **Display > Dock** to put the window in one of REAPER's dockers, or back to floating. You can also
 drag the window onto a docker. The window remembers its dock.
 
+In Performance mode (Edit mode), the **Parameters** window (the tree of the racks' parameters) and the
+**Inspector** (the settings of the selected parameter) are windows of their own: **Display > Windows**
+shows or hides each one. Each floats or docks on its own, with its own tab in a docker ("Racks",
+"Parameters", "Inspector"), and comes back where you left it.
+
 ### Menus
 
 The top bar, right side: **+** (new rack), then four menus.
 
 | Menu | What is in it |
 |---|---|
-| **Display** | Daylight mode, Rack latency box (off / always / only with latency), rack colors, Dock |
+| **Display** | Daylight mode, rack colors, Performance mode, Fold automatically, Hide disabled parameters, Rack latency box (off / always / only with latency), Windows (Parameters, Inspector), Dock |
 | **FX** | FX types, FX type colors, Plugin list..., Hide FX over the latency limit, Take FX over the limit offline in Show mode |
 | **Latency** | Latency alerts, Silence / Resume, Latency limits, Scan new / Rescan all FX, Retry failed FX, Ask to scan new FX |
 | **Options** | Disconnect inputs/outputs on copy and template, Disable metering and Level match, Stereo pairs on odd-even channels only, Open the FOH-Mate data folder, Settings... |
@@ -584,10 +589,10 @@ Please include all three in a bug report.
 
 **Version numbers** are *major.minor.revision*: the revision goes up for small fixes and adjustments,
 the minor number for new features or bigger changes. The current version is shown in the window's
-title bar (next to the Plugins Host title); it is not part of the file name.
+title bar (next to the Racks title); it is not part of the file name.
 
 Issues and pull requests are welcome. When reporting a bug, please include the FOH-Mate version
-(shown next to the Plugins Host title), your REAPER version, operating system, ReaImGui version, and the
+(shown next to the Racks title), your REAPER version, operating system, ReaImGui version, and the
 exact error message.
 
 By contributing you agree that your contribution is licensed under the same terms as the project

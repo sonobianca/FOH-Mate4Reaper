@@ -189,13 +189,13 @@ function rack_index(tr)
   return nil
 end
 
--- the window being drawn ('latlist', 'settings'; nil = Plugins Host). A confirmation opens over the
--- window that asked for it: opened over Plugins Host it can hide behind the other window and block
+-- the window being drawn ('latlist', 'settings'; nil = Racks). A confirmation opens over the
+-- window that asked for it: opened over Racks it can hide behind the other window and block
 -- every FOH-Mate window until answered.
 CONFIRM_HOST = nil
-MAIN_CENTER, MAIN_DOCKED = nil, false   -- Plugins Host, as of its last frame
+MAIN_CENTER, MAIN_DOCKED = nil, false   -- the Racks window, as of its last frame
 
--- Plugins Host docked: the floating FOH-Mate windows stay in front of it and would hide its
+-- the Racks window docked: the floating FOH-Mate windows stay in front of it and would hide its
 -- boxes. Returns the open one used last (its id), or nil.
 function floating_host()
   if not MAIN_DOCKED then return nil end
@@ -226,8 +226,8 @@ function request_confirm(text, yes, label, id, alt)
   end
   local host, over_main = CONFIRM_HOST, false
   if not host then
-    -- asked by Plugins Host: opened from a floating window when one would hide it, still centered
-    -- on Plugins Host
+    -- asked by the Racks window: opened from a floating window when one would hide it, still centered
+    -- on the Racks window
     host = floating_host() or 'main'
     over_main = host ~= 'main'
   end

@@ -1512,7 +1512,7 @@ end
 -- the tree: the racks, their FX, groups and parameters, with the check boxes that add them to the Performance
 function draw_param_tree(P, D)
   local racks, fxs, gm = D.racks, D.fxs, D.gm
-  local vis, open = begin_window('parampick', 'Performance parameters###parampick', 480, 560, true)
+  local vis, open = begin_window('parampick', 'Parameters###parampick', 480, 560, true, nil, true)
   if vis then
     ig.SetNextItemWidth(ctx, -ig.CalcTextSize(ctx, 'Show hidden') - ig.GetFrameHeight(ctx) - 16)
     local rv, ftxt = ig.InputTextWithHint(ctx, '##pf', 'Search parameters', P.filter)
@@ -1794,7 +1794,7 @@ end
 
 -- the inspector: the settings of what is selected (its own window)
 function draw_param_inspector(P, D)
-  local vis, open = begin_window('paraminsp', 'Parameters inspector###paraminsp', 320, 560, true)
+  local vis, open = begin_window('paraminsp', 'Inspector###paraminsp', 320, 560, true, nil, true)
   if vis then
     draw_param_control_panel(P, D.fxs, D.gm, D.targets)
     ig.End(ctx)
@@ -1811,6 +1811,7 @@ function draw_param_picker()
     return
   end
   local D = param_pick_data(P)
-  if P.tree_open then draw_param_tree(P, D) end
-  if P.insp_open then draw_param_inspector(P, D) end
+  -- each in a context of its own, so a docker tab shows its name
+  if P.tree_open then in_sub_ctx('tree', 'Parameters##FOH-Mate', function() draw_param_tree(P, D) end) end
+  if P.insp_open then in_sub_ctx('insp', 'Inspector##FOH-Mate', function() draw_param_inspector(P, D) end) end
 end

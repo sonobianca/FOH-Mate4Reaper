@@ -1,4 +1,4 @@
--- FOHMate/window.lua: the Plugins Host window and Settings window.
+-- FOHMate/window.lua: the Racks window and Settings window.
 -- Part of FOH-Mate, loaded by FOHMate.lua (see the note there).
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
@@ -1019,7 +1019,7 @@ function perf_keys()
   return PERF_KEYS
 end
 
--- the last time the user was active in the Plugins Host window: moved the mouse over it, clicked
+-- the last time the user was active in the Racks window: moved the mouse over it, clicked
 -- or dragged, scrolled, or pressed a key while it has the focus. Nothing outside the window
 -- counts. Keys are only looked at while a section is open, and every third frame.
 function perf_activity(now, any_open)
@@ -1221,7 +1221,7 @@ function draw(dt, now)
     end
   end
 
-  ------------------------------------------------ top bar (stays put): Plugins Host, centered | + Options
+  ------------------------------------------------ top bar (stays put): Racks, centered | + Options
   local tb_h = math.max(M.fh + 8, title_font and (TITLE_FONT_SIZE + 12) or 0)   -- one row
 
   -- Layout: cue light on the left, + and the menus on the right, the title
@@ -1242,7 +1242,7 @@ function draw(dt, now)
   }
 
   local tpushed = push_bold(title_font, TITLE_FONT_SIZE)
-  local ttw = ig.CalcTextSize(ctx, 'Plugins Host')
+  local ttw = ig.CalcTextSize(ctx, 'Racks')
   local tlh = ig.GetTextLineHeight(ctx)
   if tpushed then ig.PopFont(ctx) end
   local vtxt = 'v' .. VERSION
@@ -1279,7 +1279,7 @@ function draw(dt, now)
   local title_x = left + math.max(0, (title_r - left - title_w) / 2)
   local title_y = wy + (tb_h - tlh) / 2
   tpushed = push_bold(title_font, TITLE_FONT_SIZE)
-  ig.DrawList_AddText(dl, title_x, title_y, T.title, 'Plugins Host')
+  ig.DrawList_AddText(dl, title_x, title_y, T.title, 'Racks')
   if tpushed then ig.PopFont(ctx) end
   -- the version, small, on the title's baseline
   ig.DrawList_AddText(dl, title_x + ttw + 6, title_y + tlh - M.tlh - 2, T.dim, vtxt)

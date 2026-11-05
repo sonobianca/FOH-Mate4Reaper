@@ -13,7 +13,10 @@ language and keep them small.
 - Name: **FOH-Mate** (formerly "Live Rack", renamed because of a trademark conflict). Never write
   "Live Rack", "LiveRack" or "RackPanel" in new code, text or file names. Only exception: the
   one-time migration code that reads the old settings and data names.
-- First module: the rack. Its window is titled **Plugins Host**. In code and UI, "FX" is the word
+- First module: the rack. Its window is titled **Racks** (it was "Plugins Host" until 0.14.107; the
+  internal window ID stays `###Plugins Host`). Windows that dock each have their own ImGui context, so
+  their REAPER docker tab shows their name (context.lua: `in_sub_ctx`): Racks, Parameters, Inspector.
+  Tag `v0.14.106-rollback` marks the state before that change. In code and UI, "FX" is the word
   for what is inside a rack (not "insert" or "plugin"), and "rack" is used, never "strip".
 - Version: the `VERSION` constant in the script. Last public release: v0.11.9. Tag
   `v0.11.14-pre-reorg` marks the state before the repo reorganization.
