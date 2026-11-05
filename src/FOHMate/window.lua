@@ -501,11 +501,20 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
   if band_hov then
     ig.SetTooltip(ctx, pinned and 'Pinned open: click to fold it back' or (ps.open and 'Fold the parameters back' or 'Widen the parameters'))
   end
+  -- whether an unpinned section folds by itself here, said as it is in this mode
+  local auto
+  if CFG.perf_fold_auto == 0 then
+    auto = 'they do not fold back by themselves: Display > Fold automatically is off'
+  elseif not is_locked() and CFG.perf_fold_edit == 0 then
+    auto = 'in Edit mode they do not fold back by themselves (Settings > Performance mode > Also fold them by themselves in Edit mode)'
+  else
+    auto = ('they fold back by themselves after %d s without activity'):format(CFG.perf_fold_after)
+  end
   hint_hovered(pinned
-    and 'Pinned open: it stays widened until you click the band (which folds it)  \194\183  right-click: take the pin off, it folds back by itself again as set in Display > Fold automatically'
+    and 'Pinned open: it stays widened until you click the band (which folds it)  \194\183  right-click: take the pin off (' .. auto .. ')'
     or (ps.open
-      and 'Click: fold the parameters back  \194\183  right-click: pin them widened (a push pin: they stay until you click the band); they fold back by themselves otherwise, as set in Display > Fold automatically'
-      or 'Click: widen the parameters over the other columns (they fold back by themselves as set in Display > Fold automatically)  \194\183  right-click: widen them pinned'))
+      and 'Click: fold the parameters back  \194\183  right-click: pin them widened (a push pin: they stay until you click the band)  \194\183  ' .. auto
+      or 'Click: widen the parameters over the other columns  \194\183  right-click: widen them pinned  \194\183  ' .. auto))
   -- the "..." in the right corner, above the position bar (Edit mode): clean up the parameters
   if menu_w > 0 then
     ig.SetCursorScreenPos(ctx, x + w - 2 - menu_w, y + 2)
