@@ -611,7 +611,10 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           over, hot = false, false
         end
         if over then row_hot_now = r.guid end                -- its FX glows in the rack
-        if over and ig.IsMouseClicked(ctx, 0) then ps.last = k end   -- the row touched last
+        if over and ig.IsMouseClicked(ctx, 0) then
+          ps.last = k                                        -- the row touched last
+          if fxi then param_pick_select(tr, r) end          -- the parameter window, if open, selects it
+        end
         if over and ig.IsMouseClicked(ctx, 1) and not is_locked() then      -- Edit mode: the row's menu
           PARAM_MENU_ROW = k
           ig.OpenPopup(ctx, 'prm_menu')

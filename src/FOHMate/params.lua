@@ -924,6 +924,19 @@ function param_racks()
   return out
 end
 
+-- A parameter clicked in the rack's column is selected in the parameter window's tree, when it is open (the
+-- window works as an inspector): its rack, FX and groups are opened, the tree scrolls to it, a search that
+-- would hide it is cleared.
+function param_pick_select(tr, r)
+  local P = PARAM_PICK
+  if not P then return end
+  local key = 'p:' .. r.guid .. ':' .. r.idx
+  P.sel, P.anchor = { [key] = true }, key
+  P.open = P.open or {}
+  P.open['R:' .. reaper.GetTrackGUID(tr)] = true
+  P.reveal, P.scroll_key, P.filter = { guid = r.guid, idx = r.idx }, key, ''
+end
+
 -- a rack folded: what was selected in its FX is not selected any more (it can't be seen)
 function param_pick_forget(P, tr)
   local guids = {}
@@ -1519,7 +1532,8 @@ function draw_param_picker()
       -- branches), check + on + part (the check box), name, col, type, count, right, tip, on_check, menu
       local function draw_row(sp)
         if sp.sel then order[#order + 1] = sp.sel end
-        if not ig.IsRectVisible(ctx, 1, sp.h) then
+        local scroll = sp.sel ~= nil and sp.sel == P.scroll_key        -- a parameter picked in the rack: brought into view
+        if not scroll and not ig.IsRectVisible(ctx, 1, sp.h) then
           ig.Dummy(ctx, 1, sp.h)
           lastbot = select(2, ig.GetItemRectMax(ctx))
           return
@@ -1528,6 +1542,7 @@ function draw_param_picker()
         local ix, iy = ig.GetItemRectMin(ctx)
         local iw = ig.GetItemRectSize(ctx)
         lastbot = iy + sp.h
+        if scroll then ig.SetScrollHereY(ctx, 0.35); P.scroll_key = nil end
         local midy = iy + sp.h / 2
         local cx = sp.check and cxof(sp.depth) or nil
         local ax = cx and (cx - aw - 4) or L
@@ -1695,7 +1710,7 @@ function draw_param_picker()
           guide(L + aw / 2, rk_y1, lastbot - 5)
         end
       end
-      P.reveal = nil
+      P.reveal, P.scroll_key = nil, nil
       ig.EndChild(ctx)
     end
     P.order = order
