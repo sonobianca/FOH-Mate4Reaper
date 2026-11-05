@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Parameters tree: clicking a rack's name selects the rack in the Racks window too (Cmd/Ctrl or Shift: adds it to the selection).
+
 - Parameters window: right-click a rack's name to select it in the tree (Shift+right-click: and unfold it, with its FX and groups); a rack can be selected in the tree like an FX (click its name; the arrow folds it), which selects all its parameters. FX right-click > Inspect FX... selects the FX in the tree and opens the Inspector.
 
 - Parameters: right-click a parameter (a rack's row in Edit mode, or the Parameters tree) > Copy its limits, its curve or both, and Paste them on another parameter, or on the whole selection in the tree. Pasting puts the parameter in the Performance if needed, and gives it the copied one's control when its own can't take what is pasted.

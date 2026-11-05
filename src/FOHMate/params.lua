@@ -2091,6 +2091,7 @@ function draw_param_tree(P, D)
             sp.on_check()
           elseif sp.sel then
             click(sp.sel, has_mod('shift'), has_mod('ctrl'))
+            if sp.on_select then sp.on_select() end
           end
         end
         local dl = ig.GetWindowDrawList(ctx)
@@ -2217,6 +2218,8 @@ function draw_param_tree(P, D)
         local ropen = P.open[rkey] == true
         draw_row({ id = rkey, sel = rkey, h = h_rack, font = head_font, size = HEAD_FONT_SIZE, arrow = true, open = ropen,
           name = rk.name, col = param_name_color(track_color(rk.tr), dark),
+          -- clicked: the rack is selected in the Racks window too (Cmd/Ctrl or Shift: added to the selection)
+          on_select = function() select_rack(rk.tr, has_mod('ctrl') or has_mod('shift')) end,
           on_toggle = function()
             P.open[rkey] = not ropen
             if ropen then param_pick_forget(P, rk.tr) end
