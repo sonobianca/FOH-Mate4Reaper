@@ -207,6 +207,32 @@ function floating_host()
   return best
 end
 
+-- How a field reads, everywhere: its caption first, then the field (the value), then its unit.
+-- field_caption draws the caption and puts the field col pixels from where the caption starts (fields
+-- of a group line up when they share col); tip shows over the caption too. field_unit writes the unit.
+function field_caption(caption, col, tip)
+  local x0 = ig.GetCursorPosX(ctx)
+  ig.AlignTextToFramePadding(ctx)
+  ig.Text(ctx, caption)
+  if tip and ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, tip) end
+  ig.SameLine(ctx, x0 + col)
+end
+
+function field_unit(unit)
+  if not unit or unit == '' then return end
+  ig.SameLine(ctx, 0, 4)
+  ig.AlignTextToFramePadding(ctx)
+  ig.Text(ctx, unit)
+end
+
+-- a slider's format split in the number and its unit ('%d px' > '%d', 'px')
+function fmt_unit(fmt)
+  if not fmt then return nil, '' end
+  local f, unit = fmt:match('^(%%[^%s]+)%s+(.+)$')
+  if f then return f, unit end
+  return fmt, ''
+end
+
 -- A section that folds, the way every one in FOH-Mate looks: its title bold and a little bigger
 -- than the text (SECT_FONT_SIZE). open: unfolded at first. Returns true while it is unfolded.
 function section_header(title, open)

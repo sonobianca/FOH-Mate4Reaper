@@ -1410,6 +1410,17 @@ function draw_settings()
       if next(group_any) == nil then ig.TextDisabled(ctx, 'No setting matches.') end
     end
     ig.Spacing(ctx)
+    -- caption first, then the field, then its unit: the captions take a column (the widest, at most a
+    -- bit more than half the window), the fields line up after it, the units after them
+    local capw, unitw = 0, 0
+    for _, e in ipairs(SCHEMA) do
+      if e.kind ~= 'bool' then capw = math.max(capw, ig.CalcTextSize(ctx, e.label)) end
+      local _, u = fmt_unit(e.fmt)
+      if u ~= '' then unitw = math.max(unitw, ig.CalcTextSize(ctx, u) + 4) end
+    end
+    local availw = select(1, ig.GetContentRegionAvail(ctx))
+    capw = math.min(capw + 12, availw * 0.58)
+    local fieldw = math.max(80, math.min(210, availw - capw - unitw))
     local group, group_open = nil, false
     for _, e in ipairs(SCHEMA) do
       if e.group ~= group then
@@ -1426,16 +1437,23 @@ function draw_settings()
         end
       end
       if group_open and (q == '' or group_hit[group] or entry_hit(e)) then
-        ig.SetNextItemWidth(ctx, 210)
         local label = e.label .. '##cfg_' .. e.key
-        if e.kind == 'color' then
-          local typ = e.key:match('^col_(.+)$')
-          local rv, v = ig.ColorEdit3(ctx, typ and ('##cfg_' .. e.key) or label, CFG[e.key],
-                                      ig.ColorEditFlags_NoInputs())
-          if typ then                     -- the type name in its own color (picker stays plain)
-            ig.SameLine(ctx)
+        local id = '##cfg_' .. e.key
+        if e.kind ~= 'bool' then
+          local typ = e.kind == 'color' and e.key:match('^col_(.+)$')
+          if typ then                     -- a type name in its own color (the picker stays plain)
+            local x0 = ig.GetCursorPosX(ctx)
+            ig.AlignTextToFramePadding(ctx)
             ig.TextColored(ctx, type_color(typ), e.label)
+            if e.tip and ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, e.tip) end
+            ig.SameLine(ctx, x0 + capw)
+          else
+            field_caption(e.label, capw, e.tip)
           end
+          ig.SetNextItemWidth(ctx, fieldw)
+        end
+        if e.kind == 'color' then
+          local rv, v = ig.ColorEdit3(ctx, id, CFG[e.key], ig.ColorEditFlags_NoInputs())
           if rv then
             CFG[e.key] = v
             save_cfg_value(e)
@@ -1443,7 +1461,7 @@ function draw_settings()
         elseif e.kind == 'choice' then
           local cur = e.options[1][2]
           for _, o in ipairs(e.options) do if o[1] == CFG[e.key] then cur = o[2] end end
-          if ig.BeginCombo(ctx, label, cur) then
+          if ig.BeginCombo(ctx, id, cur) then
             for _, o in ipairs(e.options) do
               if ig.Selectable(ctx, o[2], CFG[e.key] == o[1]) then
                 CFG[e.key] = o[1]
@@ -1459,7 +1477,7 @@ function draw_settings()
             save_cfg_value(e)
           end
         elseif e.kind == 'mod' then
-          if ig.BeginCombo(ctx, label, CFG[e.key]) then
+          if ig.BeginCombo(ctx, id, CFG[e.key]) then
             for _, name in ipairs({ 'ctrl', 'shift', 'alt' }) do
               if ig.Selectable(ctx, name, CFG[e.key] == name) then
                 CFG[e.key] = name
@@ -1470,11 +1488,15 @@ function draw_settings()
           end
         else
           local rv, v
+          local f, unit = fmt_unit(e.fmt)
           if e.kind == 'i' then
-            rv, v = ig.SliderInt(ctx, label, CFG[e.key], e.min, e.max, e.fmt)
+            rv, v = ig.SliderInt(ctx, id, CFG[e.key], e.min, e.max, f)
           else
-            rv, v = ig.SliderDouble(ctx, label, CFG[e.key], e.min, e.max, e.fmt)
+            rv, v = ig.SliderDouble(ctx, id, CFG[e.key], e.min, e.max, f)
           end
+          local slider_tip = e.tip and ig.IsItemHovered(ctx)
+          field_unit(unit)
+          if slider_tip then ig.SetTooltip(ctx, e.tip) end
           if rv then CFG[e.key] = v end
           if ig.IsItemDeactivatedAfterEdit(ctx) then
             save_cfg_value(e)

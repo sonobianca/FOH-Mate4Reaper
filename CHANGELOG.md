@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Fields read **caption first, then the field, then its unit**, everywhere it wasn't the case: the Inspector's curve (**Type**, **Strength**), its **Min** / **Max** (caption, the value, its unit, then Now), the value slider of a list of values (value, unit, then Add), and the whole **Settings** window: captions in a column on the left, the fields lined up after them, the units after the fields ("px", "s", "dB"...), the colored type names before their color swatch. The tooltips also show over the captions. Check boxes keep their box before the label.
+
 - Daylight mode: the **+** at the end of a parameter column, its hover glow, the band over a parameter column (its triangles), the "..." of the parameters and the handle under a rack in Show mode were drawn in the color of the rack names, nearly invisible on the light background. They now take a color that stands out from the rack's background: dark in Daylight mode, light otherwise.
 
 - The **Parameters** and **Inspector** windows left open when FOH-Mate closes **open again** when it starts, where they were (floating or docked). Settings > Performance mode > **Reopen the Parameters and Inspector windows** (on at first) turns it off. Only when it starts in Edit mode; the windows closed by switching to Show mode count as left open.

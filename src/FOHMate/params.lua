@@ -1263,14 +1263,29 @@ function draw_param_control_panel(P, fxs, gm, targets)
         ig.SameLine(ctx)
         if ig.RadioButton(ctx, 'List of values', row.lim == 'list') and row.lim ~= 'list' then list_on() end
       end
-      -- the FX's text for a position, as a slider can show it
-      local function txt(v) return (param_text_at(tr, fxi, ix, v):gsub('%%', '%%%%')) end
       if row.lim == 'mm' and can_mm then
         local lo, hi = row.lo, row.hi
+        -- caption, the value (the plug-in's number), its unit, then Now; both lines the same widths
+        local capw = math.max(ig.CalcTextSize(ctx, 'Min'), ig.CalcTextSize(ctx, 'Max')) + 8
+        local _, ulo = param_text_split(param_text_at(tr, fxi, ix, row.lo))
+        local _, uhi = param_text_split(param_text_at(tr, fxi, ix, row.hi))
+        local unitw = math.max(ig.CalcTextSize(ctx, ulo), ig.CalcTextSize(ctx, uhi))
+        local noww = ig.CalcTextSize(ctx, 'Now') + 2 * select(1, ig.GetStyleVar(ctx, ig.StyleVar_FramePadding()))
+        local spx = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
+        local sw = select(1, ig.GetContentRegionAvail(ctx)) - capw - (unitw > 0 and unitw + 4 or 0) - spx - noww
         for _, e in ipairs({ { 'Min', 'lo' }, { 'Max', 'hi' } }) do
-          ig.SetNextItemWidth(ctx, 160)
-          local rv, v = ig.SliderDouble(ctx, e[1] .. '##lim' .. e[2], row[e[2]], 0, 1, txt(row[e[2]]))
-          ig.SameLine(ctx)
+          local num, unit = param_text_split(param_text_at(tr, fxi, ix, row[e[2]]))
+          field_caption(e[1], capw)
+          ig.SetNextItemWidth(ctx, math.max(60, sw))
+          local rv, v = ig.SliderDouble(ctx, '##lim' .. e[2], row[e[2]], 0, 1, (num:gsub('%%', '%%%%')))
+          if unitw > 0 then
+            ig.SameLine(ctx, 0, 4)
+            ig.AlignTextToFramePadding(ctx)
+            ig.Text(ctx, unit)
+            ig.SameLine(ctx, 0, 4 + unitw - ig.CalcTextSize(ctx, unit) + spx - 4)
+          else
+            ig.SameLine(ctx)
+          end
           if ig.SmallButton(ctx, 'Now##limnow' .. e[2]) then rv, v = true, reaper.TrackFX_GetParamNormalized(tr, fxi, ix) end
           if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Set ' .. e[1] .. ' to where the parameter is now') end
           if rv then
@@ -1372,10 +1387,14 @@ function draw_param_control_panel(P, fxs, gm, targets)
           if P.lpick_key ~= g .. ':' .. ix then
             P.lpick_key, P.lpick = g .. ':' .. ix, reaper.TrackFX_GetParamNormalized(tr, fxi, ix)
           end
+          -- the value (the plug-in's number), its unit, then Add
           local addw = ig.CalcTextSize(ctx, 'Add') + 2 * select(1, ig.GetStyleVar(ctx, ig.StyleVar_FramePadding()))
-          ig.SetNextItemWidth(ctx, W - addw - sp)
-          local rv, v = ig.SliderDouble(ctx, '##lpick', P.lpick, 0, 1, txt(P.lpick))
+          local num, unit = param_text_split(param_text_at(tr, fxi, ix, P.lpick))
+          local unitw = unit ~= '' and ig.CalcTextSize(ctx, unit) + 4 or 0
+          ig.SetNextItemWidth(ctx, W - addw - sp - unitw)
+          local rv, v = ig.SliderDouble(ctx, '##lpick', P.lpick, 0, 1, (num:gsub('%%', '%%%%')))
           if rv then P.lpick = v end
+          field_unit(unit)
           ig.SameLine(ctx)
           if ig.Button(ctx, 'Add', addw, 0) then add(P.lpick) end
         end

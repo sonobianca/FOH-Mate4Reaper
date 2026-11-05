@@ -284,8 +284,7 @@ function draw_curve_section(tr, row, pos)
   -- curve and its strength or smoothing
   ig.Indent(ctx, pad)
   local spx = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
-  local inner = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemInnerSpacing()))
-  local function fit(caption) return W - ig.CalcTextSize(ctx, caption) - inner end
+  local capw = math.max(ig.CalcTextSize(ctx, 'Type'), ig.CalcTextSize(ctx, 'Strength')) + 8   -- the captions' column
   local lib = curve_lib()
   local half = (cv and #lib > 0) and (W - spx) / 2 or W
   if cv then
@@ -308,8 +307,9 @@ function draw_curve_section(tr, row, pos)
   local kinds = { { nil, 'Linear' }, { 'in', 'Ease in' }, { 'out', 'Ease out' }, { 'pts', 'Custom points' } }
   local now = 'Linear'
   for _, o in ipairs(kinds) do if cv and o[1] == cv.kind then now = o[2] end end
-  ig.SetNextItemWidth(ctx, fit('Type'))
-  if ig.BeginCombo(ctx, 'Type##crv', now) then
+  field_caption('Type', capw)
+  ig.SetNextItemWidth(ctx, W - capw)
+  if ig.BeginCombo(ctx, '##crv', now) then
     for _, o in ipairs(kinds) do
       if ig.Selectable(ctx, o[2], (cv and cv.kind or nil) == o[1]) then
         if not o[1] then set(nil)
@@ -333,8 +333,9 @@ function draw_curve_section(tr, row, pos)
     ig.EndCombo(ctx)
   end
   if cv and cv.kind ~= 'pts' then
-    ig.SetNextItemWidth(ctx, fit('Strength'))
-    local rv, k = ig.SliderDouble(ctx, 'Strength##crvk', cv.k, 1, 6, '%.1f')
+    field_caption('Strength', capw)
+    ig.SetNextItemWidth(ctx, W - capw)
+    local rv, k = ig.SliderDouble(ctx, '##crvk', cv.k, 1, 6, '%.1f')
     if rv then set(curve_spec({ kind = cv.kind, k = k })) end
   elseif cv then
     local rv, sm = ig.Checkbox(ctx, 'Smooth (off: straight lines)', cv.smooth)
