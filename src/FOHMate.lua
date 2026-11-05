@@ -27,7 +27,7 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.14.109'   -- major.minor.revision, shown in the window's title bar
+VERSION         = '0.14.110'   -- major.minor.revision, shown in the window's title bar
 DEBUG_TIMER     = true      -- status bar shows how long the script takes per frame; must be false in a
                             -- public version (tools/make_reapack_index.sh refuses to build otherwise)
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
@@ -237,6 +237,10 @@ end
 load_cfg()
 migrate_cfg()
 apply_settings()
+if CFG.reopen_windows ~= 0 then                  -- the parameter windows left open last time
+  local w = reaper.GetExtState(EXT_SECTION, 'param_windows')
+  if w ~= '' then PARAM_WIN_RESTORE = w end
+end
 init_stats()
 
 if not install_jsfx() then

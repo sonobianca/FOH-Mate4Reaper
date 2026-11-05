@@ -915,6 +915,7 @@ function param_picker_open(tr, sel_key, which)
   P.open['R:' .. reaper.GetTrackGUID(tr)] = true
   if which ~= 'insp' then P.tree_open = true end
   P.insp_open = true
+  param_win_save()
   if sel_key then
     P.sel, P.anchor = { [sel_key] = true }, sel_key
     local g, ix = sel_key:match('^p:({[^}]+}):(%d+)$')      -- its branches are opened to show it
@@ -935,6 +936,7 @@ function param_pick_toggle(which)
   end
   local f = which == 'tree' and 'tree_open' or 'insp_open'
   P[f] = not P[f]
+  param_win_save()
 end
 
 -- the racks of the project, in track order
@@ -1789,7 +1791,7 @@ function draw_param_tree(P, D)
     ig.TextDisabled(ctx, ('%d selected'):format((function() local c = 0 for _ in pairs(P.sel) do c = c + 1 end return c end)()))
     ig.End(ctx)
   end
-  if not open then P.tree_open = false end
+  if not open then P.tree_open = false; param_win_save() end
 end
 
 -- the inspector: the settings of what is selected (its own window)
@@ -1799,10 +1801,27 @@ function draw_param_inspector(P, D)
     draw_param_control_panel(P, D.fxs, D.gm, D.targets)
     ig.End(ctx)
   end
-  if not open then P.insp_open = false end
+  if not open then P.insp_open = false; param_win_save() end
 end
 
+-- Which of the two windows are open is kept ('t' tree, 'i' inspector) when you open or close them (not when
+-- Show mode closes them), so they come back when FOH-Mate starts again (Settings > Performance mode).
+function param_win_save()
+  local P = PARAM_PICK
+  reaper.SetExtState(EXT_SECTION, 'param_windows', (P and P.tree_open and 't' or '') .. (P and P.insp_open and 'i' or ''), true)
+end
+
+PARAM_WIN_RESTORE = nil   -- set at start: the windows to open again, once (in Edit mode, with a rack)
+
 function draw_param_picker()
+  if PARAM_WIN_RESTORE then
+    local w = PARAM_WIN_RESTORE
+    PARAM_WIN_RESTORE = nil
+    if not is_locked() and #param_racks() > 0 then
+      if w:find('t') then param_pick_toggle('tree') end
+      if w:find('i') then param_pick_toggle('insp') end
+    end
+  end
   local P = PARAM_PICK
   if not P then return end
   if not (P.tree_open or P.insp_open) then P.hl, P.focus = nil, nil; return end

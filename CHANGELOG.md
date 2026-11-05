@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- The **Parameters** and **Inspector** windows left open when FOH-Mate closes **open again** when it starts, where they were (floating or docked). Settings > Performance mode > **Reopen the Parameters and Inspector windows** (on at first) turns it off. Only when it starts in Edit mode; the windows closed by switching to Show mode count as left open.
+
 - **Display > Windows** has **Dock Parameters** and **Dock Inspector**: Floating, or Docker 1 to 16 (the window opens if it is closed). Dropped on a docker that holds one already, a window becomes a tab of it (REAPER's dockers hold tabs); to have them side by side, put them in different dockers on the same side of REAPER's window.
 
 - Naming cleanup: the FX list module, its code identifiers, its menu label and the ReaPack About source now use the current names consistently. The FX list keeps its saved window ID, and parameter nicknames and hidden-parameter data keep their existing keys.
