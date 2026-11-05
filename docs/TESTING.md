@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 157).
+New items get the next free number (next: 158).
 
 ## Open
 
+- [ ] 157. (0.14.111) Daylight marks. Display > Daylight mode, Performance mode: (a) Edit mode: the + at the end of every parameter column is clearly visible (dark), and hovering it lights its circle. (b) The two small triangles of the band at the top of each parameter column, and the "..." in its corner: visible. (c) Show mode: the chevron of the handle under each rack: visible. (d) Back to the dark look: all of them as before (light). Try a pale rack color and a dark one.
 - [ ] 156. (0.14.110) Reopen at start. (a) Edit mode, open Parameters and Inspector (dock one, leave one floating), quit FOH-Mate (close the Racks window), run it again: both open, where they were. (b) Close only the Inspector, restart: only Parameters opens. Close both: none. (c) Settings > Performance mode > Reopen the Parameters and Inspector windows off: restart: none open; on again: they reopen as they were last left. (d) Leave them open, switch to Show mode (they close), quit, start in Show mode: none; and they are not reopened later when you switch to Edit (this run).
 - [ ] 155. (0.14.109) Dock menus. (a) Display > Windows > Dock Parameters > Docker 2: the Parameters window goes into docker 2 (opens if it was closed), and Docker 2 is ticked. Dock Inspector > Docker 3: same. Floating: back to a floating window. (b) Put docker 2 and docker 3 on the same side of REAPER's window (right-click a docker tab, REAPER's own docker options): the two sit side by side, with their own tab names. Tell me how REAPER behaves here, I could not try it. (c) Dragging a window onto a docker that has one: a new tab, as before. (d) After a restart, each comes back in the docker it was in.
 - [ ] 154. (0.14.108) FX naming. Start the script: the Racks module opens without a loading error. **FX > FX list...** opens and works: favorites, filters, rescan, and close/reopen position. Check that parameter nicknames and hidden-parameter choices still apply to the same FX as before.

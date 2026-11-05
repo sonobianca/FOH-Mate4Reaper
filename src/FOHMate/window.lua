@@ -516,7 +516,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     local mhov = ig.IsItemHovered(ctx)
     if mhov then ig.SetTooltip(ctx, 'Parameter menu') end
     hint_hovered('Click: remove the parameters not linked any more, or all of them')
-    local dcol = (c.name_txt & 0xFFFFFF00) | (mhov and 0xFF or 0xA0)
+    local dcol = (c.ink & 0xFFFFFF00) | (mhov and 0xFF or 0xA0)
     local rx, dy = x + w - PAD - 1, math.floor(y + bh / 2) + 1   -- the dots end where the position bar ends
     for i = 0, 2 do ig.DrawList_AddCircleFilled(pdl, rx - 1.5 - i * 4, dy, 1.5, dcol) end
     if ig.BeginPopup(ctx, 'plus_menu') then draw_param_menu(tr); ig.EndPopup(ctx) end
@@ -524,7 +524,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
   ig.PopID(ctx)
   do
     local bx, by = math.floor(x + w / 2), math.floor(y + bh / 2) + 1
-    local bcol = (c.name_txt & 0xFFFFFF00) | (band_hov and 0xFF or 0xA0)
+    local bcol = (c.ink & 0xFFFFFF00) | (band_hov and 0xFF or 0xA0)
     local tw, th, tg = 7, 4.5, 2.5
     -- both triangles are listed the same way round (tip, then the base from the same side), so they
     -- are filled and smoothed alike
@@ -832,8 +832,8 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         end
       end
     end
-    -- the empty row at the end, Edit mode only: a "+" in a circle as tall as a row, in the color of
-    -- the names. It opens the parameter window. Only the circle and the + light up.
+    -- the empty row at the end, Edit mode only: a "+" in a circle as tall as a row, in a color that
+    -- stands out from the column (dark in Daylight mode). It opens the parameter window. Only the circle and the + light up.
     if show_plus then
       local px, py
       if grid then
@@ -850,8 +850,8 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         ig.DrawList_AddRect(dl, px + 2, py - 1, px + rw - 2, py + rh + 1, T.glow, ROUNDING, 0, 2)
         if ig.IsMouseReleased(ctx, 0) then row_drop = n + 1 end
       end
-      local pcol = (c.name_txt & 0xFFFFFF00) | (hov and 0xFF or 0xB0)
-      if hov then ig.DrawList_AddCircleFilled(dl, pcx, pcy, pr, (c.name_txt & 0xFFFFFF00) | 0x30, 0) end
+      local pcol = (c.ink & 0xFFFFFF00) | (hov and 0xFF or 0xB0)
+      if hov then ig.DrawList_AddCircleFilled(dl, pcx, pcy, pr, (c.ink & 0xFFFFFF00) | 0x38, 0) end
       ig.DrawList_AddCircle(dl, pcx, pcy, pr, pcol, 0, hov and 3 or 2)
       local pl = pr * 0.45
       ig.DrawList_AddLine(dl, pcx - pl, pcy, pcx + pl, pcy, pcol, hov and 3 or 2)

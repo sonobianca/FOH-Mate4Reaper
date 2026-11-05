@@ -936,7 +936,7 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
   -- color when it is pinned open
   if handle then
     local hx = x0 + RACK_W / 2
-    local hcol = (c.name_txt & 0xFFFFFF00) | (handle.hov and 0xFF or 0xA0)
+    local hcol = (c.ink & 0xFFFFFF00) | (handle.hov and 0xFF or 0xA0)
     local dir = handle.open and -3 or 3
     if handle.pin then
       draw_pin(dl, hx, handle.y, contrast_glow(tr))

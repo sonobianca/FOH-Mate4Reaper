@@ -65,6 +65,7 @@ function rack_colors(col, bypassed)
     c.line = 0x00000040
   end
   c.name_txt = contrast_text(c.name_bg, col)
+  c.ink = contrast_text(c.bg, col)          -- drawn straight on the rack's background (handles, the + of a column)
   return c
 end
 
