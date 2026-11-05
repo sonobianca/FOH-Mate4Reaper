@@ -1,4 +1,4 @@
--- FOHMate/plugin_list.lua: the Plugin list window, Show mode taking FX over the limit offline.
+-- FOHMate/fx_list_ui.lua: the FX list window, Show mode taking FX over the limit offline.
 -- Part of FOH-Mate, loaded by FOHMate.lua (see the note there).
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
@@ -6,7 +6,7 @@
 
 ---------------------------------------- the list window
 
--- FX > Plugin list...: every installed FX, with a star for favorites, its type, its
+-- FX > FX list...: every installed FX, with a star for favorites, its type, its
 -- latency and scan status. Click a name to select it (Cmd/Ctrl-click adds, Shift-click
 -- selects a range); the selection can be rescanned for latency.
 LATWIN = { open = false, filter = '', type = nil, dev = nil, dev_filter = '', only_lat = false, only_fav = false,
@@ -35,7 +35,7 @@ end
 
 -- the columns: header, sort key, and how a row sorts on it (a number or a lowercase string)
 STATUS_RANK = { failed = 1, scan = 2, seen = 3 }
-PLIST_SORT = {
+FXLIST_SORT = {
   fav     = function(r) return is_fav(r.it.name) and 0 or 1 end,
   type    = function(r) return type_rank(r.it.type) end,
   name    = function(r) return r.it.short:lower() end,
@@ -45,13 +45,13 @@ PLIST_SORT = {
   allowed = function(r) return (r.e and r.e.allowed) and 0 or 1 end,
   status  = function(r) return r.e and (STATUS_RANK[r.e.src] or 4) or 5 end,
 }
-PLIST_COLS = {
+FXLIST_COLS = {
   { '##fav', 'fav' }, { 'Type', 'type' }, { 'FX', 'name' }, { 'Developer', 'dev' },
   { 'Latency', 'lat', true }, { 'Highest', 'max', true }, { 'Allowed', 'allowed' }, { 'Status', 'status' },
 }   -- the third value: the first click sorts high to low (biggest latency first)
 
 -- the rows shown, rebuilt only when something they depend on changes
-function plugin_rows()
+function fx_list_rows()
   if not fx_db then fx_db = build_fx_db() end
   local W = LATWIN
   local key = table.concat({ W.filter, tostring(W.type), tostring(W.dev), tostring(W.only_lat), tostring(W.only_fav), W.sort, tostring(W.desc),
@@ -75,7 +75,7 @@ function plugin_rows()
     if ok then rows[#rows + 1] = { it = it, e = e, key = low } end
   end
   -- the sort column's value for a row (ties: by name, then type)
-  local sk = PLIST_SORT[W.sort] or PLIST_SORT.name
+  local sk = FXLIST_SORT[W.sort] or FXLIST_SORT.name
   for _, r in ipairs(rows) do r.sv = sk(r) end
   table.sort(rows, function(a, b)
     if a.sv ~= b.sv then
@@ -90,7 +90,7 @@ function plugin_rows()
   return rows
 end
 
-function plugin_selection()
+function fx_list_selection()
   local out = {}
   for _, r in ipairs(LATWIN.rows) do
     if LATWIN.sel[r.key] then out[#out + 1] = r.it end
@@ -108,10 +108,10 @@ function rescan_items(items)
     .. '(one that crashes on load can take REAPER down).', function() start_scan(list) end, 'Scan')
 end
 
-function draw_plugin_list()
+function draw_fx_list()
   if not LATWIN.open then return end
   local W = LATWIN
-  local vis, open = begin_window('latlist', 'Plugin list###lr_latlist', 760, 520, true)
+  local vis, open = begin_window('latlist', 'FX list###lr_latlist', 760, 520, true)
   if vis then
     CONFIRM_HOST = 'latlist'
     -- filters
@@ -153,8 +153,8 @@ function draw_plugin_list()
     local c2, v2 = ig.Checkbox(ctx, 'Latency, allowed or failed', W.only_lat)
     if c2 then W.only_lat = v2 end
 
-    local rows = plugin_rows()
-    local sel = plugin_selection()
+    local rows = fx_list_rows()
+    local sel = fx_list_selection()
     local can_scan = not SCAN.active and S.mode == 'edit'
 
     -- selection and actions
@@ -189,7 +189,7 @@ function draw_plugin_list()
       local tdl = ig.GetWindowDrawList(ctx)
       -- headers: click one to sort by it, click again to reverse; an arrow shows which and which way
       ig.TableNextRow(ctx, ig.TableRowFlags_Headers())
-      for ci, col in ipairs(PLIST_COLS) do
+      for ci, col in ipairs(FXLIST_COLS) do
         ig.TableSetColumnIndex(ctx, ci - 1)
         ig.TableHeader(ctx, col[1])
         if ig.IsItemClicked(ctx, 0) then
@@ -258,7 +258,7 @@ function draw_plugin_list()
         end
         if ig.BeginPopupContextItem(ctx, 'row_ctx') then
           if not W.sel[r.key] then W.sel = { [r.key] = true }; W.anchor = r.key end
-          local items = plugin_selection()
+          local items = fx_list_selection()
           if ig.MenuItem(ctx, #items > 1 and ('Rescan the %d selected FX...'):format(#items) or 'Rescan this FX...',
                          nil, false, can_scan) then
             rescan_items(items)
@@ -410,4 +410,3 @@ function is_show_offline(tr, guid)
   local ok, s = reaper.GetSetMediaTrackInfo_String(tr, EXT_SHOWOFF, '', false)
   return ok and s:find(guid, 1, true) ~= nil
 end
-

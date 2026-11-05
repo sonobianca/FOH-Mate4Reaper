@@ -47,7 +47,7 @@ window, away from your playback tracks, so the mixer and the track view stay cle
 - **Rack colors,** automatic or picked by hand, plus a **Daylight** theme for bright rooms.
 - **Latency watchdog.** Racks and FX that add more latency than your limit flash **!!**; FX you
   accept can be allowed, and alerts can be silenced for a while or switched off.
-- **Plugin list** of every installed FX, with favorites, developers, latency and scan status.
+- **FX list** of every installed FX, with favorites, developers, latency and scan status.
 - **Favorites and recently used FX** at the top of every FX menu.
 - **Status bar** with CPU and RAM gauges, REAPER's latency, latency alerts, and rack and FX counts,
   and a **help line** above it that says what the mouse can do on whatever it points at.
@@ -69,7 +69,7 @@ empty window to a working rack:
 4. **Route it.** Click **In:** to choose an input (mono, stereo or MIDI) and **Out:** to choose a hardware
    output.
 5. **Add FX.** Click the round **+** in the rack's FX section and pick an FX from **Developers** or
-   **All FX**. Click its button in the rack to open the plugin window.
+   **All FX**. Click its button in the rack to open the FX window.
 6. **Play something through it.** The input meter is on the left, the output meter on the right. Set the
    level in the dB box, or use **... > Level match**.
 7. **Add more racks.** Click **+** again, or use **... > Duplicate rack** to copy a rack with everything in it.
@@ -182,7 +182,7 @@ keyboard shortcut, select it in **Actions > Show action list...** and click **Ad
 
 ### First run: what happens
 
-- FOH-Mate writes its small meter plugin (a JSFX) to
+- FOH-Mate writes its small meter JSFX to
   `<REAPER resource path>/Effects/FOHMate/FOHMate_Meter`. You do not need to install it yourself.
 - If the window shows no racks, click the round **+** in the top bar (or double-click empty space) to
   create your first rack.
@@ -210,7 +210,7 @@ keyboard shortcut, select it in **Actions > Show action list...** and click **Ad
 - **Name:** click to select the rack, double-click to rename, drag to reorder.
 - **In / Out:** pick the hardware input (mono, stereo or MIDI) and the hardware output.
 - **R:** opens REAPER's own routing window for the rack, for sends and receives.
-- **FX:** click a name to open or close the plugin window. The dot turns one FX on or off.
+- **FX:** click a name to open or close the FX window. The dot turns one FX on or off.
 - **Level box:** type a value in dB (a comma works as the decimal mark, `-inf` is allowed).
   Shift + double-click resets it to 0 dB; Alt-click (Option-click) sets 0 dB, or -inf when it is
   already at 0 dB.
@@ -250,7 +250,7 @@ The switch at the top left of the main bar toggles the mode (it is remembered be
 | | Edit (green) | Show (red) |
 |---|---|---|
 | Level, mute, bypass, FX on/off, A/B | yes | yes |
-| Open plugin windows | yes | yes |
+| Open FX windows | yes | yes |
 | Select racks | yes | yes |
 | Create, rename, reorder, recolor racks | yes | locked |
 | Routing (In / Out / R) | yes | locked |
@@ -282,7 +282,7 @@ confirmation. Everything is undoable with REAPER's undo.
 ### Adding and changing FX
 
 - **+ button** (or right-click an FX > **Insert FX**): a menu of your installed FX. Every entry shows
-  its type before the name (`VST3: ...`, `AU: ...`, `JS: ...`), so versions of the same plugin can be
+  its type before the name (`VST3: ...`, `AU: ...`, `JS: ...`), so formats of the same FX can be
   told apart. The menu is grouped by your FX browser folders, developers, and type.
 - **Right-click an FX:** *Insert FX* (before this one), *Replace FX* and *Delete FX...* (both ask first).
 - **Drag an FX** to reorder it. Drop it on another rack to copy it there. Hold **Ctrl/Cmd** to copy,
@@ -294,7 +294,7 @@ confirmation. Everything is undoable with REAPER's undo.
 - In the menus each FX shows its **type** (VST3, AU, CLAP, JS...) on the right in that type's color, and
   its known **latency** in red after its name. Colors are set in **FX > FX type colors...**.
 - **Favorites** and **Recently used** sit right under the search field in every FX menu. Star your
-  favorites in **FX > Plugin list...**; Recently used lists the last FX you picked, newest first
+  favorites in **FX > FX list...**; Recently used lists the last FX you picked, newest first
   (how many is set in **Settings > Behavior**; 0 hides it).
 - **FX > FX types** limits the menus to the FX types you use, with a count for each type.
 
@@ -305,7 +305,7 @@ confirmation. Everything is undoable with REAPER's undo.
   sidechain bus, plus *Create new bus...*). The button lights up when a key is set; hover it to see
   the source. One dot next to the button means a mono key, two stacked dots a stereo key.
 - **The key follows the FX's width.** An FX on a mono rack, or on the mono part of a rack, gets a mono
-  key, even if the plug-in has a stereo sidechain: a stereo source is summed to mono (two receives at
+  key, even if the FX has a stereo sidechain: a stereo source is summed to mono (two receives at
   -6 dB into one channel, visible in the routing window). When the FX turns stereo, its key does too.
 - **SC button** (next to the level) lists the sidechain busses: tick one to send the rack to it and set
   the send level with its slider. *Create new sidechain bus...* makes one and sends the rack to it.
@@ -362,15 +362,15 @@ no stereo point the whole chain stays mono and the output carries it on both sid
 
 How an FX changes width, best option first:
 
-1. **The plug-in's bus size** (VST3 mostly; the same as **Plug-in bus size** in REAPER's pin
-   connector): 1 on the mono part of a rack, 2 on the stereo part. The plug-in stays in place with all
-   of its settings. A sidechain input nobody assigned a key to is left unconnected, so a mono plug-in
+1. **The FX's bus size** (VST3 mostly; the same as **Plug-in bus size** in REAPER's pin
+   connector): 1 on the mono part of a rack, 2 on the stereo part. The FX stays in place with all
+   of its settings. A sidechain input nobody assigned a key to is left unconnected, so a mono FX
    never keys from its own signal.
 2. **Its sibling version** when one is installed, recognised by a name that ends in *Mono*, *Stereo* or
    *Mono/Stereo* (the Waves style, e.g. `C6 Mono` / `C6 Stereo`). It is swapped in place and every
    parameter with the same name is copied over, so settings carry across; anything the other version
    does not have is left at its default. Its sidechain key, on/off state and open window follow.
-3. Otherwise the FX stays as it is (a stereo-only plug-in on a mono rack just gets the same signal on
+3. Otherwise the FX stays as it is (a stereo-only FX on a mono rack just gets the same signal on
    both sides).
 
 Versions are swapped when a rack's routing or stereo point changes (from FOH-Mate's menus or from
@@ -404,11 +404,11 @@ The top bar, right side: **+** (new rack), then four menus.
 | Menu | What is in it |
 |---|---|
 | **Display** | Daylight mode, rack colors, Performance mode, Fold automatically, Hide disabled parameters, Rack latency box (off / always / only with latency), Windows (Parameters, Inspector), Dock |
-| **FX** | FX types, FX type colors, Plugin list..., Hide FX over the latency limit, Take FX over the limit offline in Show mode |
+| **FX** | FX types, FX type colors, FX list..., Hide FX over the latency limit, Take FX over the limit offline in Show mode |
 | **Latency** | Latency alerts, Silence / Resume, Latency limits, Scan new / Rescan all FX, Retry failed FX, Ask to scan new FX |
 | **Options** | Disconnect inputs/outputs on copy and template, Disable metering and Level match, Stereo pairs on odd-even channels only, Open the FOH-Mate data folder, Settings... |
 
-Windows (Settings, Plugin list) reopen at the size you left them, also after being collapsed.
+Windows (Settings, FX list) reopen at the size you left them, also after being collapsed.
 
 ### Status bar
 
@@ -427,7 +427,7 @@ FOH-Mate keeps an eye on the latency each rack adds (every FX reports its own, i
   culprits; hover any FX to read its latency. The status bar flashes how many racks are over.
 - **Right-click an FX > Allow latency** for an FX you accept (a look-ahead limiter, say). Its latency
   is no longer counted, in this rack or any other, in every project: the mark is kept in the FX
-  Plugin list (below), and carries over to its mono/stereo version.
+  FX list (below), and carries over to its mono/stereo version.
 - **Display > Rack latency box** adds a box across the bottom of every rack with its latency in ms
   and samples (red when over the limit): **Always**, **Only when a rack has latency**, or **Off**. Hover it for each FX's share and REAPER's own figure for the
   chain. It updates once a second, and right away when FX are added or removed.
@@ -439,28 +439,28 @@ FOH-Mate keeps an eye on the latency each rack adds (every FX reports its own, i
   Settings and holds even if FOH-Mate is restarted); **Resume latency alerts** ends it early.
   **Latency > Latency alerts** switches them off completely. While silenced or off, the status bar says
   so and the **Latency** button turns red.
-- **Latency > Count every format at its highest latency** (off by default) is for plugins installed in
+- **Latency > Count every format at its highest latency** (off by default) is for FX installed in
   several formats (AU, VST3, VST...). Some formats, often AU, report 0 where another format reports the
-  real figure, so the watchdog would never see it. With this on, a plugin counts with the highest
+  real figure, so the watchdog would never see it. With this on, an FX counts with the highest
   latency any of its formats reports: in the alerts, the limits, the rack latency box, the FX menus and
-  Show mode. In the Plugin list such figures are marked **\***, and hovering one says where it comes
+  Show mode. In the FX list such figures are marked **\***, and hovering one says where it comes
   from. It is a warning only: REAPER's own compensation is not changed. The formats are matched on
   name and developer (the type, spaces, a channel count like "(4ch)" and the developer's name inside the
-  plugin's name are ignored). **Allow latency** stays per format: allowing one says so first.
+  FX's name are ignored). **Allow latency** stays per format: allowing one says so first.
 - Alerts show in both Edit and Show mode. FX that are switched off or offline don't count: REAPER
   drops their latency from its compensation too.
 - **Which limit?** When an FX is over the per-FX limit, that FX flashes **!!** and the rack tag reads
   **!! FX**. When the FX are each fine but add up to more than the per-rack limit, the rack's whole
   frame flashes red, the tag reads **!! RACK**, and only the FX adding the most latency flashes.
 
-#### The Plugin list
+#### The FX list
 
 FOH-Mate keeps one list of FX and the latency they report, shared by every project on the computer
 (`Data/FOHMate/fx_latency.txt` in REAPER's resource folder; **Options > Open the FOH-Mate data
 folder** shows it, with favorites, the scan log and the last error report). Every FX loaded in a rack
 is added or updated as it is seen; a scan can fill it in for everything installed.
 
-**FX > Plugin list...** shows every installed FX, one per row:
+**FX > FX list...** shows every installed FX, one per row:
 
 - **Star** (click it to make the FX a favorite), **Type** in its color, **FX** name, **Developer**,
   **Latency** (last reported) and **Highest** seen, **Allowed** (tick it here too), and **Status**:
@@ -483,17 +483,17 @@ is added or updated as it is seen; a scan can fill it in for everything installe
   Edit mode only.
 - Two settings in **Settings > Latency** tune the scan: a **pause between FX** (raise it if scans crash
   REAPER often) and an **extra wait for AUs** that report no latency at first.
-- **Do it when nothing is live** (audio may glitch while plug-ins load) and **save first**: a plug-in
+- **Do it when nothing is live** (audio may glitch while FX load) and **save first**: an FX
   that crashes on load can take REAPER down. If that happens, the next time FOH-Mate opens it tells
-  you which plug-in it was, marks it *failed* and skips it in later scans. The scan window always
-  shows the plug-in being loaded, and every scan is logged, in order, in
+  you which FX it was, marks it *failed* and skips it in later scans. The scan window always
+  shows the FX being loaded, and every scan is logged, in order, in
   `Data/FOHMate/last_scan_log.txt` in REAPER's resource folder.
 - Most effects really have no latency, so a scan showing mostly zeros is normal; look-ahead limiters,
-  linear-phase EQs and oversampling are the usual exceptions. Each plug-in is measured with its
+  linear-phase EQs and oversampling are the usual exceptions. Each FX is measured with its
   default settings.
-- **New plug-ins:** when you start FOH-Mate (and once a minute after), it looks for effects that are
+- **New FX:** when you start FOH-Mate (and once a minute after), it looks for effects that are
   not in the list and offers to scan them. **Latency > Ask to scan new FX** turns the question off.
-- A few plug-ins only settle their latency once audio runs through them or once a setting changes
+- A few FX only settle their latency once audio runs through them or once a setting changes
   (look-ahead, oversampling): the number seen in a rack then updates the list.
 - **FX > Hide FX over the latency limit** leaves FX whose known latency is over the per-FX limit (and
   that are not allowed) out of the **+**, *Insert FX* and *Replace FX* menus. It follows the limit
@@ -503,7 +503,7 @@ is added or updated as it is seen; a scan can fill it in for everything installe
   the per-rack limit.
   Offline means unloaded, so their latency is really gone; audio passes through them untouched. Their
   name is struck through. Switching back to Edit brings them back online (it can take a moment for
-  big plug-ins to reload).
+  big FX to reload).
 
 ### Settings
 
@@ -527,9 +527,9 @@ always show.
   the sidechain tracks (`SC BUS:` and `SC IN:`).
 - **Hidden tracks.** Racks are hidden from the track list and mixer on purpose. To bring one back, use
   **Revert to regular track**.
-- **Meter plugins.** Each rack gets two small meter JSFX, one first and one last in its chain. They
+- **Meter JSFX.** Each rack gets two small meters, one first and one last in its chain. They
   never show in FOH-Mate's FX list. If you open a rack's FX chain in REAPER you will see them.
-- **Opening a project on another computer** without FOH-Mate: the meters show up as missing plugins.
+- **Opening a project on another computer** without FOH-Mate: the meters show up as missing FX.
   This does not affect the audio.
 - **CPU and RAM** come from the operating system (REAPER does not expose its Performance Meter to
   scripts). On macOS and Linux they show REAPER's share of the machine. On Windows the gauges show
@@ -549,7 +549,7 @@ always show.
 | In / Out menus show no channels (red note at the top) | REAPER reports no inputs or outputs: the audio device is not running, failed to open (in use elsewhere, sample rate refused), or its channel range is off. Check **Preferences > Audio > Device**; the note names the device REAPER is using. |
 | "Could not add the meter JSFX" | Restart REAPER, or refresh the FX list (**Options > Preferences > Plug-ins > VST**, then re-scan). |
 | Meters do not move | Check that audio is flowing through the rack. The output meter shows the level after the fader. |
-| Something odd with racks or sound | **Options > Disable metering and Level match.** This also removes the meter plugins from the racks, to rule them out. Turn it off to bring them back. |
+| Something odd with racks or sound | **Options > Disable metering and Level match.** This also removes the meter FX from the racks, to rule them out. Turn it off to bring them back. |
 | CPU / RAM show `n/a` | They need macOS or Linux. See *Good to know*. |
 | The window opens tiny or in the wrong place | Resize or dock it again. REAPER remembers windows by name. |
 | A rack disappeared | It is hidden on purpose, but still a track named `RACK: ...`. Check the track list with *show hidden tracks* or the Track Manager. |

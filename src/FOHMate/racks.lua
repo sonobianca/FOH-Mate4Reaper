@@ -700,11 +700,11 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
       if ig.MenuItem(ctx, 'Color...') then fx_open_picker(tr, fx_guid, it.name) end
       if ig.MenuItem(ctx, 'Delete FX...') then
         -- with rows in the Performance it always asks, even after "Don't show this again": remove
-        -- the rows too, or keep them for a new FX of the same plug-in to take back
+        -- the rows too, or keep them for a matching FX to take back
         local nrows = params_count_fx(tr, { [fx_guid] = true })
         if nrows > 0 then
           request_confirm(('Delete "%s" from this rack?\nIt has %d parameter%s in the Performance.\n'
-                           .. 'Kept parameters stay greyed out, and come back to life when the same plug-in\nis put on this rack again.\n(Ctrl+Z brings everything back.)')
+                           .. 'Kept parameters stay greyed out, and come back to life when a matching FX\nis put on this rack again.\n(Ctrl+Z brings everything back.)')
                           :format(clean_fx_name(it.name), nrows, nrows == 1 and '' or 's'),
             function() delete_fx(tr, fx_guid) end, 'Delete FX and parameters', nil,
             { label = 'Delete FX, keep parameters', fn = function() delete_fx(tr, fx_guid, true) end })
@@ -987,4 +987,3 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
 
   ig.PopID(ctx)
 end
-

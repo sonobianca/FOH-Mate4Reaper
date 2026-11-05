@@ -17,7 +17,8 @@ language and keep them small.
   internal window ID stays `###Plugins Host`). Windows that dock each have their own ImGui context, so
   their REAPER docker tab shows their name (context.lua: `in_sub_ctx`): Racks, Parameters, Inspector.
   Tag `v0.14.106-rollback` marks the state before that change. In code and UI, "FX" is the word
-  for what is inside a rack (not "insert" or "plugin"), and "rack" is used, never "strip".
+  for what is inside a rack: always call them "FX", never "plugins" or "inserts". "Rack" is used,
+  never "strip".
 - Version: the `VERSION` constant in the script. Last public release: v0.11.9. Tag
   `v0.11.14-pre-reorg` marks the state before the repo reorganization.
 - Racks are REAPER tracks with the `RACK:` prefix (constant `PREFIX`). Sidechain busses are hidden

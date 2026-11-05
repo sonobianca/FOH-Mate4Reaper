@@ -609,7 +609,7 @@ function draw_encoder(id, cx, cy, r, norm, o)
   -- with a curve and limits, the value is kept inside them by the caller: draw it there
   if o.curve and o.range then v = math.max(o.range[1], math.min(o.range[2], v)) end
   -- the pointer moves at most so far per frame (the whole range in about a sixth of a second): a value
-  -- that jumps (a steep curve dragged quickly, the plug-in, automation) sweeps over the top, instead of
+  -- that jumps (a steep curve dragged quickly, the FX, automation) sweeps over the top, instead of
   -- seeming to pass under the encoder. Only the drawing; the value is set at once.
   -- (o.show: a table of the caller's, one per encoder, that keeps where the pointer was drawn and when)
   local ds = o.show

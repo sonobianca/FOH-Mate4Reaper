@@ -128,7 +128,7 @@ function unbypass_if_needed(tr)
 end
 
 -- keep_rows: the FX's rows in the Performance stay (greyed out), for a new instance of the same
--- plug-in to take back (params_relink)
+-- FX to take back (params_relink)
 function remove_all_fx(tr, keep_rows)
   with_undo('Rack: remove every FX', function()
     local list = chain_info(tr).list
@@ -260,4 +260,3 @@ function delete_fx(tr, guid, keep_rows)
     if not keep_rows then params_drop_fx(tr, { [guid] = true }) end
   end)
 end
-

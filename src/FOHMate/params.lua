@@ -8,14 +8,14 @@
 --
 -- The rows of a rack's column are saved on the rack (its track), so a duplicated rack takes them
 -- along. Each row is one parameter of one FX of that rack: the FX's GUID and the parameter's
--- index, plus the name the plug-in reported when the row was made (to notice a changed plug-in)
+-- index, plus the name the FX reported when the row was made (to notice a changed FX)
 -- and a name of the user's own (nil = the reported one). A row whose FX or parameter is gone is
 -- kept and drawn greyed out, never silently dropped.
 
 PARAM_CACHE = {}   -- per rack: the saved text and the rows parsed from it
 PARAM_PICK  = nil  -- the parameter window (Edit mode): { tr, filter, sel, anchor, order, fx }
 PARAM_KIND  = {}   -- what kind of control a parameter gets, found once per parameter
-ROW_MEMO    = {}   -- per row (FX guid:index:name): what the plug-in last said, so it isn't asked every frame
+ROW_MEMO    = {}   -- per row (FX guid:index:name): what the FX last said, so it isn't asked every frame
 
 function param_esc(s)
   return (s:gsub('[%%|;\n\r]', function(ch) return ('%%%02X'):format(ch:byte()) end))
@@ -195,10 +195,10 @@ function params_drop_fx(tr, guids)
   params_write(tr, kept)
 end
 
--- A new FX on the rack (added, dropped from another rack, Replace FX) takes back the rows an FX of the
--- same plug-in left when it was deleted with "keep the rows": rows whose FX is gone, each of whose
--- parameters has the same name at the same place in the new FX. One deleted FX per new FX (the
--- first in the column), and only when the new FX has no rows yet. Inside the caller's undo block.
+-- A new FX on the rack (added, dropped from another rack, Replace FX) takes back the rows left by a
+-- removed FX with "keep the rows": each parameter must have the same name and index in the new FX.
+-- Only one removed FX is matched to each new one (the first in the column), and only when the new FX
+-- has no rows yet. Inside the caller's undo block.
 function params_relink(tr, guid)
   local rows = params_read(tr)
   if #rows == 0 then return end
@@ -234,7 +234,7 @@ function params_relink(tr, guid)
   end
 end
 
--- what the plug-in last said about a row (ROW_MEMO): whether its parameter is gone (missing) is
+-- what the FX last said about a row (ROW_MEMO): whether its parameter is gone (missing) is
 -- checked again every 30 frames (half a second) or when its FX moved (fxi = where its FX is now)
 function param_row_memo(tr, r, fxi)
   local mk = r.guid .. ':' .. r.idx .. ':' .. (r.pname or '')
@@ -243,7 +243,7 @@ function param_row_memo(tr, r, fxi)
   if fxi ~= mm.fxi or FRAME - (mm.f_name or -99) >= 30 then
     if fxi and r.idx < reaper.TrackFX_GetNumParams(tr, fxi) then
       local _, pn = reaper.TrackFX_GetParamName(tr, fxi, r.idx, '')
-      mm.missing = (pn ~= r.pname)                      -- a changed plug-in: not the parameter it was
+      mm.missing = (pn ~= r.pname)                      -- a changed FX: not the parameter it was
     else
       mm.missing = true
     end
@@ -263,7 +263,7 @@ function params_move(tr, from, to)
   with_undo('Reorder Performance parameters', function() params_write(tr, rows) end)
 end
 
--- the rows whose parameter is gone (its FX removed, or the plug-in changed), as { guid, idx, name }
+-- the rows whose parameter is gone (its FX removed, or the FX changed), as { guid, idx, name }
 -- each, for "Remove the rows not linked any more" (right-click on the +)
 PARAM_UNLINKED = nil
 function params_unlinked(tr)
@@ -329,7 +329,7 @@ end
 -- drop-down of them (param_list_show). Any kind of control but a toggle.
 function param_list_ok(kind) return kind ~= nil and kind ~= 'toggle' end
 
--- What the plug-in prints for a position (ok, text). Some print their unit twice ("1000 Hz Hz"):
+-- What the FX prints for a position (ok, text). Some print their unit twice ("1000 Hz Hz"):
 -- a last word that repeats the one before it is dropped.
 function param_fmt(tr, fxi, idx, v)
   local ok, t = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, idx, v, '')
@@ -338,7 +338,7 @@ function param_fmt(tr, fxi, idx, v)
   return ok, t
 end
 
--- the plug-in's own text for a position, when it can give it (otherwise a percentage)
+-- the FX's own text for a position, when it can give it (otherwise a percentage)
 function param_text_at(tr, fxi, idx, v)
   local ok, t = param_fmt(tr, fxi, idx, v)
   if not ok or t == '' then t = ('%d%%'):format(math.floor(v * 100 + 0.5)) end
@@ -353,12 +353,12 @@ function param_text_split(t)
   return t, '', false
 end
 
--- The position that prints as a number (with this unit): the plug-in is asked at 401 positions for the
+-- The position that prints as a number (with this unit): the FX is asked at 401 positions for the
 -- nearest, then between its neighbours by halving (16 times, for a text that rises or falls there).
 -- Nothing when no position prints that unit.
 function param_find_value(tr, fxi, idx, num, unit)
   local ok = param_fmt(tr, fxi, idx, 0)
-  if not ok then return math.max(0, math.min(1, num / 100)) end        -- no text from the plug-in: a percentage
+  if not ok then return math.max(0, math.min(1, num / 100)) end        -- no text from the FX: a percentage
   local function at(v)
     local n, u, isnum = param_text_split(select(2, param_fmt(tr, fxi, idx, v)))
     if isnum then return tonumber(n), u end
@@ -385,7 +385,7 @@ function param_find_value(tr, fxi, idx, num, unit)
   return (math.abs((a or math.huge) - num) <= math.abs((b or math.huge) - num)) and lo or hi
 end
 
--- what a list shows as: the user's choice (Show as), or else a drop-down for a plug-in's named values
+-- what a list shows as: the user's choice (Show as), or else a drop-down for an FX's named values
 -- (a drop-down already), a single value or a long list, and a stepped encoder otherwise
 function param_list_show(r, kind, n)
   if n < 2 then return 'list' end
@@ -445,11 +445,11 @@ function params_count(tr)
   return #params_read(tr)
 end
 
--- the value as the vertical box can write it: what the plug-in says when the little stroke font
+-- the value as the vertical box can write it: what the FX says when the little stroke font
 -- has every character of it, otherwise the position as a percentage. The text is tidied first
 -- (µ and ° and other unusual characters dropped, a bare number of a frequency gets "Hz", spaces
 -- squeezed out when it is too long). A text that still can't be written is noted once in
--- Data/FOHMate/param_text_rejects.txt (plug-in, parameter, text), so the rules can be improved.
+-- Data/FOHMate/param_text_rejects.txt (FX, parameter, text), so the rules can be improved.
 PARAM_REJ = {}
 function param_vtext(txt, norm, pname, tr, fxi)
   local t = (txt or ''):gsub('\194\181', 'u'):gsub('\194\176', ''):gsub('[\128-\255]', ''):gsub('%c', ' ')
@@ -494,7 +494,7 @@ function param_mode_sibling(tr, fxi, r)
   end
 end
 
--- what such a parameter is right now: 'pan', 'band' (a width), or 'off' (the plug-in ignores it)
+-- what such a parameter is right now: 'pan', 'band' (a width), or 'off' (the FX ignores it)
 PARAM_MODE_REJ = {}
 function param_dual_mode(tr, fxi, k)
   local _, txt = reaper.TrackFX_GetFormattedParamValue(tr, fxi, k.dual)
@@ -600,7 +600,7 @@ function params_set_color(tr, targets, rgb)
 end
 
 -- Nicknames: a name of the user's own for a parameter. With "Remember parameters nicknames" on
--- (Settings), it is also kept in Data/FOHMate/param_nicknames.txt (plug-in, parameter, nickname) and
+-- (Settings), it is also kept in Data/FOHMate/param_nicknames.txt (FX, parameter, nickname) and
 -- given to that parameter whenever it is added to the Performance again, on any rack or project.
 PARAM_NICK      = nil
 PARAM_NICK_FILE = LATDB_DIR .. '/param_nicknames.txt'
@@ -608,27 +608,27 @@ PARAM_NICK_FILE = LATDB_DIR .. '/param_nicknames.txt'
 function param_nick_load()
   PARAM_NICK = {}
   for _, ln in ipairs(read_lines(PARAM_NICK_FILE)) do
-    local plug, pn, nick = ln:match('^([^\t]*)\t([^\t]*)\t(.+)$')
-    if plug then PARAM_NICK[plug .. '\t' .. pn] = nick end
+    local fx_key, pn, nick = ln:match('^([^\t]*)\t([^\t]*)\t(.+)$')
+    if fx_key then PARAM_NICK[fx_key .. '\t' .. pn] = nick end
   end
 end
 
-function param_nick_get(plug, pname)
+function param_nick_get(fx_key, pname)
   if CFG.remember_nicks == 0 then return nil end
   if not PARAM_NICK then param_nick_load() end
-  return PARAM_NICK[plug .. '\t' .. (pname or '')]
+  return PARAM_NICK[fx_key .. '\t' .. (pname or '')]
 end
 
-function param_nick_set(plug, pname, nick)
+function param_nick_set(fx_key, pname, nick)
   if not PARAM_NICK then param_nick_load() end
-  PARAM_NICK[plug .. '\t' .. (pname or '')] = nick
+  PARAM_NICK[fx_key .. '\t' .. (pname or '')] = nick
   local t = {}
   for k, v in pairs(PARAM_NICK) do t[#t + 1] = k .. '\t' .. v end
   table.sort(t)
   write_lines(PARAM_NICK_FILE, t)
 end
 
--- asks for a row's nickname (outside of the ImGui frame); empty = the plug-in's own name again
+-- asks for a row's nickname (outside of the ImGui frame); empty = the FX's own name again
 function param_prompt_nick(tr, guid, idx)
   later[#later + 1] = function()
     if not valid(tr) then return end
@@ -652,15 +652,15 @@ function param_set_nick(tr, r, nick)
   if fxi and CFG.remember_nicks ~= 0 then param_nick_set(param_fx_key(tr, fxi), r.pname, nick ~= '' and nick or nil) end
 end
 
--- the plug-in's name without its type, the way the corrections are filed
-function param_plugin_key(fxname)
+-- the FX's name without its type, the way the corrections are filed
+function param_fx_name_key(fxname)
   return (fx_name_type(fxname))
 end
 
 -- the key of an FX of a rack
 function param_fx_key(tr, fxi)
   local _, name = reaper.TrackFX_GetFXName(tr, fxi, '')
-  return param_plugin_key(name or '')
+  return param_fx_name_key(name or '')
 end
 
 function param_ovr_load()
@@ -803,7 +803,7 @@ function param_kind(tr, fxi, r)
   if ovr and PARAM_KIND_LABEL[ovr.kind] then
     kind, overridden = ovr.kind, true
     if (kind == 'steps' or kind == 'list') and not items then
-      -- the plug-in doesn't say what its values are: take 11 positions along it
+      -- the FX doesn't say what its values are: take 11 positions along it
       n, items = 11, {}
       for i = 0, 10 do
         local v = i / 10
@@ -831,13 +831,13 @@ end
 -- Sets (or, with kind = nil, clears) the correction for a parameter and files what REAPER said about it.
 function param_set_override(tr, fxi, r, kind)
   if not PARAM_OVR then param_ovr_load() end
-  local plug = param_fx_key(tr, fxi)
-  local key = plug .. '\t' .. (r.pname or '')
+  local fx_key = param_fx_key(tr, fxi)
+  local key = fx_key .. '\t' .. (r.pname or '')
   if kind then
     local guess = param_kind(tr, fxi, r).guess
     local f = param_facts(tr, fxi, r.idx)
     PARAM_OVR[key] = { kind = kind, line = table.concat({
-      plug, r.pname or '', kind, guess, tostring(f.min), tostring(f.max), tostring(f.step),
+      fx_key, r.pname or '', kind, guess, tostring(f.min), tostring(f.max), tostring(f.step),
       tostring(f.toggle), f.t0 or '', f.t1 or '' }, '\t') }
   else
     PARAM_OVR[key] = nil
@@ -853,7 +853,7 @@ end
 -- Performance" work on the selection; selecting an FX means all of its parameters.
 
 -- Parameters that are not meant for the user are left out of the window: placeholders ("Reserved",
--- "Unused", "-", nameless, "Param 12"), and the MIDI CC entries many VST3 plug-ins add by the hundred
+-- "Unused", "-", nameless, "Param 12"), and the MIDI CC entries many VST3 FX add by the hundred
 -- ("MIDI CC 0|1"). "Show hidden", next to the search in the window, brings them back.
 function param_hidden(name)
   local l = name:lower():gsub('^%s+', ''):gsub('%s+$', '')
@@ -879,23 +879,23 @@ function param_reaper_set(names)
   return set
 end
 
--- parameters hidden by hand ("Hide this parameter", right-click in the window), per plug-in, for every
--- project: Data/FOHMate/param_hidden.txt (plug-in, parameter)
+-- parameters hidden by hand ("Hide this parameter", right-click in the window), per FX, for every
+-- project: Data/FOHMate/param_hidden.txt (FX, parameter)
 PARAM_UHIDE = nil
 PARAM_UHIDE_FILE = LATDB_DIR .. '/param_hidden.txt'
-function param_uhidden(plug, pname)
+function param_uhidden(fx_key, pname)
   if not PARAM_UHIDE then
     PARAM_UHIDE = {}
     for _, ln in ipairs(read_lines(PARAM_UHIDE_FILE)) do
       if ln:find('\t', 1, true) then PARAM_UHIDE[ln] = true end
     end
   end
-  return PARAM_UHIDE[plug .. '\t' .. pname] == true
+  return PARAM_UHIDE[fx_key .. '\t' .. pname] == true
 end
 
-function param_set_uhidden(plug, pname, on)
-  param_uhidden(plug, pname)
-  PARAM_UHIDE[plug .. '\t' .. pname] = on or nil
+function param_set_uhidden(fx_key, pname, on)
+  param_uhidden(fx_key, pname)
+  PARAM_UHIDE[fx_key .. '\t' .. pname] = on or nil
   local t = {}
   for k in pairs(PARAM_UHIDE) do t[#t + 1] = k end
   table.sort(t)
@@ -977,7 +977,7 @@ end
 -- with the same word ("Dyn. Threshold", "Dyn. Ratio"...) go in a branch of their own too, and so on
 -- (3 levels at most). A branch is { label, path, ps = { every index in it }, pset, children }, a
 -- parameter is { p = index, label = its name without the groups }. fx.items is the list, in the
--- plug-in's order; fx.gps has the indexes of each branch by its key (for the selection).
+-- FX order; fx.gps has the indexes of each branch by its key (for the selection).
 local function param_split(fx, node, mem, depth)
   node.children, node.pset = {}, {}
   for _, m in ipairs(mem) do node.pset[m.p] = true end
@@ -1091,7 +1091,7 @@ function params_apply(tr, targets, adding)
   if adding then
     for _, t in ipairs(targets) do
       if not have[t.guid .. ':' .. t.idx] and gm[t.guid] then
-        -- the value it has now is remembered as its default (REAPER doesn't say what the plug-in's own is)
+        -- the value it has now is remembered as its default (REAPER doesn't say what the FX's own is)
         -- except a pan (center) and a stereo width (mono, the minimum), whose zero is known
         local def = reaper.TrackFX_GetParamNormalized(tr, gm[t.guid], t.idx)
         local low = (t.name or ''):lower()
@@ -1129,7 +1129,7 @@ function draw_check(dl, x, y, h, col, on, part)
   end
 end
 
--- the plug-in's name without its type ("VST3: Foo (Dev)" -> "Foo (Dev)") and the type
+-- the FX's name without its type ("VST3: Foo (Dev)" -> "Foo (Dev)") and the type
 function fx_name_type(name)
   local t, rest = name:match('^(%w+):%s*(.*)$')
   if t then return rest, t end
@@ -1261,7 +1261,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
         ig.SameLine(ctx)
         if ig.RadioButton(ctx, 'List of values', row.lim == 'list') and row.lim ~= 'list' then list_on() end
       end
-      -- the plug-in's text for a position, as a slider can show it
+      -- the FX's text for a position, as a slider can show it
       local function txt(v) return (param_text_at(tr, fxi, ix, v):gsub('%%', '%%%%')) end
       if row.lim == 'mm' and can_mm then
         local lo, hi = row.lo, row.hi
@@ -1351,7 +1351,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
           if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Remove this value from the list') end
           ig.PopID(ctx)
         end
-        -- adding, at the end: one of the plug-in's own values, or one picked. The field and the Add button
+        -- adding, at the end: one of the FX's own values, or one picked. The field and the Add button
         -- together are as wide as the list.
         local function add(v)
           for _, x in ipairs(vals) do if math.abs(x - v) < 1e-5 then return end end
@@ -1471,15 +1471,15 @@ function param_pick_data(P)
         if not f or f.fx ~= it.fx or f.name ~= it.name then
           -- hidden: by the rules above (auto) or by hand (uhid); shown anyway with Show hidden
           local names, hide, auto, uhid, nvis = {}, {}, {}, {}, 0
-          local plug = param_plugin_key(it.name)
+          local fx_key = param_fx_name_key(it.name)
           for p = 0, reaper.TrackFX_GetNumParams(rk.tr, it.fx) - 1 do
             local _, nm = reaper.TrackFX_GetParamName(rk.tr, it.fx, p, '')
             names[p + 1] = nm
-            auto[p], uhid[p] = param_hidden(nm), param_uhidden(plug, nm)
+            auto[p], uhid[p] = param_hidden(nm), param_uhidden(fx_key, nm)
             if (auto[p] or uhid[p]) and not P.show_hidden then hide[p] = true else nvis = nvis + 1 end
           end
           f = { guid = g, fx = it.fx, name = it.name, names = names, hide = hide, auto = auto, uhid = uhid,
-                plug = plug, nvis = nvis, reaper = param_reaper_set(names) }
+                fx_key = fx_key, nvis = nvis, reaper = param_reaper_set(names) }
           param_pick_groups(f)
           P.cache = P.cache or {}
           P.cache[g] = f
@@ -1684,14 +1684,14 @@ function draw_param_tree(P, D)
             return ('%s:  %s'):format(kind.label, txt or '')
           end,
           on_check = function() params_apply(fx.tr, { { guid = fx.guid, idx = p, name = nm } }, not inn) end,
-          -- right-click: hide it (for this plug-in, everywhere), or show it again
+          -- right-click: hide it (for this FX, everywhere), or show it again
           menu = function()
             if fx.uhid[p] then
-              if ig.MenuItem(ctx, 'Show this parameter again') then param_set_uhidden(fx.plug, nm, false) end
+              if ig.MenuItem(ctx, 'Show this parameter again') then param_set_uhidden(fx.fx_key, nm, false) end
             elseif fx.auto[p] then
               ig.TextDisabled(ctx, 'Hidden by FOH-Mate (a placeholder or a MIDI CC entry)')
             elseif ig.MenuItem(ctx, 'Hide this parameter') then
-              param_set_uhidden(fx.plug, nm, true)
+              param_set_uhidden(fx.fx_key, nm, true)
             end
           end })
       end

@@ -52,7 +52,7 @@ function draw_display_menu()
                     .. '(Settings > Performance mode).')
   end
   toggle_setting('Hide disabled parameters', 'hide_dead', 'hidedead',
-    'Performance mode: the parameters whose FX was deleted (or changed) are left out of the columns.\nThey are kept: a new FX of the same plug-in on the rack takes them back.')
+    'Performance mode: the parameters whose FX was deleted (or changed) are left out of the columns.\nThey are kept: a matching FX on the rack takes them back.')
   ig.Separator(ctx)
   if ig.BeginMenu(ctx, 'Rack latency box') then
     for _, o in ipairs({ { 'off', 'Off' }, { 'always', 'Always' }, { 'auto', 'Only when a rack has latency' } }) do
@@ -107,7 +107,7 @@ function draw_fx_menu()
   end
   if ig.MenuItem(ctx, 'FX type colors...') then open_settings_at('FX type colors') end
   ig.Separator(ctx)
-  if ig.MenuItem(ctx, 'Plugin list...') then LATWIN.open = true end
+  if ig.MenuItem(ctx, 'FX list...') then LATWIN.open = true end
   if ig.IsItemHovered(ctx) then
     ig.SetTooltip(ctx, 'Every installed FX: favorites, type, latency, scan status.\nRescan one FX or a selection.')
   end
@@ -132,9 +132,9 @@ function draw_latency_menu()
     open_settings_at('Latency')
   end
   if toggle_setting('Count every format at its highest latency', 'lat_formats', 'latformats',
-       'A plugin installed in several formats (AU, VST3, VST...) counts with the highest\n'
+       'An FX installed in several formats (AU, VST3, VST...) counts with the highest\n'
        .. 'latency any of its formats reports: some formats (often AU) report 0 where\n'
-       .. 'another reports the real figure. Estimated figures are marked * in the Plugin list.\n'
+       .. 'another reports the real figure. Estimated figures are marked * in the FX list.\n'
        .. 'Only alerts, limits and figures use it: REAPER\'s compensation is not changed.') then
     LAT = {}                          -- every rack is counted again right away
     recheck_show_offline()
@@ -360,4 +360,3 @@ function draw_fx_search(on_pick)
   end
   return true
 end
-

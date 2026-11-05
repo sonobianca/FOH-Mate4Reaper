@@ -103,7 +103,7 @@ end
 
 -- the same for removing FX: when some of them have rows in the Performance (which: rack -> the set of
 -- FX GUIDs that would go, nil = all), it always asks first: remove the rows too (fn(rack)), or keep
--- them (fn(rack, true)) for a new FX of the same plug-in to take back
+-- them (fn(rack, true)) for a matching FX to take back
 function fx_removal(tr, what, fn, which)
   local trs = targets_for(tr)
   local n = 0
@@ -118,8 +118,7 @@ function fx_removal(tr, what, fn, which)
     end
   end
   request_confirm(('%s%s?\n%d parameter%s in the Performance belong to these FX.\n'
-                   .. 'Kept parameters stay greyed out, and come back to life when the same plug-in\nis put on the rack again.\n(Ctrl+Z brings everything back.)')
+                   .. 'Kept parameters stay greyed out, and come back to life when a matching FX\nis put on the rack again.\n(Ctrl+Z brings everything back.)')
                   :format(what, #trs > 1 and (' for the %d selected racks'):format(#trs) or '', n, n == 1 and '' or 's'),
     go(false), 'Remove FX and parameters', nil, { label = 'Remove FX, keep parameters', fn = go(true) })
 end
-

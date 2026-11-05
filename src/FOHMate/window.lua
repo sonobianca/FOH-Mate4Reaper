@@ -632,9 +632,9 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         -- what this row shows: the real parameter (fxi = where its FX is now)
         local r = rows[k]
         local rname, vtxt, norm, fxi, missing, kind = r.name or r.pname, '?', 0, gmap[r.guid], false, nil
-        -- what the plug-in said is kept per row (ROW_MEMO): the name check is done again every 30
+        -- what the FX said is kept per row (ROW_MEMO): the name check is done again every 30
         -- frames (half a second) or when the FX moved, the value's text when the value moved or every
-        -- 30 frames (a plug-in may print it differently after another parameter changed)
+        -- 30 frames (an FX may print it differently after another parameter changed)
         local mm = param_row_memo(tr, r, fxi)
         missing = mm.missing
         if not missing then
@@ -752,7 +752,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           end
           local m = mm.mode
           if m == 'off' then off = true elseif m then ekind = m end
-          -- some plug-ins keep printing L / R in MS: there it reads M / S
+          -- some FX keep printing L / R in MS: there it reads M / S
           -- ("100L", "L100", "-50 L", "Left 30"...: an L or R on its own, or the words Left / Right)
           if m == 'band' then
             vtxt = vtxt:gsub('%f[%a][Ll][Ee][Ff][Tt]%f[%A]', 'M'):gsub('%f[%a][Rr][Ii][Gg][Hh][Tt]%f[%A]', 'S')
@@ -1511,4 +1511,3 @@ function draw_settings()
     if confirm and confirm.host == 'settings' then confirm = nil end   -- closed while asking: Cancel
   end
 end
-

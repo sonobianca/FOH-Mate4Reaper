@@ -27,7 +27,7 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.14.107'   -- major.minor.revision, shown in the window's title bar
+VERSION         = '0.14.108'   -- major.minor.revision, shown in the window's title bar
 DEBUG_TIMER     = true      -- status bar shows how long the script takes per frame; must be false in a
                             -- public version (tools/make_reapack_index.sh refuses to build otherwise)
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
@@ -40,7 +40,7 @@ SECT_FONT_SIZE  = 15        -- section titles of the parameter window (bold)
 LEVEL_MIN, LEVEL_MAX = -60.0, 12.0   -- dB range of the level box
 
 EXT_SECTION     = 'FOHMate'           -- where settings are saved (REAPER ExtState)
-OLD_EXT_SECTION = 'LiveRack'          -- the same, before the app was renamed (copied once)
+OLD_EXT_SECTION = 'LiveRack'          -- the same, before FOH-Mate was renamed (copied once)
 METER_NAME      = 'FOHMate Meter'
 METER_PATH      = 'FOHMate/FOHMate_Meter'
 GMEM            = 'FOHMateMeters'
@@ -94,7 +94,7 @@ math.randomseed(math.floor(reaper.time_precise() * 1000))
 -- is shared exactly as if it were all one file.
 MODULES = {
   'settings', 'context', 'jsfx', 'state', 'helpers', 'modes', 'colors', 'chain', 'tracks',
-  'sidechain', 'stereo', 'latency', 'fx_list', 'scan', 'plugin_list', 'add_fx_menu', 'setup',
+  'sidechain', 'stereo', 'latency', 'fx_list', 'scan', 'fx_list_ui', 'add_fx_menu', 'setup',
   'widgets', 'sidechain_ui', 'curves', 'params', 'racks', 'top_bar', 'window'
 }
 
@@ -202,7 +202,7 @@ function loop()
   end
   draw_settings()
   draw_param_picker()
-  draw_plugin_list()
+  draw_fx_list()
   draw_scan_window()
   pop_theme(nc)
   was_visible = visible

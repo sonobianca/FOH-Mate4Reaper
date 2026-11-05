@@ -38,7 +38,7 @@ An optional view, switched on and off with a toggle. Edit and Show keep working 
   circle with an arrow, the values in a menu). How the encoder turns is a global setting (Settings >
   Controls): vertical drag, finer the farther the pointer is to the side, or dragging around it.
   The default mark is the value the parameter had when it was added to the Performance.
-- **Name** defaults to what the plugin reports and can be renamed. **Color** is the rack's, changeable
+- **Name** defaults to what the FX reports and can be renamed. **Color** is the rack's, changeable
   per row from a drop-down.
 - **Row look:** the name in bold in its own box (two lines allowed), the control outside the box,
   rows taller for that, the whole row (control included) glows under the pointer.
@@ -69,8 +69,8 @@ An optional view, switched on and off with a toggle. Edit and Show keep working 
   double-click to reset).
 - REAPER gives the value of a parameter as text ("-6.0 dB") and whether it is a toggle or has steps,
   but not the names of the steps. A drop-down's entries are found by trying each step and reading the
-  text, then putting the value back. Plugins that don't expose steps get a knob.
-- A parameter is stored as the FX's GUID plus its index (and its name, to notice when a plugin update
+  text, then putting the value back. FX that don't expose steps get a knob.
+- A parameter is stored as the FX's GUID plus its index (and its name, to notice when an FX update
   changed it). A row whose FX or parameter is gone is shown greyed out, not silently dropped.
 - Cost: only the rows that are visible are read each frame, and a value is only written while the
   control is being moved. Nothing here may add latency or noticeable CPU.
@@ -86,7 +86,7 @@ Each step is a version (0.14.x), ends with something to test in REAPER, and is c
 2. **Parameter rows, basics.** The + dialog (list an FX's parameters, with a search), rows stored and
    restored, a knob/slider/toggle/drop-down that moves the real parameter, names and colors, side
    alternation, rows greyed out when missing.
-   *Test:* add rows from a few different plugins, move them, rename, recolor, save and reopen.
+   *Test:* add rows from a few different FX, move them, rename, recolor, save and reopen.
 3. **Edit-mode handling.** Select, reorder, remove, reverse; delete FX removes its rows (with the
    warning); duplicating a rack copies its rows; Show mode locks everything but the controls.
    *Test:* each action, undo, and Show mode.

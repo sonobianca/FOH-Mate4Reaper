@@ -70,7 +70,7 @@ function build_fx_db()
     local ftype, rest = name:match('^([%w_]+):%s*(.*)$')
     if not ftype then ftype, rest = 'Other', name end
     local dev = rest:match('%(([^()]+)%)%s*$') or 'Other'
-    -- short: the name without the developer, for the plugin list's own Developer column
+    -- short: the name without the developer, for the FX list's own Developer column
     local short = (dev ~= 'Other') and rest:gsub('%s*%([^()]+%)%s*$', '') or rest
     local it = { name = name, ident = ident, label = rest, type = ftype, dev = dev, short = short }
     by_type[ftype] = by_type[ftype] or {}
@@ -204,10 +204,10 @@ function draw_add_menu(pick_now)
   ig.Separator(ctx)
   local view = get_view()
 
-  -- favorites (starred in FX > Plugin list...) and the last FX picked
+  -- favorites (starred in FX > FX list...) and the last FX picked
   if ig.BeginMenu(ctx, 'Favorites') then
     local favs = fav_items()
-    if #favs == 0 then ig.TextDisabled(ctx, 'No favorites yet: star FX in FX > Plugin list...') end
+    if #favs == 0 then ig.TextDisabled(ctx, 'No favorites yet: star FX in FX > FX list...') end
     draw_fx_items(favs, on_pick)
     ig.EndMenu(ctx)
   end
@@ -251,4 +251,3 @@ function draw_add_menu(pick_now)
     ig.EndMenu(ctx)
   end
 end
-

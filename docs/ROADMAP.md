@@ -15,8 +15,8 @@ Bianca's design (planning stage, nothing built yet):
   in a circle; clicking it opens a dialog to pick an FX parameter.
 - The control fits the parameter when REAPER can tell: on/off, a drop-down for a few fixed values, a
   rotary knob for continuous values (switchable to a slider per row; the default may be swapped to
-  slider after trying it). Plugins that report nothing about their steps get the continuous control.
-- Name: what the plugin reports by default, renamable. Color: the rack's color by default, changeable
+  slider after trying it). FX that report nothing about their steps get the continuous control.
+- Name: what the FX reports by default, renamable. Color: the rack's color by default, changeable
   from a drop-down.
 - Rows alternate sides (row 1 name left, control right; row 2 control left, name right), so a control
   is harder to hit by mistake.
@@ -78,5 +78,5 @@ consoles functions they don't have.
 
 ## Open questions
 - **AU vs VST3 reliability.** Some AU versions report 0 latency where the VST3 reports real latency,
-  mostly Plugin Alliance (about 700 plug-ins installed). Full scan result: 85 of 249 AU/VST3 pairs
+  mostly Plugin Alliance (about 700 FX installed). Full scan result: 85 of 249 AU/VST3 pairs
   differ, always AU 0 vs VST3 > 0 (see the Done section of TESTING.md).

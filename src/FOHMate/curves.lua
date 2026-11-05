@@ -112,7 +112,7 @@ function curve_ctl_pos(cv, u, mm, steps)
   return c
 end
 
--- the control was turned to c: the value u it gives (on a step of the plug-in for a stepped one)
+-- the control was turned to c: the value u it gives (on a step of the FX for a stepped one)
 function curve_ctl_value(cv, c, mm, steps)
   mm.cpos, mm.cu = c, nil
   local u = curve_eval(cv, c)

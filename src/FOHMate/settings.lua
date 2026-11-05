@@ -94,7 +94,7 @@ SCHEMA = {
   { group = 'Performance mode', key = 'perf_fold_after', label = 'Fold them after', kind = 'i', min = 0, max = 120, def = 15, fmt = '%d s',
     tip = 'An open FX section (Show mode) and a widened parameter column fold back after this long\nwithout activity in the Racks window (the mouse moving over it, a click, a drag, scrolling\nor a key). Nothing outside the window counts. Only when the option above is on.' },
   { group = 'Performance mode', key = 'remember_nicks', label = 'Remember parameters nicknames', kind = 'bool', min = 0, max = 1, def = 1,
-    tip = 'On: a nickname given to a parameter (right-click it > Nickname parameter) is remembered for that\nplug-in, and the parameter gets it again whenever it is added to the Performance, on any rack or\nproject. Off: a nickname stays on that one parameter only.' },
+    tip = 'On: a nickname given to a parameter (right-click it > Nickname parameter) is remembered for that\nFX, and the parameter gets it again whenever it is added to the Performance, on any rack or\nproject. Off: a nickname stays on that one parameter only.' },
 
   { group = 'Controls', key = 'enc_mode', label = 'Rotary encoder: drag', kind = 'choice', def = 'vertical',
     options = { { 'vertical', 'up and down' }, { 'circle', 'around the encoder' } },
@@ -269,4 +269,3 @@ function save_hidden_popups()
   table.sort(t)
   save_setting('hiddenpopups', table.concat(t, ','))
 end
-

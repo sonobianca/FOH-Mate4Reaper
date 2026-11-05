@@ -130,7 +130,7 @@ function scan_step()
       scan_log(('%s\t%d samples'):format(item.name, lat))
       for fx = n - 1, 0, -1 do reaper.TrackFX_Delete(SCAN.tr, fx) end
     end
-    -- a short pause before the next one: some plug-ins don't like being loaded right
+    -- a short pause before the next one: some FX don't tolerate being loaded right
     -- after another one was removed
     SCAN.rest_until = now + CFG.scan_pause
     SCAN.phase = 'next'
@@ -206,7 +206,7 @@ function announce_crash()
   local text
   if name then
     text = ('REAPER stopped during the last latency scan, while loading:\n\n    %s\n\n'
-      .. 'It is marked "failed" in FX > Plugin list... Scans leave it out\n'
+      .. 'It is marked "failed" in FX > FX list... Scans leave it out\n'
       .. '(Latency > Retry failed FX... tries again). The scan, in order, is in:\n%s\n\n'):format(name, SCAN_LOG)
   else
     text = 'The last latency scan did not finish.\n\n'
@@ -235,7 +235,7 @@ function ask_scan(which)
             or (which == 'failed' and 'Retry the %d effects that failed before (some may crash REAPER again)')
             or 'Scan %d effects'
   request_confirm((what .. ' for latency?\n\nEach one is loaded once on a hidden track and removed. Audio may glitch\n'
-    .. 'while it runs, so do it when nothing is live. Save your project first: a plug-in\n'
+    .. 'while it runs, so do it when nothing is live. Save your project first: an FX\n'
     .. 'that crashes on load can take REAPER down (it is skipped next time, and the scan\n'
     .. 'can be continued where it stopped).'):format(#list), function() start_scan(list) end, 'Scan')
 end
@@ -256,4 +256,3 @@ function draw_scan_window()
     ig.End(ctx)
   end
 end
-
