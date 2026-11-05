@@ -910,6 +910,8 @@ end
 -- the "..." menu of a rack's parameters (Edit mode)
 function draw_param_menu(tr)
   local n = #params_read(tr)
+  draw_auto_fold_menu('Fold this section by itself', 'par', { tr })
+  ig.Separator(ctx)
   local nu = PARAM_UNLINKED and #PARAM_UNLINKED or 0
   local label = nu > 0 and ('Remove the %d parameter%s not linked any more'):format(nu, nu == 1 and '' or 's')
                         or 'Every parameter is linked: nothing to remove'
@@ -931,6 +933,52 @@ PERF_FOLD, PERF_ACT, PERF_MX, PERF_MY, PERF_FRAME, PERF_FOLD_SECS = {}, 0, 0, 0,
 -- the same for a rack's parameter column: open = widened (asked for), t = how far it is,
 -- last = the row touched last, reveal = frames left to scroll to it after folding back
 PERF_PARAMS = {}
+
+-- Fold back by itself, set for a rack's FX section ('fx') and for its parameter section ('par'): nil =
+-- like the general setting (Display menu, Settings), true = yes, false = no. Kept with the rack.
+PERF_AUTO = {}
+function perf_auto_get(tr)
+  local g = reaper.GetTrackGUID(tr)
+  local c = PERF_AUTO[g]
+  if c and FRAME - c.frame < 20 then return c.v end
+  local ok, s = reaper.GetSetMediaTrackInfo_String(tr, EXT_AUTOFOLD, '', false)
+  if not ok then s = '' end
+  if c and c.raw == s then c.frame = FRAME; return c.v end
+  local v = {}
+  for k, x in s:gmatch('(%a+)=(%d)') do v[k] = (x == '1') end
+  PERF_AUTO[g] = { raw = s, v = v, frame = FRAME }
+  return v
+end
+
+function perf_auto_set(tr, which, val)
+  local v = perf_auto_get(tr)
+  local t = {}
+  for _, k in ipairs({ 'fx', 'par' }) do
+    local x = v[k]
+    if k == which then x = val end
+    if x ~= nil then t[#t + 1] = k .. '=' .. (x and '1' or '0') end
+  end
+  reaper.GetSetMediaTrackInfo_String(tr, EXT_AUTOFOLD, table.concat(t, ';'), true)
+  PERF_AUTO[reaper.GetTrackGUID(tr)] = nil
+end
+
+-- does this section fold back by itself?
+function perf_auto_on(tr, which)
+  local x = perf_auto_get(tr)[which]
+  if x == nil then return CFG.perf_fold_auto ~= 0 end
+  return x
+end
+
+-- the submenu of a section (which = 'fx' or 'par') for the racks trs
+function draw_auto_fold_menu(label, which, trs)
+  if not ig.BeginMenu(ctx, label) then return end
+  local cur = perf_auto_get(trs[1])[which]
+  if ig.MenuItem(ctx, 'Yes', nil, cur == true) then for _, t in ipairs(trs) do perf_auto_set(t, which, true) end end
+  if ig.MenuItem(ctx, 'No', nil, cur == false) then for _, t in ipairs(trs) do perf_auto_set(t, which, false) end end
+  local like = ('Like the general setting (%s)'):format(CFG.perf_fold_auto ~= 0 and 'yes' or 'no')
+  if ig.MenuItem(ctx, like, nil, cur == nil) then for _, t in ipairs(trs) do perf_auto_set(t, which, nil) end end
+  ig.EndMenu(ctx)
+end
 
 function perf_param_state(guid)
   local st = PERF_PARAMS[guid]
@@ -1006,11 +1054,17 @@ function draw_perf_area(infos, M, dt, now)
   end
   for _, ps in pairs(PERF_PARAMS) do if ps.open then any_open = true; break end end
   perf_activity(now, any_open)
-  -- no activity for a while: every FX section folds back (Settings > Performance mode)
+  -- no activity for a while: the FX sections and parameter sections that fold by themselves fold back
+  -- (the general setting: Display menu / Settings > Performance mode; each rack and each parameter
+  -- section can say yes or no for itself in its "..." menu)
   local after = CFG.perf_fold_after
-  if any_open and CFG.perf_fold_auto ~= 0 and after > 0 and now - PERF_ACT >= after then
-    for _, st in pairs(PERF_FOLD) do st.open = false end
-    for _, ps in pairs(PERF_PARAMS) do ps.open = false end
+  if any_open and after > 0 and now - PERF_ACT >= after then
+    for _, inf in ipairs(infos) do
+      local g = reaper.GetTrackGUID(inf.tr)
+      local fs, ps = PERF_FOLD[g], PERF_PARAMS[g]
+      if fs and fs.open and perf_auto_on(inf.tr, 'fx') then fs.open = false end
+      if ps and ps.open and perf_auto_on(inf.tr, 'par') then ps.open = false end
+    end
   end
 
   local row_h = 0                                  -- Edit mode: full racks, all as tall as the tallest
@@ -1328,20 +1382,42 @@ function draw_settings()
   local vis, open = begin_window('settings', 'FOH-Mate Settings', 440, 560, true)
   if vis then
     CONFIRM_HOST = 'settings'
+    -- a search field: only the settings whose name has the text (or whose group does) are listed, the
+    -- groups that have some are open
+    ig.SetNextItemWidth(ctx, -1)
+    local rvs, found = ig.InputTextWithHint(ctx, '##setfind', 'Search settings...', S.set_find or '')
+    if rvs then S.set_find = found end
+    local q = (S.set_find or ''):lower()
+    local function entry_hit(e)
+      if e.label:lower():find(q, 1, true) then return true end
+      for _, o in ipairs(e.options or {}) do if o[2]:lower():find(q, 1, true) then return true end end
+      return false
+    end
+    local group_hit, group_any = {}, {}
+    if q ~= '' then
+      for _, e in ipairs(SCHEMA) do
+        if e.group:lower():find(q, 1, true) then group_hit[e.group], group_any[e.group] = true, true
+        elseif entry_hit(e) then group_any[e.group] = true end
+      end
+      if next(group_any) == nil then ig.TextDisabled(ctx, 'No setting matches.') end
+    end
+    ig.Spacing(ctx)
     local group, group_open = nil, false
     for _, e in ipairs(SCHEMA) do
       if e.group ~= group then
-        group = e.group
-        if S.settings_focus == group then
-          ig.SetNextItemOpen(ctx, true, ig.Cond_Always())
-        end
-        group_open = section_header(group, group == 'Colors')
-        if S.settings_focus == group then
-          ig.SetScrollHereY(ctx, 0)
-          S.settings_focus = nil
+        group, group_open = e.group, false
+        if q == '' or group_any[group] then
+          if q ~= '' or S.settings_focus == group then
+            ig.SetNextItemOpen(ctx, true, ig.Cond_Always())
+          end
+          group_open = section_header(group, group == 'Colors')
+          if S.settings_focus == group then
+            ig.SetScrollHereY(ctx, 0)
+            S.settings_focus = nil
+          end
         end
       end
-      if group_open then
+      if group_open and (q == '' or group_hit[group] or entry_hit(e)) then
         ig.SetNextItemWidth(ctx, 210)
         local label = e.label .. '##cfg_' .. e.key
         if e.kind == 'color' then

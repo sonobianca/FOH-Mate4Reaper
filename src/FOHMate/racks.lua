@@ -363,6 +363,8 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
     if ig.MenuItem(ctx, 'Recolor automatically') then rack_action(tr, 'Recolor automatically', recolor_rack_auto) end
     if ig.MenuItem(ctx, 'Choose color...') then open_picker('rack', tr) end
     ig.Separator(ctx)
+    draw_auto_fold_menu('Fold the FX section by itself', 'fx', targets_for(tr))
+    ig.Separator(ctx)
     if ig.MenuItem(ctx, 'Remove every FX') then
       fx_removal(tr, 'Remove every FX', remove_all_fx, function() return nil end)
     end

@@ -1202,9 +1202,25 @@ function draw_param_control_panel(P, fxs, gm, targets)
     if (can_mm or can_list) and section_header('Limit values', true) then
       local g, ix = first.guid, first.idx
       local function mm_on() params_update(tr, g, ix, { lim = 'mm', lo = row.lo or 0, hi = row.hi or 1 }) end
+      -- choosing the list: when the value it has now isn't in it, ask whether to add it (once the list is
+      -- on, the parameter only takes the values of the list, so this is the moment to keep it)
       local function list_on()
+        local cur = reaper.TrackFX_GetParamNormalized(tr, fxi, ix)
         params_update(tr, g, ix, { lim = 'list' })
-        param_list_snap(tr, fxi, ix, row.vals)
+        for _, x in ipairs(row.vals or {}) do
+          if math.abs(x - cur) < 1e-5 then param_list_snap(tr, fxi, ix, row.vals); return end
+        end
+        local function finish(add)
+          if not valid(tr) then return end
+          local r = params_find(tr, g, ix)
+          if not r then return end
+          local nv = {}
+          for _, x in ipairs(r.vals or {}) do nv[#nv + 1] = x end
+          if add then nv[#nv + 1] = cur; params_update(tr, g, ix, { vals = nv }) end
+          param_list_snap(tr, fxi, ix, nv)
+        end
+        request_confirm(('Add the value it has now (%s) to the list?'):format(param_text_at(tr, fxi, ix, cur)),
+          function() finish(true) end, 'Add it', nil, { label = "Don't add", fn = function() finish(false) end })
       end
       local rv3, v3 = ig.Checkbox(ctx, 'Use limits', row.lim ~= nil)
       if ig.IsItemHovered(ctx) then
@@ -1310,14 +1326,15 @@ function draw_param_control_panel(P, fxs, gm, targets)
           if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Remove this value from the list') end
           ig.PopID(ctx)
         end
-        -- adding, at the end: the value it has now, one of the plug-in's own values, or one picked
+        -- adding, at the end: one of the plug-in's own values, or one picked. The field and the Add button
+        -- together are as wide as the list.
         local function add(v)
           for _, x in ipairs(vals) do if math.abs(x - v) < 1e-5 then return end end
           local nv = copy(); nv[#nv + 1] = v; put(nv)
         end
-        if ig.Button(ctx, 'Add the value it has now') then add(reaper.TrackFX_GetParamNormalized(tr, fxi, ix)) end
+        local W = select(1, ig.GetContentRegionAvail(ctx))
         if k.items then
-          ig.SetNextItemWidth(ctx, 220)
+          ig.SetNextItemWidth(ctx, W)
           if ig.BeginCombo(ctx, '##ladd', 'Add one of its values...') then
             for _, it in ipairs(k.items) do
               if ig.Selectable(ctx, it.label .. '##' .. it.norm, false) then add(it.norm) end
@@ -1328,20 +1345,23 @@ function draw_param_control_panel(P, fxs, gm, targets)
           if P.lpick_key ~= g .. ':' .. ix then
             P.lpick_key, P.lpick = g .. ':' .. ix, reaper.TrackFX_GetParamNormalized(tr, fxi, ix)
           end
-          ig.SetNextItemWidth(ctx, 160)
+          local addw = ig.CalcTextSize(ctx, 'Add') + 2 * select(1, ig.GetStyleVar(ctx, ig.StyleVar_FramePadding()))
+          ig.SetNextItemWidth(ctx, W - addw - sp)
           local rv, v = ig.SliderDouble(ctx, '##lpick', P.lpick, 0, 1, txt(P.lpick))
           if rv then P.lpick = v end
           ig.SameLine(ctx)
-          if ig.Button(ctx, 'Add') then add(P.lpick) end
+          if ig.Button(ctx, 'Add', addw, 0) then add(P.lpick) end
         end
-        -- what the control becomes
+        -- what the control becomes: its caption right above the menu
+        ig.Spacing(ctx)
+        ig.Text(ctx, 'Show as')
         local auto = param_list_show({}, k.kind, #vals)
         local opts = { { false, ('Automatic (%s)'):format(PARAM_KIND_LABEL[auto == 'list' and 'list' or 'steps']) },
                        { 'steps', 'Stepped encoder' }, { 'list', 'Drop-down' } }
         local cur_l = opts[1][2]
         for _, o in ipairs(opts) do if o[1] and o[1] == row.vshow then cur_l = o[2] end end
-        ig.SetNextItemWidth(ctx, 220)
-        if ig.BeginCombo(ctx, 'Show as##lshow', cur_l) then
+        ig.SetNextItemWidth(ctx, W)
+        if ig.BeginCombo(ctx, '##lshow', cur_l) then
           for _, o in ipairs(opts) do
             if ig.Selectable(ctx, o[2], (o[1] or nil) == row.vshow) then params_update(tr, g, ix, { vshow = o[1] }) end
           end

@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Parameter window, list of values: the **Add the value it has now** button is gone. Choosing the list (Use limits, or the List of values choice) asks instead whether to add the value it has now, when it isn't in the list yet (once the list is on, the parameter only takes the values of the list). The value field and its Add button are together as wide as the list, like the menu of the plug-in's own values, and the **Show as** caption is right above its menu. **Fold by itself** can be set per rack (its "..." menu, Fold the FX section by itself) and per parameter section (its "..." menu, Fold this section by itself): Yes, No, or like the general setting, which is now also in the **Display** menu (**Fold automatically**, under Performance mode) as well as in Settings. **Settings** has a search field at the top: it lists the settings whose name (or group) has the text, with their groups open.
+
 - Performance mode, Edit mode: **double-click a parameter's name or value box** opens the parameter window on it (selected in the tree, as when it is already open). On the control, a double-click still goes back to the default mark.
 
 - Performance parameters window works as an **inspector**: with it open, click (or start turning) a parameter in a rack's column and the window selects it in its tree: its rack, FX and groups open, the tree scrolls to it, and a search that would hide it is cleared. The settings on the right show that parameter.

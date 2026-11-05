@@ -17,6 +17,7 @@ function toggle_setting(label, field, key, tip, enabled)
 end
 
 function open_settings_at(group)
+  S.set_find = ''
   S.show_settings = true
   S.settings_focus = group
 end
@@ -40,6 +41,15 @@ function draw_display_menu()
   ig.Separator(ctx)
   toggle_setting('Performance mode', 'perf', 'perfmode',
     'One row of racks that scrolls sideways, with a column of parameters under each rack.\nShow mode: each rack is just its name until you open its FX section with the handle.\nEdit mode: full racks.')
+  if ig.MenuItem(ctx, 'Fold automatically', nil, CFG.perf_fold_auto ~= 0) then
+    CFG.perf_fold_auto = CFG.perf_fold_auto ~= 0 and 0 or 1
+    save_cfg_value({ key = 'perf_fold_auto' })
+  end
+  if ig.IsItemHovered(ctx) then
+    ig.SetTooltip(ctx, 'Performance mode: an open FX section (Show mode) and a widened parameter section fold back by\n'
+                    .. 'themselves after a while without activity (the time is in Settings > Performance mode).\n'
+                    .. 'Each rack and each parameter section can choose for itself in its "..." menu.')
+  end
   toggle_setting('Hide disabled parameters', 'hide_dead', 'hidedead',
     'Performance mode: the parameters whose FX was deleted (or changed) are left out of the columns.\nThey are kept: a new FX of the same plug-in on the rack takes them back.')
   ig.Separator(ctx)
