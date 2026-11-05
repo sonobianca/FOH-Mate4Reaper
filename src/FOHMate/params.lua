@@ -1316,6 +1316,33 @@ function param_pick_select(tr, r)
   P.reveal, P.scroll_key, P.filter = { guid = r.guid, idx = r.idx }, key, ''
 end
 
+-- Right-click a rack's name: the rack is selected in the tree (when a parameter window is open) and the
+-- tree scrolls to it; with unfold (Shift), it opens, with every FX and group in it.
+function param_pick_rack(tr, unfold)
+  local P = PARAM_PICK
+  if not P or not (P.tree_open or P.insp_open) then return end
+  P.no_focus = true
+  local key = 'R:' .. reaper.GetTrackGUID(tr)
+  P.sel, P.anchor, P.scroll_key, P.filter = { [key] = true }, key, key, ''
+  P.open = P.open or {}
+  if unfold then
+    P.open[key] = true
+    P.unfold = {}
+    for i = 0, reaper.TrackFX_GetCount(tr) - 1 do
+      local g = reaper.TrackFX_GetFXGUID(tr, i)
+      P.open['F:' .. g], P.unfold[g] = true, true            -- its groups open when they are drawn
+    end
+  end
+end
+
+-- FX right-click > Inspect FX...: the FX is selected (every parameter of it) and opened in the tree, and the
+-- Inspector opens
+function param_pick_fx(tr, guid)
+  param_picker_open(tr, 'P:' .. guid, 'insp')
+  local P = PARAM_PICK
+  P.open['F:' .. guid], P.scroll_key, P.filter = true, 'P:' .. guid, ''
+end
+
 -- a rack folded: what was selected in its FX is not selected any more (it can't be seen)
 function param_pick_forget(P, tr)
   local guids = {}
@@ -1410,7 +1437,7 @@ function param_pick_targets(P, fxs)
     if not seen[key] then seen[key] = true; out[#out + 1] = { guid = fx.guid, idx = p, name = fx.names[p + 1], tr = fx.tr } end
   end
   for _, fx in ipairs(fxs) do
-    if P.sel['P:' .. fx.guid] then
+    if P.sel['P:' .. fx.guid] or (fx.tr and P.sel['R:' .. reaper.GetTrackGUID(fx.tr)]) then   -- the FX, or its rack
       for p = 0, #fx.names - 1 do if not fx.hide[p] then add(fx, p) end end
     end
     for key, ps in pairs(fx.gps or {}) do
@@ -2159,6 +2186,7 @@ function draw_param_tree(P, D)
         end
         local gkey = 'G:' .. fx.guid .. ':' .. nd.path
         if P.reveal and P.reveal.guid == fx.guid and nd.pset[P.reveal.idx] then P.open[gkey] = true end
+        if P.unfold and P.unfold[fx.guid] then P.open[gkey] = true end   -- Shift+right-click on the rack's name
         local opened = low ~= '' or P.open[gkey] == true
         local g_have = count_have(fx, nd.ps)
         draw_row({ id = gkey, sel = gkey, depth = depth, h = h_grp, font = sect_font, size = SECT_FONT_SIZE,
@@ -2187,7 +2215,7 @@ function draw_param_tree(P, D)
       for _, rk in ipairs(racks) do
         local rkey = 'R:' .. rk.guid
         local ropen = P.open[rkey] == true
-        draw_row({ id = rkey, h = h_rack, font = head_font, size = HEAD_FONT_SIZE, arrow = true, open = ropen,
+        draw_row({ id = rkey, sel = rkey, h = h_rack, font = head_font, size = HEAD_FONT_SIZE, arrow = true, open = ropen,
           name = rk.name, col = param_name_color(track_color(rk.tr), dark),
           on_toggle = function()
             P.open[rkey] = not ropen
@@ -2227,7 +2255,7 @@ function draw_param_tree(P, D)
           guide(L + aw / 2, rk_y1, lastbot - 5)
         end
       end
-      P.reveal, P.scroll_key = nil, nil
+      P.reveal, P.scroll_key, P.unfold = nil, nil, nil
       ig.EndChild(ctx)
     end
     P.order = order

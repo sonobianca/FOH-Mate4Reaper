@@ -432,11 +432,15 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
     ig.InvisibleButton(ctx, 'name', NW, NH)
     -- click selects the rack (REAPER's track selection); Cmd/Ctrl-click adds or removes it
     if ig.IsItemClicked(ctx, 0) then select_rack(tr, has_mod('ctrl')) end
+    -- right-click: select it in the Parameters tree (Shift: and unfold it, FX and groups)
+    if ig.IsItemClicked(ctx, 1) then param_pick_rack(tr, has_mod('shift')) end
     if locked then
       hint_hovered(('Click: select the rack  \194\183  %s+click: add it to the selection, or take it out'):format(mod_label('ctrl')))
     else
       hint_hovered(('Click: select  \194\183  %s+click: add to / take out of the selection  \194\183  double-click: rename'
-                    .. '  \194\183  drag: reorder  \194\183  %s+drag: duplicate'):format(mod_label('ctrl'), mod_label(COPY_MOD)))
+                    .. '  \194\183  drag: reorder  \194\183  %s+drag: duplicate'
+                    .. '  \194\183  right-click: select it in the Parameters window  \194\183  Shift+right-click: and unfold it')
+                   :format(mod_label('ctrl'), mod_label(COPY_MOD)))
     end
     local txt = fit_text(raw_name(tr) ~= '' and raw_name(tr) or '(unnamed)', NW - 8)
     local tw = ig.CalcTextSize(ctx, txt)
@@ -698,6 +702,7 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
         ig.EndMenu(ctx)
       end
       if ig.MenuItem(ctx, 'Color...') then fx_open_picker(tr, fx_guid, it.name) end
+      if ig.MenuItem(ctx, 'Inspect FX...') then param_pick_fx(tr, fx_guid) end
       if ig.MenuItem(ctx, 'Delete FX...') then
         -- with rows in the Performance it always asks, even after "Don't show this again": remove
         -- the rows too, or keep them for a matching FX to take back
