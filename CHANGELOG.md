@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Performance mode, Edit mode: **double-click a parameter's name or value box** opens the parameter window on it (selected in the tree, as when it is already open). On the control, a double-click still goes back to the default mark.
+
 - Performance parameters window works as an **inspector**: with it open, click (or start turning) a parameter in a rack's column and the window selects it in its tree: its rack, FX and groups open, the tree scrolls to it, and a search that would hide it is cleared. The settings on the right show that parameter.
 
 - Parameter window, list of values: a unit the plug-in prints twice ("1000 Hz Hz") shows once. Each value of the list is in a **box in the parameter's color** (the color of its name in the tree), with its **unit outside the box**, to the right. A number can be typed in the box (Enter or click away): the parameter is asked for the position that prints it, with that unit, and the value of the list becomes that one (nothing happens when no position prints it). Text values ("Low Pass") are shown in a box that can't be typed in. The same single unit shows in the Min / Max sliders, the "Add one of its values..." menu and the drop-down.
