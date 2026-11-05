@@ -433,6 +433,21 @@ end
 function draw_perf_column(inf, x, y, w, h, M, ps, e)
   local tr = inf.tr
   local guid = reaper.GetTrackGUID(tr)
+  -- the parameter window (inspector) just selected a parameter: when it is a row of this rack and the
+  -- rack is out of view, the window scrolls sideways to bring the rack into view (once)
+  local focus = PARAM_PICK and PARAM_PICK.focus
+  local focus_k
+  if focus then
+    for k, r in ipairs(params_read(tr)) do
+      if r.guid == focus.guid and r.idx == focus.idx then focus_k = k; break end
+    end
+    if focus_k and not focus.hdone then
+      focus.hdone = true
+      local wxp = ig.GetWindowPos(ctx)
+      local wwp = ig.GetWindowSize(ctx)
+      if x < wxp or x + w > wxp + wwp then ig.SetScrollX(ctx, ig.GetScrollX(ctx) + (x - wxp) - (wwp - w) / 2) end
+    end
+  end
   local c = rack_colors(track_color(tr), inf.bypassed)
   -- a widened column sits over its neighbours, so it is drawn inside a window of its own with an
   -- opaque background: drawn straight on the area it would lie underneath their windows
@@ -587,6 +602,22 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         ps.reveal = ps.reveal - 1
       end
     end
+    if focus_k then                                        -- ... and the column scrolls to the row, when it is out of view
+      for jf, kf in ipairs(vis) do
+        if kf == focus_k then
+          if grid then
+            local cxr = pad + math.floor((jf - 1) / rpc) * step_x
+            local sx = ig.GetScrollX(ctx)
+            if cxr < sx or cxr + rw > sx + cw then ig.SetScrollX(ctx, math.max(0, cxr - (cw - rw) / 2)) end
+          else
+            local top, sy = 3 + (jf - 1) * pitch, ig.GetScrollY(ctx)
+            if top < sy or top + rh > sy + ch then ig.SetScrollY(ctx, math.max(0, top - (ch - rh) / 2)) end
+          end
+          PARAM_PICK.focus = nil
+          break
+        end
+      end
+    end
     for j = 1, nv do
       local k = vis[j]                                     -- j: its place in the column, k: in the rack's list
       local rx, ry
@@ -651,7 +682,9 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           PARAM_MENU_ROW = k
           ig.OpenPopup(ctx, 'prm_menu')
         end
-        if over then
+        -- the parameter window's selection glows like the pointed row (the white glow)
+        local picked = PARAM_PICK and PARAM_PICK.hl and PARAM_PICK.hl[r.guid .. ':' .. r.idx]
+        if over or (picked and not row_drag) then
           local base = T.glow & 0xFFFFFF00
           for i = 1, 3 do
             local a = math.floor(170 * (1 - (i - 1) / 3) ^ 2)

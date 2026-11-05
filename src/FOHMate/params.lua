@@ -930,6 +930,7 @@ end
 function param_pick_select(tr, r)
   local P = PARAM_PICK
   if not P then return end
+  P.no_focus = true                                         -- it was clicked in the rack: no need to scroll there
   local key = 'p:' .. r.guid .. ':' .. r.idx
   P.sel, P.anchor = { [key] = true }, key
   P.open = P.open or {}
@@ -1735,10 +1736,23 @@ function draw_param_picker()
     end
     P.order = order
 
+    -- what is selected glows in the rack's column (window.lua); a single parameter picked here is also
+    -- scrolled to, once (the rack into view, then the column to the row)
+    local targets = param_pick_targets(P, fxs)
+    P.hl = {}
+    local sig = #targets .. ':' .. (targets[1] and (targets[1].guid .. ':' .. targets[1].idx) or '')
+    for _, t in ipairs(targets) do P.hl[t.guid .. ':' .. t.idx] = true end
+    if P.sel_sig ~= sig then
+      P.sel_sig = sig
+      P.focus = (#targets == 1 and not P.no_focus) and { guid = targets[1].guid, idx = targets[1].idx, t = reaper.time_precise() } or nil
+      P.no_focus = false
+    end
+    if P.focus and reaper.time_precise() - P.focus.t > 1 then P.focus = nil end   -- not in any column: forget it
+
     -- the right-hand section: the control of what is selected
     ig.SameLine(ctx)
     if ig.BeginChild(ctx, 'ppctl', 0, avail_h - foot) then
-      draw_param_control_panel(P, fxs, gm, param_pick_targets(P, fxs))
+      draw_param_control_panel(P, fxs, gm, targets)
       ig.EndChild(ctx)
     end
 
