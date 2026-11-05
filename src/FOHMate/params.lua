@@ -44,7 +44,7 @@ function params_read(tr)
                   col = tonumber(cl, 16), lo = tonumber(lo), hi = tonumber(hi), fit = (ft == '1'),
                   vraw = vl, vshow = (vs == 's' and 'steps') or (vs == 'd' and 'list') or nil,
                   curve = cu ~= '' and param_unesc(cu) or nil,    -- the value curve (curves.lua), nil = linear
-                  rraw = rg, notch = (nt == '1') }
+                  rraw = rg, rinv = (nt == 'i') }       -- rinv: the gaps between the ranges are the ranges
       if r.curve and not curve_parse(r.curve) then r.curve = nil end
       -- a Range: lo above hi is an inverted range (from 0 to hi, and from lo to 1)
       if not (r.lo and r.hi and r.lo ~= r.hi) then r.lo, r.hi = nil, nil end
@@ -87,7 +87,7 @@ function params_write(tr, rows)
                                                 r.fit and '1' or '', table.concat(vl, ','),
                                                 (r.lim == 'mm' and 'm') or (r.lim == 'list' and 'l') or (r.lim == 'ranges' and 'r') or 'o',
                                                 (r.vshow == 'steps' and 's') or (r.vshow == 'list' and 'd') or '',
-                                                param_esc(r.curve or ''), table.concat(rl, ','), r.notch and '1' or '')
+                                                param_esc(r.curve or ''), table.concat(rl, ','), r.rinv and 'i' or '')
   end
   reaper.GetSetMediaTrackInfo_String(tr, EXT_PARAMS, table.concat(t, ';'), true)
   PARAM_CACHE[reaper.GetTrackGUID(tr)] = nil
@@ -296,12 +296,13 @@ end
 -- Limit values, Range (r.lim == 'mm') and List of ranges (r.lim == 'ranges'): a parameter in the
 -- Performance may be kept to some parts of its travel (0..1, as REAPER counts it), its "segments":
 --   Range: from lo to hi; lo above hi is an inverted range: from 0 to hi, and from lo to 1 (two parts);
---   List of ranges: r.rngs, { lo, hi } each, in the list's order.
+--   List of ranges: r.rngs, { lo, hi } each, in the list's order, never overlapping; with r.rinv, the
+--   gaps between them are the parts instead (from low to high).
 -- With fit (Use the full range of the control), the control's whole travel covers the parts one after
--- the other, in that order, each as long as it is (a mark shows each junction); with r.notch (an inverted
--- Range), a short stretch at the junction holds the value before it jumps, like a step. Without fit,
--- the control turns over the parameter's own travel and the value keeps to the nearest part (one part:
--- the control stops at its ends); an inverted Range with a notch holds its side until the gap is crossed.
+-- the other, in that order, each as long as it is (a mark shows each junction); an inverted Range has a
+-- notch there: a short stretch that holds the value before it jumps, like a step. Without fit, the
+-- control turns over the parameter's own travel and the value keeps to the nearest part (one part: the
+-- control stops at its ends); an inverted Range holds its side until the gap is crossed (the notch).
 -- Only for the controls that turn (an encoder, a stepped encoder, a width or Q band, a pan); fit not for
 -- a stepped encoder.
 function param_limit_ok(kind) return kind ~= nil and kind ~= 'toggle' and kind ~= 'list' end
@@ -316,7 +317,21 @@ function param_segs(r, kind)
     if r.lo < r.hi then return { { r.lo, r.hi } }, false end
     return { { 0, r.hi }, { r.lo, 1 } }, true
   elseif r.lim == 'ranges' and r.rngs and #r.rngs > 0 then
-    return r.rngs, false
+    if not r.rinv then return r.rngs, false end
+    -- inverted: the gaps, worked out once per row (the rows are read again when they change)
+    if not r.gaps then
+      local srt = {}
+      for i, v in ipairs(r.rngs) do srt[i] = v end
+      table.sort(srt, function(a, b) return a[1] < b[1] end)
+      local out, x = {}, 0
+      for _, v in ipairs(srt) do
+        if v[1] > x + 1e-6 then out[#out + 1] = { x, v[1] } end
+        x = math.max(x, v[2])
+      end
+      if x < 1 - 1e-6 then out[#out + 1] = { x, 1 } end
+      r.gaps = out
+    end
+    if #r.gaps > 0 then return r.gaps, false end
   end
 end
 
@@ -341,7 +356,7 @@ function param_to_ctl(r, kind, v)
   local segs, inv = param_segs(r, kind)
   if segs and r.fit and param_fit_ok(kind) then
     local best, bd = v, math.huge
-    for _, p in ipairs(param_fit_layout(segs, inv and r.notch)) do
+    for _, p in ipairs(param_fit_layout(segs, inv)) do
       local x = math.max(p[1], math.min(p[2], v))
       local d = math.abs(x - v)
       if d < bd - 1e-9 then
@@ -360,7 +375,7 @@ function param_from_ctl(r, kind, v, cur)
   local segs, inv = param_segs(r, kind)
   if not segs then return v end
   if r.fit and param_fit_ok(kind) then
-    local lay = param_fit_layout(segs, inv and r.notch)
+    local lay = param_fit_layout(segs, inv)
     for i, p in ipairs(lay) do
       if i > 1 and v < p[3] then                     -- in the notch before this part: the first half holds
         local q = lay[i - 1]                         -- the end of the part before, the second this one's start
@@ -379,7 +394,7 @@ function param_from_ctl(r, kind, v, cur)
     if d == 0 then return v end
     if d < bd then best, bd = x, d end
   end
-  if inv and r.notch and cur then                    -- in the gap: the side it comes from, until it is crossed
+  if inv and cur then                                -- in the gap: the side it comes from, until it is crossed
     if cur <= r.hi + 1e-6 then return r.hi end
     if cur >= r.lo - 1e-6 then return r.lo end
   end
@@ -414,7 +429,7 @@ function param_ctl_view(r, kind, marks)
     end
     range = { lo, hi, parts = parts }
   elseif fit and #segs > 1 then
-    local lay = param_fit_layout(segs, inv and r.notch)
+    local lay = param_fit_layout(segs, inv)
     joins = {}
     for i = 1, #lay - 1 do
       local j = (lay[i][4] + lay[i + 1][3]) / 2
@@ -422,6 +437,47 @@ function param_ctl_view(r, kind, marks)
     end
   end
   return pm, pd, range, joins
+end
+
+-- The list of ranges keeps them apart: the smallest gap between two ranges (Settings, a % of the travel)
+function param_range_gap() return (CFG.range_gap or 2) / 100 end
+
+-- the room range i of a list may take: up to its neighbours (by value), the gap away from them
+function param_range_room(rngs, i, gap)
+  local a, b = rngs[i][1], rngs[i][2]
+  local lo, hi = 0, 1
+  for j, o in ipairs(rngs) do
+    if j ~= i then
+      if o[2] <= a + 1e-9 then lo = math.max(lo, o[2] + gap)
+      elseif o[1] >= b - 1e-9 then hi = math.min(hi, o[1] - gap) end
+    end
+  end
+  return lo, hi
+end
+
+-- Where a new range goes: a small one (5% of the travel at most) as close to v as can be, outside the
+-- other ranges and the gap away from them; nil when there is no room left.
+function param_range_new(rngs, gap, v)
+  local srt = {}
+  for i, o in ipairs(rngs) do srt[i] = o end
+  table.sort(srt, function(a, b) return a[1] < b[1] end)
+  local free, x = {}, 0
+  for i, o in ipairs(srt) do
+    local f1 = o[1] - gap
+    if f1 - x >= 0.005 then free[#free + 1] = { x, f1 } end
+    x = o[2] + gap
+    if i == #srt and 1 - x >= 0.005 then free[#free + 1] = { x, 1 } end
+  end
+  if #srt == 0 then free[1] = { 0, 1 } end
+  local best, bd
+  for _, f in ipairs(free) do
+    local d = (v < f[1] and f[1] - v) or (v > f[2] and v - f[2]) or 0
+    if not bd or d < bd then best, bd = f, d end
+  end
+  if not best then return nil end
+  local w = math.min(0.05, best[2] - best[1])
+  local a = math.max(best[1], math.min(best[2] - w, v - w / 2))
+  return { a, a + w }
 end
 
 -- moves the parameter into what row r allows now (after its limits changed): the nearest allowed value
@@ -1405,12 +1461,25 @@ function draw_param_control_panel(P, fxs, gm, targets)
           elseif can_list and (row.vals or not can_mm) then list_on()
           else mm_on() end
         end
-        if row.lim and can_mm then
-          if ig.RadioButton(ctx, 'Range', row.lim == 'mm') and row.lim ~= 'mm' then mm_on() end
-          if can_list and ig.RadioButton(ctx, 'List of values', row.lim == 'list') and row.lim ~= 'list' then list_on() end
-          if ig.RadioButton(ctx, 'List of ranges', row.lim == 'ranges') and row.lim ~= 'ranges' then ranges_on() end
-          ig.Spacing(ctx)
+        -- the kind of limits: a menu right of the check box (choosing one also turns the limits on)
+        local modes = {}
+        if can_mm then modes[#modes + 1] = { 'mm', 'Range', mm_on } end
+        if can_list then modes[#modes + 1] = { 'list', 'List of values', list_on } end
+        if can_mm then modes[#modes + 1] = { 'ranges', 'List of ranges', ranges_on } end
+        if #modes > 1 then
+          local shown = row.lim or ((can_list and (row.vals or not can_mm)) and 'list' or 'mm')
+          local label = modes[1][2]
+          for _, m in ipairs(modes) do if m[1] == shown then label = m[2] end end
+          ig.SameLine(ctx)
+          ig.SetNextItemWidth(ctx, -1)
+          if ig.BeginCombo(ctx, '##limmode', label) then
+            for _, m in ipairs(modes) do
+              if ig.Selectable(ctx, m[2], row.lim == m[1]) and row.lim ~= m[1] then m[3]() end
+            end
+            ig.EndCombo(ctx)
+          end
         end
+        if row.lim then ig.Spacing(ctx) end
         -- the plug-in's number and unit for a position, and the position of a typed number (range controls)
         local function rtext(v) return param_text_split(param_text_at(tr, fxi, ix, v)) end
         local function rfind(typed, unit)
@@ -1446,14 +1515,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
             snap()
           end
           if row.lo > row.hi then
-            local rv5, v5 = ig.Checkbox(ctx, 'Notch between the two ranges', row.notch == true)
-            if ig.IsItemHovered(ctx) then
-              ig.SetTooltip(ctx, 'Max is below Min: the values go up to Max, and from Min up.\n'
-                              .. 'On: going from one range to the other takes a step of the control, like a\n'
-                              .. 'stepped encoder: the value holds, then jumps. Off: it jumps as soon as the\n'
-                              .. 'control gets there.')
-            end
-            if rv5 then params_update(tr, g, ix, { notch = v5 }) end
+            ig.TextDisabled(ctx, 'Max below Min: up to Max, and from Min up.')
           end
           fit_box()
         elseif row.lim == 'ranges' and can_mm then
@@ -1473,6 +1535,8 @@ function draw_param_control_panel(P, fxs, gm, targets)
           local sp = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
           local btns = 3 * bw + 2 * sp
           local bx = ig.GetCursorPosX(ctx) + math.max(0, select(1, ig.GetContentRegionAvail(ctx)) - btns)
+          -- the ranges never overlap: each stays the gap (Settings) away from the others
+          local gap = param_range_gap()
           for i, v in ipairs(rngs) do
             ig.PushID(ctx, 'rg' .. i)
             local nlo, nhi = draw_range_bar('rg' .. i, v[1], v[2], { text = rtext, find = rfind, width = bx - ig.GetCursorPosX(ctx) - sp })
@@ -1481,15 +1545,31 @@ function draw_param_control_panel(P, fxs, gm, targets)
             if act == 'up' then local nr = copy(); nr[i], nr[i - 1] = nr[i - 1], nr[i]; put(nr)
             elseif act == 'dn' then local nr = copy(); nr[i], nr[i + 1] = nr[i + 1], nr[i]; put(nr)
             elseif act == 'x' then local nr = copy(); table.remove(nr, i); put(nr)
-            elseif nlo and (nlo ~= v[1] or nhi ~= v[2]) then local nr = copy(); nr[i] = { nlo, nhi }; put(nr) end
+            elseif nlo then
+              local L, R = param_range_room(rngs, i, gap)
+              local w = v[2] - v[1]
+              if math.abs((nhi - nlo) - w) < 1e-6 then          -- moved as a whole: it keeps its size
+                nlo = math.max(L, math.min(R - w, nlo)); nhi = nlo + w
+              else
+                nlo = math.max(L, math.min(nlo, nhi - 0.001))
+                nhi = math.min(R, math.max(nhi, nlo + 0.001))
+              end
+              if nlo < nhi and (nlo ~= v[1] or nhi ~= v[2]) then local nr = copy(); nr[i] = { nlo, nhi }; put(nr) end
+            end
             ig.PopID(ctx)
           end
-          if ig.Button(ctx, 'Add a range') then
-            -- a small one around the value it has now
-            local cur = reaper.TrackFX_GetParamNormalized(tr, fxi, ix)
-            local a_, b_ = math.max(0, cur - 0.05), math.min(1, cur + 0.05)
-            local nr = copy(); nr[#nr + 1] = { a_, b_ }; put(nr)
+          -- a new one: small, as close to the value it has now as it can be (no button when there is no room)
+          local cur = reaper.TrackFX_GetParamNormalized(tr, fxi, ix)
+          local new = param_range_new(rngs, gap, cur)
+          if new and ig.Button(ctx, 'Add a range') then local nr = copy(); nr[#nr + 1] = new; put(nr) end
+          if not new then ig.TextDisabled(ctx, 'No room for another range (Settings: gap between ranges).') end
+          -- the gaps become the ranges; the value moves only when a control is turned
+          local rv6, v6 = ig.Checkbox(ctx, 'Invert: the gaps between the ranges are the ranges', row.rinv == true)
+          if ig.IsItemHovered(ctx) then
+            ig.SetTooltip(ctx, 'On: the parameter takes the values outside the ranges of the list instead.\n'
+                            .. 'Its value moves to the nearest allowed one when a control is next turned.')
           end
+          if rv6 then params_update(tr, g, ix, { rinv = v6 }) end
           fit_box()
         elseif row.lim == 'list' and can_list then
           -- the values, in the list's order (any order), with on the right: move up, move down, remove (red)

@@ -558,12 +558,12 @@ end
 -- Returns the new position 0..1 when the user changed it.
 -- A range control: a thin bar with a triangular handle for Min (pointing right) and one for Max (pointing
 -- left), the part it covers in the link color, and a value box on each side (Min on the left, Max on
--- the right: the number in the box, the unit after it). Drag a handle, or click the bar to bring the
--- nearest handle there, or type a number in a box. o: text(v) -> number, unit, is_number; find(typed,
+-- the right: the number in the box, the unit after it). Drag a handle, or the covered part to move
+-- the whole range, or click elsewhere on the bar to bring the nearest handle there, or type a number. o: text(v) -> number, unit, is_number; find(typed,
 -- unit) -> v or nil; inv (Min may go above Max: the covered part is then outside the handles: up to Max,
 -- and from Min); ro (read only: handles as small as the bar, the values as plain text, same spacing);
 -- width (instead of the room left on the line). Returns lo, hi when one of them changed.
-RANGE_DRAG = {}   -- id -> 'lo' or 'hi': the handle being dragged
+RANGE_DRAG = {}   -- id -> what is dragged: { what = 'lo' / 'hi' / 'both', mx, lo, hi (where it started) }
 RANGE_EDIT = {}   -- id .. side -> the text being typed in a box
 
 function draw_range_bar(id, lo, hi, o)
@@ -622,28 +622,45 @@ function draw_range_bar(id, lo, hi, o)
   if not o.ro then
     local mx = ig.GetMousePos(ctx)
     if ig.IsItemActivated(ctx) then
-      local dlo, dhi = math.abs(mx - X(lo)), math.abs(mx - X(hi))
-      if math.abs(dlo - dhi) < 1 then RANGE_DRAG[id] = (mx < X(lo)) and 'lo' or 'hi'  -- on top of each other: by the side
-      else RANGE_DRAG[id] = dlo < dhi and 'lo' or 'hi' end
+      -- on a handle (its body, a few px around): that handle; on the covered part: the whole range;
+      -- elsewhere: the nearest handle comes
+      local on_lo = mx >= X(lo) - tw - 3 and mx <= X(lo) + 3
+      local on_hi = mx >= X(hi) - 3 and mx <= X(hi) + tw + 3
+      local v = (mx - x1) / (x2 - x1)
+      local covered = (lo <= hi and v > lo and v < hi) or (lo > hi and (v < hi or v > lo))
+      local what
+      if on_lo and on_hi then what = (mx < (X(lo) + X(hi)) / 2) and 'lo' or 'hi'
+      elseif on_lo then what = 'lo' elseif on_hi then what = 'hi'
+      elseif covered then what = 'both'
+      else what = math.abs(mx - X(lo)) < math.abs(mx - X(hi)) and 'lo' or 'hi' end
+      RANGE_DRAG[id] = { what = what, mx = mx, lo = lo, hi = hi }
     end
-    if ig.IsItemActive(ctx) and RANGE_DRAG[id] then
-      local v = math.max(0, math.min(1, (mx - x1) / (x2 - x1)))
-      if RANGE_DRAG[id] == 'lo' then out_lo = o.inv and v or math.min(v, hi - 0.001)
-      else out_hi = o.inv and v or math.max(v, lo + 0.001) end
+    local dr = RANGE_DRAG[id]
+    if ig.IsItemActive(ctx) and dr then
+      if dr.what == 'both' then
+        local d = (mx - dr.mx) / (x2 - x1)
+        d = math.max(-math.min(dr.lo, dr.hi), math.min(1 - math.max(dr.lo, dr.hi), d))
+        out_lo, out_hi = dr.lo + d, dr.hi + d
+      else
+        local v = math.max(0, math.min(1, (mx - x1) / (x2 - x1)))
+        if dr.what == 'lo' then out_lo = o.inv and v or math.min(v, hi - 0.001)
+        else out_hi = o.inv and v or math.max(v, lo + 0.001) end
+      end
     elseif not ig.IsItemActive(ctx) then
       RANGE_DRAG[id] = nil
     end
-    if hov then ig.SetTooltip(ctx, 'Drag a handle: Min (pointing right) or Max (pointing left)') end
+    if hov then ig.SetTooltip(ctx, 'Drag a handle: Min (pointing right) or Max (pointing left)\nDrag the blue part: the whole range') end
   end
   local ink = ig.GetStyleColor(ctx, ig.Col_Text())
   ig.DrawList_AddRectFilled(dl, x1, my - th / 2, x2, my + th / 2, (T.dim & 0xFFFFFF00) | 0x70, th / 2)
-  -- the covered part, in the link color: between the handles, or (inverted) up to Max and from Min
-  local cov = T.link
+  -- the covered part, in the link color: between the handles, or (inverted) up to Max and from Min. It
+  -- goes on a little under each handle, so its rounded end hides there
+  local cov, u = T.link, tw * 0.6
   if out_lo <= out_hi then
-    ig.DrawList_AddRectFilled(dl, X(out_lo), my - th / 2, X(out_hi), my + th / 2, cov, th / 2)
+    ig.DrawList_AddRectFilled(dl, X(out_lo) - u, my - th / 2, X(out_hi) + u, my + th / 2, cov, th / 2)
   else
-    ig.DrawList_AddRectFilled(dl, x1, my - th / 2, X(out_hi), my + th / 2, cov, th / 2)
-    ig.DrawList_AddRectFilled(dl, X(out_lo), my - th / 2, x2, my + th / 2, cov, th / 2)
+    ig.DrawList_AddRectFilled(dl, x1, my - th / 2, X(out_hi) + u, my + th / 2, cov, th / 2)
+    ig.DrawList_AddRectFilled(dl, X(out_lo) - u, my - th / 2, x2, my + th / 2, cov, th / 2)
   end
   -- the handles, on top: both listed the same way round (tip, then the base's top, then its bottom), so
   -- they are filled and smoothed alike and look the same size
@@ -651,8 +668,9 @@ function draw_range_bar(id, lo, hi, o)
     local col = active and mix(ink, WHITE, 0.3) or ink
     ig.DrawList_AddTriangleFilled(dl, x, my, x - dir * tw, my - hh, x - dir * tw, my + hh, col)
   end
-  handle(X(out_lo), 1, RANGE_DRAG[id] == 'lo')             -- Min: pointing right, its body on the left
-  handle(X(out_hi), -1, RANGE_DRAG[id] == 'hi')            -- Max: pointing left, its body on the right
+  local dw = RANGE_DRAG[id] and RANGE_DRAG[id].what
+  handle(X(out_lo), 1, dw == 'lo' or dw == 'both')          -- Min: pointing right, its body on the left
+  handle(X(out_hi), -1, dw == 'hi' or dw == 'both')         -- Max: pointing left, its body on the right
   box('hi', nhi, uhi, ishi, barx + barw + gap)
   ig.PopID(ctx)
   if out_lo ~= lo or out_hi ~= hi then return out_lo, out_hi end

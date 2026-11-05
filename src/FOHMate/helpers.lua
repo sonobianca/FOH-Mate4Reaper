@@ -229,7 +229,7 @@ end
 function fmt_unit(fmt)
   if not fmt then return nil, '' end
   local f, unit = fmt:match('^(%%[^%s]+)%s+(.+)$')
-  if f then return f, unit end
+  if f then return f, (unit:gsub('%%%%', '%%')) end
   return fmt, ''
 end
 

@@ -93,6 +93,8 @@ SCHEMA = {
     tip = 'Off (default): in Edit mode, the configuration mode, a widened parameter section stays open until you\nfold it. On: it folds back by itself after the time below, like in Show mode. A section pinned open\n(right-click its handle) never folds by itself.' },
   { group = 'Performance mode', key = 'perf_fold_after', label = 'Fold them after', kind = 'i', min = 0, max = 120, def = 15, fmt = '%d s',
     tip = 'An open FX section (Show mode) and a widened parameter column fold back after this long\nwithout activity in the Racks window (the mouse moving over it, a click, a drag, scrolling\nor a key). Nothing outside the window counts. Only when the option above is on.' },
+  { group = 'Performance mode', key = 'range_gap', label = 'Gap between ranges in a list', kind = 'd', min = 0, max = 10, def = 2, fmt = '%.1f %%',
+    tip = 'Limit values > List of ranges: the smallest gap between two ranges of a list, in % of the\nparameter\'s travel. Ranges never overlap.' },
   { group = 'Performance mode', key = 'reopen_windows', label = 'Reopen the Parameters and Inspector windows', kind = 'bool', min = 0, max = 1, def = 1,
     tip = 'On: the Parameters and Inspector windows that were open when FOH-Mate closed open again when it\nstarts (in Edit mode), where they were. Off: they stay closed until you open them.' },
   { group = 'Performance mode', key = 'remember_nicks', label = 'Remember parameters nicknames', kind = 'bool', min = 0, max = 1, def = 1,
