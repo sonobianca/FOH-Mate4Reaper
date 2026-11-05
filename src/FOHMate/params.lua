@@ -502,6 +502,52 @@ function param_range_new(rngs, gap, v)
   return { a, a + w }
 end
 
+-- Ctrl + wheel over a control: the current range (the one value v is in, or the nearest) moves up / down
+-- with wv (it stops when an end reaches v, or the gap before another range, or the ends of the travel)
+-- or gets wider / narrower with wh (v stays inside). A Range (not inverted) or a List of ranges.
+function param_wheel_range_ok(r, kind)
+  if not param_limit_ok(kind) then return false end
+  return (r.lim == 'mm' and r.lo and r.hi and r.lo < r.hi) or (r.lim == 'ranges' and r.rngs and #r.rngs > 0 and not r.rinv)
+end
+
+function param_wheel_range(tr, fxi, r, kind, wv, wh, v)
+  local lo, hi, L, R, i
+  if r.lim == 'mm' then
+    lo, hi, L, R = r.lo, r.hi, 0, 1
+  else
+    local bd = math.huge
+    for j, o in ipairs(r.rngs) do
+      local d = (v < o[1] and o[1] - v) or (v > o[2] and v - o[2]) or 0
+      if d < bd then i, bd = j, d end
+    end
+    lo, hi = r.rngs[i][1], r.rngs[i][2]
+    L, R = param_range_room(r.rngs, i, param_range_gap())
+  end
+  local inside = v >= lo and v <= hi                 -- (the value may be outside the nearest range)
+  local step = has_mod('shift') and 0.0025 or 0.01
+  if wv ~= 0 then
+    local d = wv * step
+    d = math.max(d, L - lo)
+    d = math.min(d, R - hi)
+    if inside then d = math.max(math.min(d, v - lo), v - hi) end
+    lo, hi = lo + d, hi + d
+  end
+  if wh ~= 0 then
+    local d = wh * step / 2
+    local nlo, nhi = math.max(L, lo - d), math.min(R, hi + d)
+    if inside then nlo, nhi = math.min(nlo, v), math.max(nhi, v) end
+    if nhi - nlo >= 0.002 then lo, hi = nlo, nhi end
+  end
+  if r.lim == 'mm' then
+    if lo ~= r.lo or hi ~= r.hi then params_update(tr, r.guid, r.idx, { lo = lo, hi = hi }) end
+  elseif lo ~= r.rngs[i][1] or hi ~= r.rngs[i][2] then
+    local nr = {}
+    for j, o in ipairs(r.rngs) do nr[j] = { o[1], o[2] } end
+    nr[i] = { lo, hi }
+    params_update(tr, r.guid, r.idx, { rngs = nr })
+  end
+end
+
 -- moves the parameter into what row r allows now (after its limits changed): the nearest allowed value
 function param_limits_snap(tr, fxi, idx, r, kind)
   local segs = param_segs(r, kind)
@@ -1719,7 +1765,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
       ig.TextDisabled(ctx, ('REAPER says toggle: %s'):format(f.toggle and 'yes' or 'no'))
     end
   end
-  if ig.BeginChild(ctx, 'insp_body', 0, 0) then
+  if begin_child('insp_body', 0, 0, CTL_HOVER_PREV['insp'] and ig.WindowFlags_NoScrollWithMouse() or 0) then
     body()
     ig.EndChild(ctx)
   end
@@ -1737,7 +1783,7 @@ function draw_param_preview(tr, fxi, first, row, k)
   local mm = row and param_row_memo(tr, row, fxi) or PREVIEW_MM[key]
   if not mm then mm = {}; PREVIEW_MM[key] = mm end
   local newv = draw_param_ctl('pv', tr, fxi, r, k, k.kind, mm, norm, px + 36, py + 34, 20, 1,
-                              { body = ig.GetStyleColor(ctx, ig.Col_FrameBg()), col = ig.GetStyleColor(ctx, ig.Col_Text()), ptr = T.dots })
+                              { body = ig.GetStyleColor(ctx, ig.Col_FrameBg()), col = ig.GetStyleColor(ctx, ig.Col_Text()), ptr = T.dots }, 'insp')
   if newv then reaper.TrackFX_SetParamNormalized(tr, fxi, first.idx, newv) end
   -- the value box, as in the rack (the text read again when the value moves, or every 30 frames)
   local vt = PREVIEW_VT[key]

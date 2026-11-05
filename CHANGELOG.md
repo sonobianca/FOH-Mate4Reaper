@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Performance mode: **the mouse wheel (or two fingers on a trackpad) turns the controls**, in the racks and in the Inspector's Preview: an encoder, band or pan moves smoothly (Shift: finer), a stepped encoder, a list or a drop-down moves a step at a time, a toggle goes on (up) or off (down); the column (or the Inspector) doesn't scroll while the pointer is on a control. With **Cmd (Ctrl on Windows) + wheel**, the **current range** (the one the value is in, Range or List of ranges) changes: up / down moves it, stopping when one of its ends reaches the value or the gap before another range; sideways makes it wider or narrower (the value stays inside). The help line at the bottom of the window says so when the pointer is on a control.
+
 - Inspector, Preview: the control has its **value box** on its right, like in the rack (the value written the same way, updated as it moves).
 
 - Limit values: switching to **List of values** asks whether to add the value it has now; **Cancel** now leaves the limits as they were (the mode you came from, or no limits), instead of switching to the list like Don't add.

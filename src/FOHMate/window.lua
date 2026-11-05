@@ -545,7 +545,9 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
 
   ig.SetCursorScreenPos(ctx, x + PAD, y + bh)
   local no_bar = ig.WindowFlags_NoScrollbar()
-  if begin_child('col' .. guid, w - 2 * PAD, h - bh - PAD, no_bar) then
+  -- the wheel over a control turns it: the column doesn't scroll then (CTL_HOVER, from the frame before)
+  local wheel_ctl = CTL_HOVER_PREV['col' .. guid]
+  if begin_child('col' .. guid, w - 2 * PAD, h - bh - PAD, no_bar | (wheel_ctl and ig.WindowFlags_NoScrollWithMouse() or 0)) then
     local dl = ig.GetWindowDrawList(ctx)
     local cx, cy = ig.GetWindowPos(ctx)
     local cw, ch = ig.GetWindowSize(ctx)
@@ -593,7 +595,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     local rpc = math.max(1, math.floor((ch - 3 - 8 - 12) / (math.floor(rh0 * 1.5) + gy + 12))) -- rows per column when widened, as it fits at full size (rows 1.5 times as tall, 12 px of room) (8: the sideways bar)
     if grid then
       if ig.GetScrollY(ctx) ~= 0 then ig.SetScrollY(ctx, 0) end
-      if mx_in then                                        -- the wheel moves sideways here too
+      if mx_in and not wheel_ctl then                      -- the wheel moves sideways here too
         local wv, wh = ig.GetMouseWheel(ctx)
         if wv ~= 0 and wh == 0 then ig.SetScrollX(ctx, ig.GetScrollX(ctx) - wv * 60) end
       end
@@ -778,7 +780,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           if over then ig.SetTooltip(ctx, 'This parameter is not there any more (the FX was removed or changed).') end
         else
           newv = draw_param_ctl('k' .. k, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f,
-                                { body = rc.sec_bg, col = rc.border, ptr = T.dots })
+                                { body = rc.sec_bg, col = rc.border, ptr = T.dots }, 'col' .. guid)
         end
         if drag_prev_row == row_key then
           -- the row being dragged stays behind, faded
@@ -963,9 +965,44 @@ end
 -- pname } for a parameter that is not in the Performance); ekind: the kind it is drawn as (a Pan/Width
 -- follows its stereo placement); mm: the row's memo (param_row_memo); kcx, kcy, kr: where, how big; f:
 -- the scale; cl: { body, col, ptr }. Returns the new value (0..1, as REAPER counts it) when it was changed.
-function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, cl)
+--
+-- The mouse wheel (or two fingers on a trackpad) over a control changes its value: a step at a time for a
+-- stepped encoder, a list or a drop-down, on / off for a toggle. With Ctrl (Cmd on a Mac), it changes the
+-- current range (the one the value is in: Range, List of ranges): up / down moves it (it stops when an end
+-- reaches the value, or the gap before another range), sideways makes it wider or narrower.
+-- wkey: the window it is in, which then doesn't scroll (CTL_HOVER).
+CTL_HOVER_NOW, CTL_HOVER_PREV = {}, {}
+
+function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, cl, wkey)
   local dl = ig.GetWindowDrawList(ctx)
   local newv
+  local m = kr + 6 * f
+  local wv = 0
+  if ig.IsWindowHovered(ctx) and mouse_in(kcx - m, kcy - m, kcx + m, kcy + m) then
+    if wkey then CTL_HOVER_NOW[wkey] = true end
+    local wh
+    wv, wh = ig.GetMouseWheel(ctx)
+    local ranged = r.guid and param_wheel_range_ok(r, kind.kind)
+    local cm = mod_label('ctrl')
+    HINT = 'Scroll: change the value' .. (ranged and ('  \194\183  ' .. cm .. '+scroll up / down: move the current range (the one the value is in; it stops at the value or before another range)'
+                                                    .. '  \194\183  ' .. cm .. '+scroll sideways: make the current range wider or narrower') or '')
+    if has_mod('ctrl') then
+      if ranged and (wv ~= 0 or wh ~= 0) then param_wheel_range(tr, fxi, r, kind.kind, wv, wh, norm) end
+      wv = 0
+    end
+  end
+  -- whole steps from the wheel (a trackpad gives small amounts: they add up)
+  local function wheel_steps()
+    mm.wacc = (mm.wacc or 0) + wv
+    local n = mm.wacc >= 0 and math.floor(mm.wacc) or -math.floor(-mm.wacc)
+    mm.wacc = mm.wacc - n
+    return n
+  end
+  local function step_item(items, pos)
+    local n = wheel_steps()
+    if n == 0 then return nil end
+    return items[math.max(1, math.min(#items, pos + n))].norm
+  end
   -- Limit values, list: a stepped encoder or a drop-down of the listed values (param_list_view); two
   -- values only: a toggle, the lower one off
   local lv = param_list_view(tr, fxi, r, kind.kind, mm, norm, kind)
@@ -975,15 +1012,25 @@ function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, 
     local on = math.abs(norm - high) < math.abs(norm - low)
     local d = 2 * (kr + 3 * f)
     if circle_check(dl, id, kcx - d / 2, kcy - d / 2, d, on) then newv = on and low or high end
+    if not newv and wv ~= 0 then newv = wv > 0 and high or low end
   elseif lv and lv.show == 'list' then
     newv = draw_dropdown(id, kcx, kcy, kr, lv.items[lv.pos].norm, lv.items, { body = cl.body, col = cl.col, ptr = cl.ptr, s = f })
+    if not newv and wv ~= 0 then newv = step_item(lv.items, lv.pos) end
   elseif lv then
     local n_ = #lv.items
     local c_ = draw_encoder(id, kcx, kcy, kr, (lv.pos - 1) / (n_ - 1), { body = cl.body, col = cl.col, ptr = cl.ptr, s = f,
                             style = 'line', steps = n_, def = lv.def })
     if c_ then newv = lv.items[math.floor(c_ * (n_ - 1) + 0.5) + 1].norm end
+    if not newv and wv ~= 0 then newv = step_item(lv.items, lv.pos) end
   elseif kind.kind == 'list' then
     newv = draw_dropdown(id, kcx, kcy, kr, norm, kind.items, { body = cl.body, col = cl.col, ptr = cl.ptr, s = f })
+    if not newv and wv ~= 0 and kind.items and #kind.items > 0 then
+      local pos, bd = 1, math.huge
+      for i, it in ipairs(kind.items) do
+        if math.abs(it.norm - norm) < bd then pos, bd = i, math.abs(it.norm - norm) end
+      end
+      newv = step_item(kind.items, pos)
+    end
   else
     -- the control shows (and sets) the value through the row's invert and limits (param_to_ctl),
     -- and its curve (curves.lua): the drag moves evenly along the curve (cpos), the encoder
@@ -994,12 +1041,23 @@ function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, 
     if kind.kind == 'toggle' then
       local d = 2 * (kr + 3 * f)
       if circle_check(dl, id, kcx - d / 2, kcy - d / 2, d, shown > 0.5) then newv = shown > 0.5 and 0 or 1 end
+      if not newv and wv ~= 0 then newv = wv > 0 and 1 or 0 end
     else
       local marks, def, range, joins = param_ctl_view(r, ekind, kind.marks)
       newv = draw_encoder(id, kcx, kcy, kr, shown, { body = cl.body, col = cl.col, ptr = cl.ptr, s = f,
                           style = ekind == 'pan' and 'pan' or (ekind == 'band' or ekind == 'qband') and 'band' or 'line', narrow = ekind == 'qband', steps = kind.steps, marks = marks,
                           def = def, range = range, joins = joins, curve = cv, pos = cpos, def_pos = cv and def and curve_inv(cv, def, cpos),
                           show = mm })
+      if not newv and wv ~= 0 then
+        -- the wheel: along the control (the curve's position when it has one), a step at a time when stepped
+        local c0 = cpos or shown
+        if kind.steps and kind.steps > 1 then
+          local n = wheel_steps()
+          if n ~= 0 then newv = math.max(0, math.min(1, c0 + n / (kind.steps - 1))) end
+        else
+          newv = math.max(0, math.min(1, c0 + wv * (has_mod('shift') and 0.0025 or 0.01)))
+        end
+      end
     end
     if newv then
       if cv then newv = curve_ctl_value(cv, newv, mm, kind.steps) end
@@ -1212,6 +1270,7 @@ function begin_child(id, w, h, wflags)
 end
 
 function draw(dt, now)
+  CTL_HOVER_PREV, CTL_HOVER_NOW = CTL_HOVER_NOW, {}
   drag_prev_rack, drag_prev_fx = drag_now_rack, drag_now_fx
   drag_now_rack, drag_now_fx = nil, nil
   drag_prev_row, drag_now_row = drag_now_row, nil
