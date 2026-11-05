@@ -26,6 +26,7 @@ language and keep them small.
 - A field reads caption first, then the field (the value), then its unit (`field_caption`, `field_unit`
   in helpers.lua). Display-only values: plain text (bold or colored if useful), or a read-only box for
   values that change often. Check boxes keep their usual box-then-label.
+- An X/Y graph (like the curve graph) is always square, with a 1:1 scale.
 - Every section that folds uses `section_header(title, open)` (helpers.lua): bold title a little bigger
   than the text (`SECT_FONT_SIZE`). Never a plain `CollapsingHeader`.
 - License: GPL-3.0-or-later (LICENSE, script header, README). Bianca holds the copyright.

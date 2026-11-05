@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Inspector, Curve: the graph is **square** (a 1:1 scale), as wide as the Inspector allows (from 120 to 260 px); the options under it keep its width.
+
 - Performance mode: **every control sits in the middle of its area** (encoders, width / Q bands, pans, stepped encoders, drop-downs, toggles), on left and right rows alike; the area is a little wider than the control, so its marks (the default arrow, the min / max ticks) and the arc of its limits stay inside the row and its glow. The gap to the value box is back to what it was.
 
 - Performance mode, parameter columns: the rows reach closer to the position bar (a 2 px gap instead of the padding), and take the **whole width of the column when everything fits** (no bar). The gap between a control and its value box is 2 px wider, and a control with the arc of its limits sits a little further in, so the arc stays inside the row and its glow on both sides of a column.

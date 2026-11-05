@@ -194,8 +194,10 @@ function draw_curve_section(tr, row, pos)
   local g, ix = row.guid, row.idx
   local cv = row.curve and curve_parse(row.curve)
   local function set(spec) params_update(tr, g, ix, { curve = spec or false }) end
-  -- the graph: position across, value up
-  local W, H, pad = 242, 165, 8
+  -- the graph: position across, value up; always square (1:1), as wide as there is room for (120 to 260 px)
+  local pad = 8
+  local W = math.floor(math.max(120, math.min(260, select(1, ig.GetContentRegionAvail(ctx)) - 2 * pad)))
+  local H = W
   local x0, y0 = ig.GetCursorScreenPos(ctx)
   ig.InvisibleButton(ctx, '##crvgraph', W + 2 * pad, H + 2 * pad)
   local hov, act = ig.IsItemHovered(ctx), ig.IsItemActive(ctx)
