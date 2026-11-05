@@ -198,6 +198,38 @@ function draw_curve_section(tr, row, pos)
   local pad = 8
   local W = math.floor(math.max(120, math.min(260, select(1, ig.GetContentRegionAvail(ctx)) - 2 * pad)))
   local H = W
+  -- the kind of curve, above the graph (from its left edge)
+  ig.Indent(ctx, pad)
+  local capw = math.max((ig.CalcTextSize(ctx, 'Type')), (ig.CalcTextSize(ctx, 'Strength'))) + 8   -- the captions' column
+  local kinds = { { nil, 'Linear' }, { 'in', 'Ease in' }, { 'out', 'Ease out' }, { 'pts', 'Custom points' } }
+  local now = 'Linear'
+  for _, o in ipairs(kinds) do if cv and o[1] == cv.kind then now = o[2] end end
+  field_caption('Type', capw)
+  ig.SetNextItemWidth(ctx, W - capw)
+  if ig.BeginCombo(ctx, '##crv', now) then
+    for _, o in ipairs(kinds) do
+      if ig.Selectable(ctx, o[2], (cv and cv.kind or nil) == o[1]) then
+        if not o[1] then set(nil)
+        elseif o[1] == 'pts' then
+          -- custom points start from the curve as it is (5 points of it), smooth
+          local pts = {}
+          for i = 0, 4 do pts[#pts + 1] = { x = i / 4, y = cv and curve_eval(cv, i / 4) or i / 4 } end
+          if not (cv and cv.kind == 'pts') then set(curve_spec({ kind = 'pts', smooth = true, pts = pts })) end
+        else
+          set(curve_spec({ kind = o[1], k = cv and cv.k or 2.5 }))
+        end
+      end
+    end
+    ig.Separator(ctx)
+    ig.TextDisabled(ctx, 'Saved curves')
+    for li, list in ipairs({ CURVE_EXAMPLES, curve_lib() }) do
+      for i, c in ipairs(list) do
+        if ig.Selectable(ctx, c[1] .. '##sv' .. li .. ':' .. i, row.curve == c[2]) then set(c[2]) end
+      end
+    end
+    ig.EndCombo(ctx)
+  end
+  ig.Unindent(ctx, pad)
   local x0, y0 = ig.GetCursorScreenPos(ctx)
   ig.InvisibleButton(ctx, '##crvgraph', W + 2 * pad, H + 2 * pad)
   local hov, act = ig.IsItemHovered(ctx), ig.IsItemActive(ctx)
@@ -282,11 +314,19 @@ function draw_curve_section(tr, row, pos)
     end
   end
 
-  -- under the graph, as wide as it (captions included): saving and the saved curves, then the kind of
-  -- curve and its strength or smoothing
+  -- under the graph, as wide as it (captions included): the curve's strength or smoothing, then saving
+  -- and (only when there are saved curves of your own) deleting one
   ig.Indent(ctx, pad)
   local spx = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
-  local capw = math.max((ig.CalcTextSize(ctx, 'Type')), (ig.CalcTextSize(ctx, 'Strength'))) + 8   -- the captions' column
+  if cv and cv.kind ~= 'pts' then
+    field_caption('Strength', capw)
+    ig.SetNextItemWidth(ctx, W - capw)
+    local rv, k = ig.SliderDouble(ctx, '##crvk', cv.k, 1, 6, '%.1f')
+    if rv then set(curve_spec({ kind = cv.kind, k = k })) end
+  elseif cv then
+    local rv, sm = ig.Checkbox(ctx, 'Smooth (off: straight lines)', cv.smooth)
+    if rv then set(curve_spec({ kind = 'pts', smooth = sm, pts = cv.pts })) end
+  end
   local lib = curve_lib()
   local half = (cv and #lib > 0) and (W - spx) / 2 or W
   if cv then
@@ -305,43 +345,6 @@ function draw_curve_section(tr, row, pos)
       end
       ig.EndCombo(ctx)
     end
-  end
-  local kinds = { { nil, 'Linear' }, { 'in', 'Ease in' }, { 'out', 'Ease out' }, { 'pts', 'Custom points' } }
-  local now = 'Linear'
-  for _, o in ipairs(kinds) do if cv and o[1] == cv.kind then now = o[2] end end
-  field_caption('Type', capw)
-  ig.SetNextItemWidth(ctx, W - capw)
-  if ig.BeginCombo(ctx, '##crv', now) then
-    for _, o in ipairs(kinds) do
-      if ig.Selectable(ctx, o[2], (cv and cv.kind or nil) == o[1]) then
-        if not o[1] then set(nil)
-        elseif o[1] == 'pts' then
-          -- custom points start from the curve as it is (5 points of it), smooth
-          local pts = {}
-          for i = 0, 4 do pts[#pts + 1] = { x = i / 4, y = cv and curve_eval(cv, i / 4) or i / 4 } end
-          if not (cv and cv.kind == 'pts') then set(curve_spec({ kind = 'pts', smooth = true, pts = pts })) end
-        else
-          set(curve_spec({ kind = o[1], k = cv and cv.k or 2.5 }))
-        end
-      end
-    end
-    ig.Separator(ctx)
-    ig.TextDisabled(ctx, 'Saved curves')
-    for li, list in ipairs({ CURVE_EXAMPLES, curve_lib() }) do
-      for i, c in ipairs(list) do
-        if ig.Selectable(ctx, c[1] .. '##sv' .. li .. ':' .. i, row.curve == c[2]) then set(c[2]) end
-      end
-    end
-    ig.EndCombo(ctx)
-  end
-  if cv and cv.kind ~= 'pts' then
-    field_caption('Strength', capw)
-    ig.SetNextItemWidth(ctx, W - capw)
-    local rv, k = ig.SliderDouble(ctx, '##crvk', cv.k, 1, 6, '%.1f')
-    if rv then set(curve_spec({ kind = cv.kind, k = k })) end
-  elseif cv then
-    local rv, sm = ig.Checkbox(ctx, 'Smooth (off: straight lines)', cv.smooth)
-    if rv then set(curve_spec({ kind = 'pts', smooth = sm, pts = cv.pts })) end
   end
 
   ig.Unindent(ctx, pad)

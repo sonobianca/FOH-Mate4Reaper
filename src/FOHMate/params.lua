@@ -1720,33 +1720,19 @@ function draw_param_control_panel(P, fxs, gm, targets)
   end
 end
 
--- the control as the Performance draws it, in the parameter window
+-- the control as the Performance draws it, in the Inspector: it can be turned too
+PREVIEW_MM = {}   -- a parameter that is not in the Performance: its memo here (guid:idx -> table)
 function draw_param_preview(tr, fxi, first, row, k)
   local norm = reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx)
   local px, py = ig.GetCursorScreenPos(ctx)
-  local dl = ig.GetWindowDrawList(ctx)
-  local body = ig.GetStyleColor(ctx, ig.Col_FrameBg())
-  local ring = ig.GetStyleColor(ctx, ig.Col_Text())
-  local cx, cy, r = px + 36, py + 34, 20
-  local lv = row and param_list_view(tr, fxi, row, k.kind, param_row_memo(tr, row, fxi), norm, k)
-  if k.kind == 'toggle' then
-    ig.DrawList_AddCircleFilled(dl, cx, cy, r, body, 0)
-    ig.DrawList_AddCircle(dl, cx, cy, r, ring, 0, 2)
-    if norm > 0.5 then ig.DrawList_AddCircleFilled(dl, cx, cy, r - 6, T.chk_dot, 0) end
-  elseif lv and lv.show == 'steps' then
-    draw_encoder('pv', cx, cy, r, (lv.pos - 1) / (#lv.items - 1), { body = body, col = ring, ptr = T.dots, s = 1, static = true,
-                 style = 'line', steps = #lv.items, def = lv.def })
-  elseif lv or k.kind == 'list' then
-    ig.DrawList_AddCircleFilled(dl, cx, cy, r, body, 0)
-    ig.DrawList_AddCircle(dl, cx, cy, r, ring, 0, 2)
-    ig.DrawList_AddTriangleFilled(dl, cx - 6, cy - 3.5, cx + 6, cy - 3.5, cx, cy + 4, ring)
-  else
-    local rr = row or {}
-    local pm, pd, range, joins = param_ctl_view(rr, k.kind, k.marks)
-    draw_encoder('pv', cx, cy, r, param_to_ctl(rr, k.kind, norm), { body = body, col = ring, ptr = T.dots, s = 1, static = true,
-                 style = k.kind == 'pan' and 'pan' or (k.kind == 'band' or k.kind == 'qband') and 'band' or 'line', narrow = k.kind == 'qband', steps = k.steps, marks = pm, def = pd,
-                 range = range, joins = joins })
-  end
+  local r = row or { guid = first.guid, idx = first.idx, pname = first.name }
+  local key = first.guid .. ':' .. first.idx
+  local mm = row and param_row_memo(tr, row, fxi) or PREVIEW_MM[key]
+  if not mm then mm = {}; PREVIEW_MM[key] = mm end
+  local newv = draw_param_ctl('pv', tr, fxi, r, k, k.kind, mm, norm, px + 36, py + 34, 20, 1,
+                              { body = ig.GetStyleColor(ctx, ig.Col_FrameBg()), col = ig.GetStyleColor(ctx, ig.Col_Text()), ptr = T.dots })
+  if newv then reaper.TrackFX_SetParamNormalized(tr, fxi, first.idx, newv) end
+  ig.SetCursorScreenPos(ctx, px, py)
   ig.Dummy(ctx, 1, 72)
 end
 

@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Inspector: the curve's **Type** is above the graph; Strength (or Smooth) and Save / Delete a curve are under it (Delete only when you have saved curves of your own). The **Preview** can be **turned**: it is the same control as in the rack (limits, list, curve, drop-down, toggle), and moving it moves the parameter. **A list of values with only two values is a toggle**: off is the lower value, on the higher one (in the rack and in the Preview).
+
 - List of ranges: a range dragged as a whole (by its blue part) can now **go past another range**: it goes to the nearest place where it fits, on either side of the others (the gap away from them), instead of stopping at its neighbour.
 
 - Range control: each handle now sits **inside its range** (its flat side on the value, its tip pointing into the range), so the space seen between two ranges of a list is the real gap; before, the handles stuck out of their ranges and neighbouring ranges looked like they overlapped. The blue part's ends hide under the handles' flat sides.

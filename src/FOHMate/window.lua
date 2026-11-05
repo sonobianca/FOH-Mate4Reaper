@@ -768,8 +768,6 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           ig.DrawList_AddRect(dl, vx, ry, vx + vw, ry + rh, rc.sec_bd, ROUNDING, 0, 1)
           draw_vtext(dl, vtxt, vx, ry, vw, rh, contrast_text(rc.sec_bg, rcol), not left, f, mm)
         end
-        -- Limit values, list: a stepped encoder or a drop-down of the listed values (param_list_view)
-        local lv = not dead and kind and param_list_view(tr, fxi, r, kind.kind, mm, norm, kind)
         if off then
           draw_encoder('k' .. k, kcx, kcy, kr, norm, { body = rc.sec_bg, col = rc.border, ptr = T.dim, s = f, static = true,
                        style = 'pan' })
@@ -778,36 +776,9 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           draw_encoder('k' .. k, kcx, kcy, kr, 0, { body = rc.sec_bg, col = rc.border, ptr = T.dim, s = f, static = true })
           ig.DrawList_AddRectFilled(dl, rx, ry, rx + rw2, ry + rh, (c.bg & 0xFFFFFF00) | 0xB0, ROUNDING)
           if over then ig.SetTooltip(ctx, 'This parameter is not there any more (the FX was removed or changed).') end
-        elseif lv and lv.show == 'list' then
-          newv = draw_dropdown('k' .. k, kcx, kcy, kr, lv.items[lv.pos].norm, lv.items, { body = rc.sec_bg, col = rc.border, ptr = T.dots, s = f })
-        elseif lv then
-          local n_ = #lv.items
-          local c_ = draw_encoder('k' .. k, kcx, kcy, kr, (lv.pos - 1) / (n_ - 1), { body = rc.sec_bg, col = rc.border, ptr = T.dots, s = f,
-                                  style = 'line', steps = n_, def = lv.def })
-          if c_ then newv = lv.items[math.floor(c_ * (n_ - 1) + 0.5) + 1].norm end
-        elseif kind.kind == 'list' then
-          newv = draw_dropdown('k' .. k, kcx, kcy, kr, norm, kind.items, { body = rc.sec_bg, col = rc.border, ptr = T.dots, s = f })
         else
-          -- the control shows (and sets) the value through the row's invert and limits (param_to_ctl),
-          -- and its curve (curves.lua): the drag moves evenly along the curve (cpos), the encoder
-          -- shows the value it gives, rising and falling with the curve
-          local cv = param_curve_of(r, ekind)
-          local shown = param_to_ctl(r, ekind, norm)
-          local cpos = cv and curve_ctl_pos(cv, shown, mm, kind.steps)
-          if kind.kind == 'toggle' then
-            local d = 2 * (kr + 3 * f)
-            if circle_check(dl, 'k' .. k, kcx - d / 2, kcy - d / 2, d, shown > 0.5) then newv = shown > 0.5 and 0 or 1 end
-          else
-            local marks, def, range, joins = param_ctl_view(r, ekind, kind.marks)
-            newv = draw_encoder('k' .. k, kcx, kcy, kr, shown, { body = rc.sec_bg, col = rc.border, ptr = T.dots, s = f,
-                                style = ekind == 'pan' and 'pan' or (ekind == 'band' or ekind == 'qband') and 'band' or 'line', narrow = ekind == 'qband', steps = kind.steps, marks = marks,
-                                def = def, range = range, joins = joins, curve = cv, pos = cpos, def_pos = cv and def and curve_inv(cv, def, cpos),
-                                show = mm })
-          end
-          if newv then
-            if cv then newv = curve_ctl_value(cv, newv, mm, kind.steps) end
-            newv = param_from_ctl(r, ekind, newv, norm)
-          end
+          newv = draw_param_ctl('k' .. k, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f,
+                                { body = rc.sec_bg, col = rc.border, ptr = T.dots })
         end
         if drag_prev_row == row_key then
           -- the row being dragged stays behind, faded
@@ -984,6 +955,58 @@ function draw_param_menu(tr)
         if valid(tr) then with_undo('Clear Performance parameters', function() params_drop_fx(tr, nil) end) end
       end, 'Clear all')
   end
+end
+
+-- The control of a parameter (a row of a rack's column, and the Inspector's preview, which can be turned
+-- too): an encoder, a width / Q band, a pan, a stepped encoder, a drop-down or a toggle, as its kind says,
+-- through the row's limits, list of values and curve. id: the control's id; r: the row ({ guid, idx,
+-- pname } for a parameter that is not in the Performance); ekind: the kind it is drawn as (a Pan/Width
+-- follows its stereo placement); mm: the row's memo (param_row_memo); kcx, kcy, kr: where, how big; f:
+-- the scale; cl: { body, col, ptr }. Returns the new value (0..1, as REAPER counts it) when it was changed.
+function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, cl)
+  local dl = ig.GetWindowDrawList(ctx)
+  local newv
+  -- Limit values, list: a stepped encoder or a drop-down of the listed values (param_list_view); two
+  -- values only: a toggle, the lower one off
+  local lv = param_list_view(tr, fxi, r, kind.kind, mm, norm, kind)
+  if lv and #lv.items == 2 then
+    local a, b = lv.items[1].norm, lv.items[2].norm
+    local low, high = math.min(a, b), math.max(a, b)
+    local on = math.abs(norm - high) < math.abs(norm - low)
+    local d = 2 * (kr + 3 * f)
+    if circle_check(dl, id, kcx - d / 2, kcy - d / 2, d, on) then newv = on and low or high end
+  elseif lv and lv.show == 'list' then
+    newv = draw_dropdown(id, kcx, kcy, kr, lv.items[lv.pos].norm, lv.items, { body = cl.body, col = cl.col, ptr = cl.ptr, s = f })
+  elseif lv then
+    local n_ = #lv.items
+    local c_ = draw_encoder(id, kcx, kcy, kr, (lv.pos - 1) / (n_ - 1), { body = cl.body, col = cl.col, ptr = cl.ptr, s = f,
+                            style = 'line', steps = n_, def = lv.def })
+    if c_ then newv = lv.items[math.floor(c_ * (n_ - 1) + 0.5) + 1].norm end
+  elseif kind.kind == 'list' then
+    newv = draw_dropdown(id, kcx, kcy, kr, norm, kind.items, { body = cl.body, col = cl.col, ptr = cl.ptr, s = f })
+  else
+    -- the control shows (and sets) the value through the row's invert and limits (param_to_ctl),
+    -- and its curve (curves.lua): the drag moves evenly along the curve (cpos), the encoder
+    -- shows the value it gives, rising and falling with the curve
+    local cv = param_curve_of(r, ekind)
+    local shown = param_to_ctl(r, ekind, norm)
+    local cpos = cv and curve_ctl_pos(cv, shown, mm, kind.steps)
+    if kind.kind == 'toggle' then
+      local d = 2 * (kr + 3 * f)
+      if circle_check(dl, id, kcx - d / 2, kcy - d / 2, d, shown > 0.5) then newv = shown > 0.5 and 0 or 1 end
+    else
+      local marks, def, range, joins = param_ctl_view(r, ekind, kind.marks)
+      newv = draw_encoder(id, kcx, kcy, kr, shown, { body = cl.body, col = cl.col, ptr = cl.ptr, s = f,
+                          style = ekind == 'pan' and 'pan' or (ekind == 'band' or ekind == 'qband') and 'band' or 'line', narrow = ekind == 'qband', steps = kind.steps, marks = marks,
+                          def = def, range = range, joins = joins, curve = cv, pos = cpos, def_pos = cv and def and curve_inv(cv, def, cpos),
+                          show = mm })
+    end
+    if newv then
+      if cv then newv = curve_ctl_value(cv, newv, mm, kind.steps) end
+      newv = param_from_ctl(r, ekind, newv, norm)
+    end
+  end
+  return newv
 end
 
 -- Performance mode, Show mode: each rack folds its FX section under the name. The state per
