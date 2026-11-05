@@ -798,15 +798,15 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
             local d = 2 * (kr + 3 * f)
             if circle_check(dl, 'k' .. k, kcx - d / 2, kcy - d / 2, d, shown > 0.5) then newv = shown > 0.5 and 0 or 1 end
           else
-            local marks, def, range = param_ctl_view(r, ekind, kind.marks)
+            local marks, def, range, joins = param_ctl_view(r, ekind, kind.marks)
             newv = draw_encoder('k' .. k, kcx, kcy, kr, shown, { body = rc.sec_bg, col = rc.border, ptr = T.dots, s = f,
                                 style = ekind == 'pan' and 'pan' or (ekind == 'band' or ekind == 'qband') and 'band' or 'line', narrow = ekind == 'qband', steps = kind.steps, marks = marks,
-                                def = def, range = range, curve = cv, pos = cpos, def_pos = cv and def and curve_inv(cv, def, cpos),
+                                def = def, range = range, joins = joins, curve = cv, pos = cpos, def_pos = cv and def and curve_inv(cv, def, cpos),
                                 show = mm })
           end
           if newv then
             if cv then newv = curve_ctl_value(cv, newv, mm, kind.steps) end
-            newv = param_from_ctl(r, ekind, newv)
+            newv = param_from_ctl(r, ekind, newv, norm)
           end
         end
         if drag_prev_row == row_key then

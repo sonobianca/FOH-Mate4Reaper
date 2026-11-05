@@ -36,24 +36,36 @@ function params_read(tr)
   if c and c.raw == s then c.frame = FRAME; return c.rows end
   local rows = {}
   for rec in s:gmatch('[^;]+') do
-    local g, i, pn, nm, df, iv, cl, lo, hi, ft, vl, lm, vs, cu =
-      rec:match('^([^|]*)|(%d+)|([^|]*)|([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)$')
+    local g, i, pn, nm, df, iv, cl, lo, hi, ft, vl, lm, vs, cu, rg, nt =
+      rec:match('^([^|]*)|(%d+)|([^|]*)|([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)$')
     if g then
       local r = { guid = g, idx = tonumber(i), pname = param_unesc(pn),
                   name = nm ~= '' and param_unesc(nm) or nil, def = tonumber(df), inv = (iv == '1'),
                   col = tonumber(cl, 16), lo = tonumber(lo), hi = tonumber(hi), fit = (ft == '1'),
                   vraw = vl, vshow = (vs == 's' and 'steps') or (vs == 'd' and 'list') or nil,
-                  curve = cu ~= '' and param_unesc(cu) or nil }   -- the value curve (curves.lua), nil = linear
+                  curve = cu ~= '' and param_unesc(cu) or nil,    -- the value curve (curves.lua), nil = linear
+                  rraw = rg, notch = (nt == '1') }
       if r.curve and not curve_parse(r.curve) then r.curve = nil end
-      if not (r.lo and r.hi and r.lo < r.hi) then r.lo, r.hi = nil, nil end
+      -- a Range: lo above hi is an inverted range (from 0 to hi, and from lo to 1)
+      if not (r.lo and r.hi and r.lo ~= r.hi) then r.lo, r.hi = nil, nil end
+      if rg and rg ~= '' then                              -- a list of ranges: "lo:hi,lo:hi"
+        r.rngs = {}
+        for sa, sb in rg:gmatch('([%d%.]+):([%d%.]+)') do
+          local a, b = tonumber(sa), tonumber(sb)
+          if a and b and a < b then r.rngs[#r.rngs + 1] = { a, b } end
+        end
+        if #r.rngs == 0 then r.rngs = nil end
+      end
       if vl ~= '' then
         r.vals = {}
         for x in vl:gmatch('[^,]+') do r.vals[#r.vals + 1] = tonumber(x) end
       end
       -- the limit in use: 'mm' (Min / Max) or 'list'; a row saved before the list existed has Min / Max
       -- when it has a Min
-      if lm == 'l' then r.lim = 'list' elseif lm == 'm' or (lm == '' and r.lo) then r.lim = 'mm' end
+      if lm == 'l' then r.lim = 'list' elseif lm == 'r' then r.lim = 'ranges'
+      elseif lm == 'm' or (lm == '' and r.lo) then r.lim = 'mm' end
       if r.lim == 'mm' and not r.lo then r.lim = nil end
+      if r.lim == 'ranges' and not r.rngs then r.lim = nil end
       rows[#rows + 1] = r
     end
   end
@@ -65,16 +77,17 @@ function params_write(tr, rows)
   local t = {}
   for _, r in ipairs(rows) do
     local lim = r.lo and r.hi
-    local vl = {}
+    local vl, rl = {}, {}
     for j, v in ipairs(r.vals or {}) do vl[j] = ('%.6f'):format(v) end
-    t[#t + 1] = ('%s|%d|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s'):format(r.guid, r.idx, param_esc(r.pname or ''), param_esc(r.name or ''),
+    for j, v in ipairs(r.rngs or {}) do rl[j] = ('%.6f:%.6f'):format(v[1], v[2]) end
+    t[#t + 1] = ('%s|%d|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s'):format(r.guid, r.idx, param_esc(r.pname or ''), param_esc(r.name or ''),
                                                 r.def and ('%.6f'):format(r.def) or '', r.inv and '1' or '',
                                                 r.col and ('%06X'):format(r.col) or '',
                                                 lim and ('%.6f'):format(r.lo) or '', lim and ('%.6f'):format(r.hi) or '',
                                                 r.fit and '1' or '', table.concat(vl, ','),
-                                                (r.lim == 'mm' and 'm') or (r.lim == 'list' and 'l') or 'o',
+                                                (r.lim == 'mm' and 'm') or (r.lim == 'list' and 'l') or (r.lim == 'ranges' and 'r') or 'o',
                                                 (r.vshow == 'steps' and 's') or (r.vshow == 'list' and 'd') or '',
-                                                param_esc(r.curve or ''))
+                                                param_esc(r.curve or ''), table.concat(rl, ','), r.notch and '1' or '')
   end
   reaper.GetSetMediaTrackInfo_String(tr, EXT_PARAMS, table.concat(t, ';'), true)
   PARAM_CACHE[reaper.GetTrackGUID(tr)] = nil
@@ -280,48 +293,169 @@ function params_unlinked(tr)
   return out
 end
 
--- Limit values, Min / Max (r.lim == 'mm'): a parameter in the Performance may be kept between lo and
--- hi (0..1, as REAPER counts it). With fit (Use the full range of the control), the control's whole
--- travel covers lo..hi, for finer moves; without it, the control stops at lo and hi. Only for the
--- controls that turn (an encoder, a stepped encoder, a width or Q band, a pan); fit not for a stepped
--- encoder.
+-- Limit values, Range (r.lim == 'mm') and List of ranges (r.lim == 'ranges'): a parameter in the
+-- Performance may be kept to some parts of its travel (0..1, as REAPER counts it), its "segments":
+--   Range: from lo to hi; lo above hi is an inverted range: from 0 to hi, and from lo to 1 (two parts);
+--   List of ranges: r.rngs, { lo, hi } each, in the list's order.
+-- With fit (Use the full range of the control), the control's whole travel covers the parts one after
+-- the other, in that order, each as long as it is (a mark shows each junction); with r.notch (an inverted
+-- Range), a short stretch at the junction holds the value before it jumps, like a step. Without fit,
+-- the control turns over the parameter's own travel and the value keeps to the nearest part (one part:
+-- the control stops at its ends); an inverted Range with a notch holds its side until the gap is crossed.
+-- Only for the controls that turn (an encoder, a stepped encoder, a width or Q band, a pan); fit not for
+-- a stepped encoder.
 function param_limit_ok(kind) return kind ~= nil and kind ~= 'toggle' and kind ~= 'list' end
 function param_fit_ok(kind) return kind == 'knob' or kind == 'band' or kind == 'qband' or kind == 'pan' end
 
--- the parameter's value -> where the control shows it (0..1), and back (invert included)
+PARAM_NOTCH = 0.08     -- the notch: this much of the control's travel
+
+-- the parts a row allows, in the order the control goes through them, and whether it is an inverted Range
+function param_segs(r, kind)
+  if not param_limit_ok(kind) then return nil end
+  if r.lim == 'mm' and r.lo and r.hi then
+    if r.lo < r.hi then return { { r.lo, r.hi } }, false end
+    return { { 0, r.hi }, { r.lo, 1 } }, true
+  elseif r.lim == 'ranges' and r.rngs and #r.rngs > 0 then
+    return r.rngs, false
+  end
+end
+
+-- with fit: where each part lies along the control's travel, { lo, hi, from, to } each
+function param_fit_layout(segs, notch)
+  local total = 0
+  for _, sg in ipairs(segs) do total = total + (sg[2] - sg[1]) end
+  local gap = notch and PARAM_NOTCH or 0
+  local span = 1 - gap * (#segs - 1)
+  local out, c = {}, 0
+  for i, sg in ipairs(segs) do
+    local w = total > 0 and (sg[2] - sg[1]) / total * span or span / #segs
+    out[i] = { sg[1], sg[2], c, c + w }
+    c = c + w + gap
+  end
+  return out
+end
+
+-- the parameter's value -> where the control shows it (0..1), and back (invert included); cur = the
+-- value it has now (for the notch of an inverted Range without fit)
 function param_to_ctl(r, kind, v)
-  if r.lim == 'mm' and r.fit and param_fit_ok(kind) then v = math.max(0, math.min(1, (v - r.lo) / (r.hi - r.lo))) end
+  local segs, inv = param_segs(r, kind)
+  if segs and r.fit and param_fit_ok(kind) then
+    local best, bd = v, math.huge
+    for _, p in ipairs(param_fit_layout(segs, inv and r.notch)) do
+      local x = math.max(p[1], math.min(p[2], v))
+      local d = math.abs(x - v)
+      if d < bd - 1e-9 then
+        bd = d
+        best = (p[2] > p[1]) and p[3] + (x - p[1]) / (p[2] - p[1]) * (p[4] - p[3]) or p[3]
+      end
+    end
+    v = best
+  end
   if r.inv then v = 1 - v end
   return v
 end
 
-function param_from_ctl(r, kind, v)
+function param_from_ctl(r, kind, v, cur)
   if r.inv then v = 1 - v end
-  if r.lim == 'mm' and param_limit_ok(kind) then
-    if r.fit and param_fit_ok(kind) then v = r.lo + v * (r.hi - r.lo)
-    else v = math.max(r.lo, math.min(r.hi, v)) end
+  local segs, inv = param_segs(r, kind)
+  if not segs then return v end
+  if r.fit and param_fit_ok(kind) then
+    local lay = param_fit_layout(segs, inv and r.notch)
+    for i, p in ipairs(lay) do
+      if i > 1 and v < p[3] then                     -- in the notch before this part: the first half holds
+        local q = lay[i - 1]                         -- the end of the part before, the second this one's start
+        return (v - q[4] < p[3] - v) and q[2] or p[1]
+      end
+      if v <= p[4] or i == #lay then
+        local t = p[4] > p[3] and (v - p[3]) / (p[4] - p[3]) or 0
+        return p[1] + math.max(0, math.min(1, t)) * (p[2] - p[1])
+      end
+    end
   end
-  return v
+  local best, bd = v, math.huge
+  for _, sg in ipairs(segs) do
+    local x = math.max(sg[1], math.min(sg[2], v))
+    local d = math.abs(x - v)
+    if d == 0 then return v end
+    if d < bd then best, bd = x, d end
+  end
+  if inv and r.notch and cur then                    -- in the gap: the side it comes from, until it is crossed
+    if cur <= r.hi + 1e-6 then return r.hi end
+    if cur >= r.lo - 1e-6 then return r.lo end
+  end
+  return best
 end
 
 -- what the control draws, in its own 0..1: the extra marks (a fader's dB marks: with fit, only those
--- inside the limits), the default mark, and the limits it stops at (without fit) as { lo, hi }
+-- inside the parts), the default mark, the parts it keeps to (without fit) as { lo, hi, parts = { { a, b } } }
+-- (lo, hi: where it stops), and (with fit, several parts) the junctions
 function param_ctl_view(r, kind, marks)
-  local lim = r.lim == 'mm' and param_limit_ok(kind)
-  local fit = lim and r.fit and param_fit_ok(kind)
-  local function inside(m) return not fit or (m >= r.lo and m <= r.hi) end
+  local segs, inv = param_segs(r, kind)
+  local fit = segs and r.fit and param_fit_ok(kind)
+  local function inside(m)
+    if not fit then return true end
+    for _, sg in ipairs(segs) do if m >= sg[1] and m <= sg[2] then return true end end
+    return false
+  end
   local pm
   if marks then
     pm = {}
     for _, m in ipairs(marks) do if inside(m) then pm[#pm + 1] = param_to_ctl(r, kind, m) end end
   end
   local pd = r.def and inside(r.def) and param_to_ctl(r, kind, r.def) or nil
-  local range
-  if lim and not fit then
-    local a, b = param_to_ctl(r, kind, r.lo), param_to_ctl(r, kind, r.hi)
-    range = { math.min(a, b), math.max(a, b) }
+  local range, joins
+  if segs and not fit then
+    local parts, lo, hi = {}, 1, 0
+    for _, sg in ipairs(segs) do
+      local pa, pb = param_to_ctl(r, kind, sg[1]), param_to_ctl(r, kind, sg[2])
+      if pa > pb then pa, pb = pb, pa end
+      parts[#parts + 1] = { pa, pb }
+      lo, hi = math.min(lo, pa), math.max(hi, pb)
+    end
+    range = { lo, hi, parts = parts }
+  elseif fit and #segs > 1 then
+    local lay = param_fit_layout(segs, inv and r.notch)
+    joins = {}
+    for i = 1, #lay - 1 do
+      local j = (lay[i][4] + lay[i + 1][3]) / 2
+      joins[#joins + 1] = r.inv and 1 - j or j
+    end
   end
-  return pm, pd, range
+  return pm, pd, range, joins
+end
+
+-- moves the parameter into what row r allows now (after its limits changed): the nearest allowed value
+function param_limits_snap(tr, fxi, idx, r, kind)
+  local segs = param_segs(r, kind)
+  if not segs then return end
+  local cur = reaper.TrackFX_GetParamNormalized(tr, fxi, idx)
+  local best, bd = cur, math.huge
+  for _, sg in ipairs(segs) do
+    local x = math.max(sg[1], math.min(sg[2], cur))
+    local d = math.abs(x - cur)
+    if d < bd then best, bd = x, d end
+  end
+  if bd > 1e-6 then reaper.TrackFX_SetParamNormalized(tr, fxi, idx, best) end
+end
+
+-- the move up / move down / remove buttons on the right of a line of a list (i of n), as in the list of
+-- values: no up arrow on the first, no down arrow on the last, a red x. Returns 'up', 'dn', 'x' or nil.
+function draw_list_buttons(i, n, bw, what)
+  local act
+  if i == 1 then ig.Dummy(ctx, bw, bw)
+  elseif ig.ArrowButton(ctx, 'up', ig.Dir_Up()) then act = 'up' end
+  ig.SameLine(ctx)
+  if i == n then ig.Dummy(ctx, bw, bw)
+  elseif ig.ArrowButton(ctx, 'dn', ig.Dir_Down()) then act = 'dn' end
+  ig.SameLine(ctx)
+  ig.PushStyleColor(ctx, ig.Col_Button(), 0xB03030FF)
+  ig.PushStyleColor(ctx, ig.Col_ButtonHovered(), 0xD04040FF)
+  ig.PushStyleColor(ctx, ig.Col_ButtonActive(), 0x902020FF)
+  ig.PushStyleColor(ctx, ig.Col_Text(), 0xFFFFFFFF)
+  if ig.Button(ctx, 'x', bw, bw) then act = 'x' end
+  ig.PopStyleColor(ctx, 4)
+  if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Remove this ' .. what .. ' from the list') end
+  return act
 end
 
 -- Limit values, list (r.lim == 'list'): the parameter only takes the values of r.vals (0..1 each, in
@@ -1231,7 +1365,17 @@ function draw_param_control_panel(P, fxs, gm, targets)
       local can_mm, can_list = param_limit_ok(k.kind), param_list_ok(k.kind)
       if (can_mm or can_list) and section_header('Limit values', true) then
         local g, ix = first.guid, first.idx
-        local function mm_on() params_update(tr, g, ix, { lim = 'mm', lo = row.lo or 0, hi = row.hi or 1 }) end
+        -- after a change: the parameter moves into what is allowed now
+        local function snap()
+          local fresh = params_find(tr, g, ix)
+          if fresh then param_limits_snap(tr, fxi, ix, fresh, k.kind) end
+        end
+        local function mm_on() params_update(tr, g, ix, { lim = 'mm', lo = row.lo or 0, hi = row.hi or 1 }); snap() end
+        local function ranges_on()
+          local first_r = { math.min(row.lo or 0, row.hi or 1), math.max(row.lo or 0, row.hi or 1) }
+          params_update(tr, g, ix, { lim = 'ranges', rngs = row.rngs or { first_r } })
+          snap()
+        end
         -- choosing the list: when the value it has now isn't in it, ask whether to add it (once the list is
         -- on, the parameter only takes the values of the list, so this is the moment to keep it)
         local function list_on()
@@ -1254,63 +1398,99 @@ function draw_param_control_panel(P, fxs, gm, targets)
         end
         local rv3, v3 = ig.Checkbox(ctx, 'Use limits', row.lim ~= nil)
         if ig.IsItemHovered(ctx) then
-          ig.SetTooltip(ctx, 'When it is moved from the Performance, the parameter only takes\nthe values between a Min and a Max, or the values of a list.')
+          ig.SetTooltip(ctx, 'When it is moved from the Performance, the parameter only takes the values of a\nrange, of a list of values, or of a list of ranges.')
         end
         if rv3 then
           if not v3 then params_update(tr, g, ix, { lim = false })
           elseif can_list and (row.vals or not can_mm) then list_on()
           else mm_on() end
         end
-        if row.lim and can_mm and can_list then
-          if ig.RadioButton(ctx, 'Min / Max', row.lim == 'mm') and row.lim ~= 'mm' then mm_on() end
-          ig.SameLine(ctx)
-          if ig.RadioButton(ctx, 'List of values', row.lim == 'list') and row.lim ~= 'list' then list_on() end
+        if row.lim and can_mm then
+          if ig.RadioButton(ctx, 'Range', row.lim == 'mm') and row.lim ~= 'mm' then mm_on() end
+          if can_list and ig.RadioButton(ctx, 'List of values', row.lim == 'list') and row.lim ~= 'list' then list_on() end
+          if ig.RadioButton(ctx, 'List of ranges', row.lim == 'ranges') and row.lim ~= 'ranges' then ranges_on() end
+          ig.Spacing(ctx)
         end
-        if row.lim == 'mm' and can_mm then
-          local lo, hi = row.lo, row.hi
-          -- caption, the value (the plug-in's number), its unit, then Now; both lines the same widths
-          local capw = math.max((ig.CalcTextSize(ctx, 'Min')), (ig.CalcTextSize(ctx, 'Max'))) + 8
-          local _, ulo = param_text_split(param_text_at(tr, fxi, ix, row.lo))
-          local _, uhi = param_text_split(param_text_at(tr, fxi, ix, row.hi))
-          local unitw = math.max((ig.CalcTextSize(ctx, ulo)), (ig.CalcTextSize(ctx, uhi)))
-          local noww = ig.CalcTextSize(ctx, 'Now') + 2 * select(1, ig.GetStyleVar(ctx, ig.StyleVar_FramePadding()))
-          local spx = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
-          local sw = select(1, ig.GetContentRegionAvail(ctx)) - capw - (unitw > 0 and unitw + 4 or 0) - spx - noww
-          for _, e in ipairs({ { 'Min', 'lo' }, { 'Max', 'hi' } }) do
-            local num, unit = param_text_split(param_text_at(tr, fxi, ix, row[e[2]]))
-            field_caption(e[1], capw)
-            ig.SetNextItemWidth(ctx, math.max(60, sw))
-            local rv, v = ig.SliderDouble(ctx, '##lim' .. e[2], row[e[2]], 0, 1, (num:gsub('%%', '%%%%')))
-            if unitw > 0 then
-              ig.SameLine(ctx, 0, 4)
-              ig.AlignTextToFramePadding(ctx)
-              ig.Text(ctx, unit)
-              ig.SameLine(ctx, 0, 4 + unitw - ig.CalcTextSize(ctx, unit) + spx - 4)
-            else
-              ig.SameLine(ctx)
-            end
-            if ig.SmallButton(ctx, 'Now##limnow' .. e[2]) then rv, v = true, reaper.TrackFX_GetParamNormalized(tr, fxi, ix) end
-            if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Set ' .. e[1] .. ' to where the parameter is now') end
-            if rv then
-              if e[2] == 'lo' then lo = math.min(v, hi - 0.001) else hi = math.max(v, lo + 0.001) end
-            end
-          end
-          if lo ~= row.lo or hi ~= row.hi then
-            params_update(tr, g, ix, { lo = lo, hi = hi })
-            -- the parameter moves inside the new limits at once
-            local cur = reaper.TrackFX_GetParamNormalized(tr, fxi, ix)
-            if cur < lo or cur > hi then reaper.TrackFX_SetParamNormalized(tr, fxi, ix, math.max(lo, math.min(hi, cur))) end
-          end
+        -- the plug-in's number and unit for a position, and the position of a typed number (range controls)
+        local function rtext(v) return param_text_split(param_text_at(tr, fxi, ix, v)) end
+        local function rfind(typed, unit)
+          local tn, tu, tis = param_text_split((typed:gsub(',', '.')))
+          if not tis then return nil end
+          return param_find_value(tr, fxi, ix, tonumber(tn), tu ~= '' and tu or unit)
+        end
+        local function fit_box()
           if param_fit_ok(k.kind) then
             local rv4, v4 = ig.Checkbox(ctx, 'Use the full range of the control', row.fit == true)
             if ig.IsItemHovered(ctx) then
-              ig.SetTooltip(ctx, 'On: the control turns all the way from Min to Max, for finer moves.\n'
-                              .. 'Off: the control stops at Min and Max (an arc shows where).')
+              ig.SetTooltip(ctx, 'On: the control turns all the way through the allowed values, for finer moves\n'
+                              .. '(several ranges one after the other, with a mark where they meet).\n'
+                              .. 'Off: the control turns as usual and keeps to the allowed values (an arc shows them).')
             end
             if rv4 then params_update(tr, g, ix, { fit = v4 }) end
           else
-            ig.TextDisabled(ctx, 'The control stops at Min and Max.')
+            ig.TextDisabled(ctx, 'The control keeps to the allowed values.')
           end
+        end
+        if row.lim == 'mm' and can_mm then
+          -- Min and Max on one range control; Max below Min is an inverted range (two ranges)
+          local nlo, nhi = draw_range_bar('rng', row.lo, row.hi, { text = rtext, find = rfind, inv = true })
+          ig.AlignTextToFramePadding(ctx)
+          ig.TextDisabled(ctx, 'Set to the value now:')
+          ig.SameLine(ctx)
+          local cur = reaper.TrackFX_GetParamNormalized(tr, fxi, ix)
+          if ig.SmallButton(ctx, 'Min##limnow') then nlo, nhi = cur, nhi or row.hi end
+          ig.SameLine(ctx)
+          if ig.SmallButton(ctx, 'Max##limnow') then nlo, nhi = nlo or row.lo, cur end
+          if nlo and math.abs(nlo - nhi) > 1e-4 and (nlo ~= row.lo or nhi ~= row.hi) then
+            params_update(tr, g, ix, { lo = nlo, hi = nhi })
+            snap()
+          end
+          if row.lo > row.hi then
+            local rv5, v5 = ig.Checkbox(ctx, 'Notch between the two ranges', row.notch == true)
+            if ig.IsItemHovered(ctx) then
+              ig.SetTooltip(ctx, 'Max is below Min: the values go up to Max, and from Min up.\n'
+                              .. 'On: going from one range to the other takes a step of the control, like a\n'
+                              .. 'stepped encoder: the value holds, then jumps. Off: it jumps as soon as the\n'
+                              .. 'control gets there.')
+            end
+            if rv5 then params_update(tr, g, ix, { notch = v5 }) end
+          end
+          fit_box()
+        elseif row.lim == 'ranges' and can_mm then
+          -- each range on its range control, in the list's order, with on the right: up, down, remove
+          local rngs = row.rngs or {}
+          local function put(nr)
+            params_update(tr, g, ix, { rngs = #nr > 0 and nr or false })
+            snap()
+          end
+          local function copy()
+            local nr = {}
+            for i, v in ipairs(rngs) do nr[i] = { v[1], v[2] } end
+            return nr
+          end
+          if #rngs == 0 then ig.TextDisabled(ctx, 'No ranges yet: add one below.') end
+          local bw = ig.GetFrameHeight(ctx)
+          local sp = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
+          local btns = 3 * bw + 2 * sp
+          local bx = ig.GetCursorPosX(ctx) + math.max(0, select(1, ig.GetContentRegionAvail(ctx)) - btns)
+          for i, v in ipairs(rngs) do
+            ig.PushID(ctx, 'rg' .. i)
+            local nlo, nhi = draw_range_bar('rg' .. i, v[1], v[2], { text = rtext, find = rfind, width = bx - ig.GetCursorPosX(ctx) - sp })
+            ig.SameLine(ctx, bx)
+            local act = draw_list_buttons(i, #rngs, bw, 'range')
+            if act == 'up' then local nr = copy(); nr[i], nr[i - 1] = nr[i - 1], nr[i]; put(nr)
+            elseif act == 'dn' then local nr = copy(); nr[i], nr[i + 1] = nr[i + 1], nr[i]; put(nr)
+            elseif act == 'x' then local nr = copy(); table.remove(nr, i); put(nr)
+            elseif nlo and (nlo ~= v[1] or nhi ~= v[2]) then local nr = copy(); nr[i] = { nlo, nhi }; put(nr) end
+            ig.PopID(ctx)
+          end
+          if ig.Button(ctx, 'Add a range') then
+            -- a small one around the value it has now
+            local cur = reaper.TrackFX_GetParamNormalized(tr, fxi, ix)
+            local a_, b_ = math.max(0, cur - 0.05), math.min(1, cur + 0.05)
+            local nr = copy(); nr[#nr + 1] = { a_, b_ }; put(nr)
+          end
+          fit_box()
         elseif row.lim == 'list' and can_list then
           -- the values, in the list's order (any order), with on the right: move up, move down, remove (red)
           local vals = row.vals or {}
@@ -1351,24 +1531,10 @@ function draw_param_control_panel(P, fxs, gm, targets)
               ig.TextDisabled(ctx, unit)
             end
             ig.SameLine(ctx, bx)
-            -- no up arrow on the first value, no down arrow on the last: an empty space keeps the others lined up
-            if i == 1 then ig.Dummy(ctx, bw, bw)
-            elseif ig.ArrowButton(ctx, 'up', ig.Dir_Up()) then
-              local nv = copy(); nv[i], nv[i - 1] = nv[i - 1], nv[i]; put(nv)
-            end
-            ig.SameLine(ctx)
-            if i == #vals then ig.Dummy(ctx, bw, bw)
-            elseif ig.ArrowButton(ctx, 'dn', ig.Dir_Down()) then
-              local nv = copy(); nv[i], nv[i + 1] = nv[i + 1], nv[i]; put(nv)
-            end
-            ig.SameLine(ctx)
-            ig.PushStyleColor(ctx, ig.Col_Button(), 0xB03030FF)
-            ig.PushStyleColor(ctx, ig.Col_ButtonHovered(), 0xD04040FF)
-            ig.PushStyleColor(ctx, ig.Col_ButtonActive(), 0x902020FF)
-            ig.PushStyleColor(ctx, ig.Col_Text(), 0xFFFFFFFF)
-            if ig.Button(ctx, 'x', bw, bw) then local nv = copy(); table.remove(nv, i); put(nv) end
-            ig.PopStyleColor(ctx, 4)
-            if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Remove this value from the list') end
+            local act = draw_list_buttons(i, #vals, bw, 'value')
+            if act == 'up' then local nv = copy(); nv[i], nv[i - 1] = nv[i - 1], nv[i]; put(nv)
+            elseif act == 'dn' then local nv = copy(); nv[i], nv[i + 1] = nv[i + 1], nv[i]; put(nv)
+            elseif act == 'x' then local nv = copy(); table.remove(nv, i); put(nv) end
             ig.PopID(ctx)
           end
           -- adding, at the end: one of the FX's own values, or one picked. The field and the Add button
@@ -1473,10 +1639,10 @@ function draw_param_preview(tr, fxi, first, row, k)
     ig.DrawList_AddTriangleFilled(dl, cx - 6, cy - 3.5, cx + 6, cy - 3.5, cx, cy + 4, ring)
   else
     local rr = row or {}
-    local pm, pd, range = param_ctl_view(rr, k.kind, k.marks)
+    local pm, pd, range, joins = param_ctl_view(rr, k.kind, k.marks)
     draw_encoder('pv', cx, cy, r, param_to_ctl(rr, k.kind, norm), { body = body, col = ring, ptr = T.dots, s = 1, static = true,
                  style = k.kind == 'pan' and 'pan' or (k.kind == 'band' or k.kind == 'qband') and 'band' or 'line', narrow = k.kind == 'qband', steps = k.steps, marks = pm, def = pd,
-                 range = range })
+                 range = range, joins = joins })
   end
   ig.Dummy(ctx, 1, 72)
 end

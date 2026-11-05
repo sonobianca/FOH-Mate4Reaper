@@ -548,12 +548,116 @@ end
 -- o: body (fill), col (ring and min/max marks, the encoder's color), ptr (pointer or arc color),
 --    s (scale), style ('line' pointer, or 'pan' for a pan or balance, or 'band' for a width: a band centered at the top, wider with the value),
 --    steps (n values: stepped, with a mark per value), marks (positions 0..1 of extra marks, like a fader's), def (default position 0..1, yellow mark),
---    range ({ lo, hi }: it stops there, shown by an arc in the link color outside the marks, with a handle
---    from each end to the ring; for a band, two arcs: where its edges can go), static (draw only, no mouse).
+--    range ({ lo, hi, parts = { { a, b } } }: it stops at lo and hi and keeps to the parts, each shown by
+--    an arc in the link color outside the marks, with a handle from each end to the ring; for a band, two
+--    arcs per part: where its edges can go), joins (positions where two ranges meet, with fit: a mark in
+--    the link color), static (draw only, no mouse).
 --    With a curve (o.curve, curves.lua), what is dragged is the position along the curve (o.pos), and
 --    what is drawn is the value the curve gives (norm): the encoder rises and falls with the curve as
 --    it is turned one way. o.def is then a value, o.def_pos where double-click goes.
 -- Returns the new position 0..1 when the user changed it.
+-- A range control: a thin bar with a triangular handle for Min (pointing right) and one for Max (pointing
+-- left), the part it covers in the link color, and a value box on each side (Min on the left, Max on
+-- the right: the number in the box, the unit after it). Drag a handle, or click the bar to bring the
+-- nearest handle there, or type a number in a box. o: text(v) -> number, unit, is_number; find(typed,
+-- unit) -> v or nil; inv (Min may go above Max: the covered part is then outside the handles: up to Max,
+-- and from Min); ro (read only: handles as small as the bar, the values as plain text, same spacing);
+-- width (instead of the room left on the line). Returns lo, hi when one of them changed.
+RANGE_DRAG = {}   -- id -> 'lo' or 'hi': the handle being dragged
+RANGE_EDIT = {}   -- id .. side -> the text being typed in a box
+
+function draw_range_bar(id, lo, hi, o)
+  ig.PushID(ctx, id)
+  local fh = ig.GetFrameHeight(ctx)
+  local x0 = ig.GetCursorPosX(ctx)
+  local width = o.width or select(1, ig.GetContentRegionAvail(ctx))
+  local nlo, ulo, islo = o.text(lo)
+  local nhi, uhi, ishi = o.text(hi)
+  local unitw = math.max((ig.CalcTextSize(ctx, ulo)), (ig.CalcTextSize(ctx, uhi)))
+  local bw, gap = 58, 8                                   -- a value box, and the room between box and bar
+  local uslot = unitw > 0 and unitw + 4 or 0
+  local barw = math.max(40, width - 2 * (bw + uslot + gap))
+  local out_lo, out_hi = lo, hi
+  local function box(side, num, unit, isnum, x)
+    ig.SameLine(ctx, x)
+    if o.ro then
+      ig.AlignTextToFramePadding(ctx)
+      ig.Text(ctx, num)
+    else
+      local key = id .. side
+      ig.SetNextItemWidth(ctx, bw)
+      local rv, t = ig.InputText(ctx, '##' .. side, num, isnum and ig.InputTextFlags_AutoSelectAll() or ig.InputTextFlags_ReadOnly())
+      if rv then RANGE_EDIT[key] = t end
+      if isnum and ig.IsItemDeactivatedAfterEdit(ctx) and RANGE_EDIT[key] then
+        local v = o.find(RANGE_EDIT[key], unit)
+        RANGE_EDIT[key] = nil
+        if v then
+          if side == 'lo' then out_lo = o.inv and v or math.min(v, hi - 0.001)
+          else out_hi = o.inv and v or math.max(v, lo + 0.001) end
+        end
+      end
+    end
+    if unit ~= '' then
+      ig.SameLine(ctx, x + bw + 4)
+      ig.AlignTextToFramePadding(ctx)
+      ig.Text(ctx, unit)
+    end
+  end
+  ig.SetCursorPosX(ctx, x0)
+  ig.Dummy(ctx, 0, 0)                                      -- (the line starts here; every part is placed by x)
+  box('lo', nlo, ulo, islo, x0)
+  -- the bar
+  local barx = x0 + bw + uslot + gap
+  ig.SameLine(ctx, barx)
+  local sx, sy = ig.GetCursorScreenPos(ctx)
+  if o.ro then ig.Dummy(ctx, barw, fh) else ig.InvisibleButton(ctx, '##bar', barw, fh) end
+  local dl = ig.GetWindowDrawList(ctx)
+  local th = 4                                             -- the bar's thickness
+  local tw = o.ro and th or math.floor(fh * 0.5)           -- a handle: as long as this, twice as tall as half of it
+  local hh = o.ro and th / 2 or math.floor(fh * 0.42)
+  local my = math.floor(sy + fh / 2) + 0.5
+  local x1, x2 = sx + tw, sx + barw - tw                   -- room at both ends for the handles
+  local function X(v) return x1 + v * (x2 - x1) end
+  local hov = not o.ro and ig.IsItemHovered(ctx)
+  if not o.ro then
+    local mx = ig.GetMousePos(ctx)
+    if ig.IsItemActivated(ctx) then
+      local dlo, dhi = math.abs(mx - X(lo)), math.abs(mx - X(hi))
+      if math.abs(dlo - dhi) < 1 then RANGE_DRAG[id] = (mx < X(lo)) and 'lo' or 'hi'  -- on top of each other: by the side
+      else RANGE_DRAG[id] = dlo < dhi and 'lo' or 'hi' end
+    end
+    if ig.IsItemActive(ctx) and RANGE_DRAG[id] then
+      local v = math.max(0, math.min(1, (mx - x1) / (x2 - x1)))
+      if RANGE_DRAG[id] == 'lo' then out_lo = o.inv and v or math.min(v, hi - 0.001)
+      else out_hi = o.inv and v or math.max(v, lo + 0.001) end
+    elseif not ig.IsItemActive(ctx) then
+      RANGE_DRAG[id] = nil
+    end
+    if hov then ig.SetTooltip(ctx, 'Drag a handle: Min (pointing right) or Max (pointing left)') end
+  end
+  local ink = ig.GetStyleColor(ctx, ig.Col_Text())
+  ig.DrawList_AddRectFilled(dl, x1, my - th / 2, x2, my + th / 2, (T.dim & 0xFFFFFF00) | 0x70, th / 2)
+  -- the covered part, in the link color: between the handles, or (inverted) up to Max and from Min
+  local cov = T.link
+  if out_lo <= out_hi then
+    ig.DrawList_AddRectFilled(dl, X(out_lo), my - th / 2, X(out_hi), my + th / 2, cov, th / 2)
+  else
+    ig.DrawList_AddRectFilled(dl, x1, my - th / 2, X(out_hi), my + th / 2, cov, th / 2)
+    ig.DrawList_AddRectFilled(dl, X(out_lo), my - th / 2, x2, my + th / 2, cov, th / 2)
+  end
+  -- the handles, on top: both listed the same way round (tip, then the base's top, then its bottom), so
+  -- they are filled and smoothed alike and look the same size
+  local function handle(x, dir, active)
+    local col = active and mix(ink, WHITE, 0.3) or ink
+    ig.DrawList_AddTriangleFilled(dl, x, my, x - dir * tw, my - hh, x - dir * tw, my + hh, col)
+  end
+  handle(X(out_lo), 1, RANGE_DRAG[id] == 'lo')             -- Min: pointing right, its body on the left
+  handle(X(out_hi), -1, RANGE_DRAG[id] == 'hi')            -- Max: pointing left, its body on the right
+  box('hi', nhi, uhi, ishi, barx + barw + gap)
+  ig.PopID(ctx)
+  if out_lo ~= lo or out_hi ~= hi then return out_lo, out_hi end
+end
+
 -- a push pin (a thumb tack seen from the side, 15 px tall) centered on cx, cy
 function draw_pin(dl, cx, cy, col)
   ig.DrawList_AddRectFilled(dl, cx - 4.5, cy - 7.5, cx + 4.5, cy - 5, col, 1.5)                                   -- the head
@@ -608,6 +712,9 @@ function draw_encoder(id, cx, cy, r, norm, o)
   if changed then v = o.curve and curve_eval(o.curve, changed) or changed end
   -- with a curve and limits, the value is kept inside them by the caller: draw it there
   if o.curve and o.range then v = math.max(o.range[1], math.min(o.range[2], v)) end
+  -- several parts (an inverted range, a list of ranges): the control turns through the gaps, but the
+  -- pointer shows the value the parameter has (it keeps to a part, and may hold at a notch)
+  if o.range and o.range.parts and #o.range.parts > 1 and not o.curve then v = norm end
   -- the pointer moves at most so far per frame (the whole range in about a sixth of a second): a value
   -- that jumps (a steep curve dragged quickly, the FX, automation) sweeps over the top, instead of
   -- seeming to pass under the encoder. Only the drawing; the value is set at once.
@@ -632,16 +739,18 @@ function draw_encoder(id, cx, cy, r, norm, o)
       ig.DrawList_PathLineTo(dl, cx + math.cos(b) * r, cy + math.sin(b) * r)
       ig.DrawList_PathStroke(dl, T.link, 0, 1.5 * s)
     end
-    if o.style == 'band' then
-      -- a band: where its two edges can go, one arc on each side of the top
-      local function half(x) return band_half(o.narrow and 1 - x or x) end
-      local h1, h2 = half(o.range[1]), half(o.range[2])
-      if h1 > h2 then h1, h2 = h2, h1 end
-      local mid = (ENC_A0 + ENC_A1) / 2
-      limit_arc(mid - h2, mid - h1)
-      limit_arc(mid + h1, mid + h2)
-    else
-      limit_arc(ENC_A0 + (ENC_A1 - ENC_A0) * o.range[1], ENC_A0 + (ENC_A1 - ENC_A0) * o.range[2])
+    for _, p in ipairs(o.range.parts or { { o.range[1], o.range[2] } }) do
+      if o.style == 'band' then
+        -- a band: where its two edges can go, one arc on each side of the top
+        local function half(x) return band_half(o.narrow and 1 - x or x) end
+        local h1, h2 = half(p[1]), half(p[2])
+        if h1 > h2 then h1, h2 = h2, h1 end
+        local mid = (ENC_A0 + ENC_A1) / 2
+        limit_arc(mid - h2, mid - h1)
+        limit_arc(mid + h1, mid + h2)
+      else
+        limit_arc(ENC_A0 + (ENC_A1 - ENC_A0) * p[1], ENC_A0 + (ENC_A1 - ENC_A0) * p[2])
+      end
     end
   end
   ig.DrawList_AddCircle(dl, cx, cy, r, hover and mix(o.col, WHITE, 0.3) or o.col, 0, 2 * s)
@@ -652,6 +761,9 @@ function draw_encoder(id, cx, cy, r, norm, o)
   end
   if o.marks then
     for _, m in ipairs(o.marks) do enc_tick(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * m, o.col, 0.75 * s) end
+  end
+  if o.joins then                                   -- where two ranges meet (full range of the control)
+    for _, m in ipairs(o.joins) do enc_tick(dl, cx, cy, r, ENC_A0 + (ENC_A1 - ENC_A0) * m, T.link, s) end
   end
   if o.def or o.style == 'pan' then
     if o.style == 'band' then
