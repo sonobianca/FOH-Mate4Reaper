@@ -616,7 +616,9 @@ function draw_range_bar(id, lo, hi, o)
   local tw = o.ro and th or math.floor(fh * 0.5)           -- a handle: as long as this, twice as tall as half of it
   local hh = o.ro and th / 2 or math.floor(fh * 0.42)
   local my = math.floor(sy + fh / 2) + 0.5
-  local x1, x2 = sx + tw, sx + barw - tw                   -- room at both ends for the handles
+  local x1, x2 = sx + 1, sx + barw - 1
+  -- a handle sits inside the range: its flat side on the value, its tip pointing into the range (Min to
+  -- the right, Max to the left), so the space seen between two ranges is the real gap
   local function X(v) return x1 + v * (x2 - x1) end
   local hov = not o.ro and ig.IsItemHovered(ctx)
   if not o.ro then
@@ -624,8 +626,8 @@ function draw_range_bar(id, lo, hi, o)
     if ig.IsItemActivated(ctx) then
       -- on a handle (its body, a few px around): that handle; on the covered part: the whole range;
       -- elsewhere: the nearest handle comes
-      local on_lo = mx >= X(lo) - tw - 3 and mx <= X(lo) + 3
-      local on_hi = mx >= X(hi) - 3 and mx <= X(hi) + tw + 3
+      local on_lo = mx >= X(lo) - 3 and mx <= X(lo) + tw + 3
+      local on_hi = mx >= X(hi) - tw - 3 and mx <= X(hi) + 3
       local v = (mx - x1) / (x2 - x1)
       local covered = (lo <= hi and v > lo and v < hi) or (lo > hi and (v < hi or v > lo))
       local what
@@ -653,24 +655,24 @@ function draw_range_bar(id, lo, hi, o)
   end
   local ink = ig.GetStyleColor(ctx, ig.Col_Text())
   ig.DrawList_AddRectFilled(dl, x1, my - th / 2, x2, my + th / 2, (T.dim & 0xFFFFFF00) | 0x70, th / 2)
-  -- the covered part, in the link color: between the handles, or (inverted) up to Max and from Min. It
-  -- goes on a little under each handle, so its rounded end hides there
-  local cov, u = T.link, tw * 0.6
+  -- the covered part, in the link color: between the handles, or (inverted) up to Max and from Min. Its
+  -- ends are under the handles' flat sides, which hide them
+  local cov = T.link
   if out_lo <= out_hi then
-    ig.DrawList_AddRectFilled(dl, X(out_lo) - u, my - th / 2, X(out_hi) + u, my + th / 2, cov, th / 2)
+    ig.DrawList_AddRectFilled(dl, X(out_lo) + 0.5, my - th / 2, X(out_hi) - 0.5, my + th / 2, cov, 0)
   else
-    ig.DrawList_AddRectFilled(dl, x1, my - th / 2, X(out_hi) + u, my + th / 2, cov, th / 2)
-    ig.DrawList_AddRectFilled(dl, X(out_lo) - u, my - th / 2, x2, my + th / 2, cov, th / 2)
+    ig.DrawList_AddRectFilled(dl, x1, my - th / 2, X(out_hi) - 0.5, my + th / 2, cov, th / 2)
+    ig.DrawList_AddRectFilled(dl, X(out_lo) + 0.5, my - th / 2, x2, my + th / 2, cov, th / 2)
   end
   -- the handles, on top: both listed the same way round (tip, then the base's top, then its bottom), so
   -- they are filled and smoothed alike and look the same size
-  local function handle(x, dir, active)
+  local function handle(x, dir, active)                  -- x: the flat side, dir: where the tip points
     local col = active and mix(ink, WHITE, 0.3) or ink
-    ig.DrawList_AddTriangleFilled(dl, x, my, x - dir * tw, my - hh, x - dir * tw, my + hh, col)
+    ig.DrawList_AddTriangleFilled(dl, x + dir * tw, my, x, my - hh, x, my + hh, col)
   end
   local dw = RANGE_DRAG[id] and RANGE_DRAG[id].what
-  handle(X(out_lo), 1, dw == 'lo' or dw == 'both')          -- Min: pointing right, its body on the left
-  handle(X(out_hi), -1, dw == 'hi' or dw == 'both')         -- Max: pointing left, its body on the right
+  handle(X(out_lo), 1, dw == 'lo' or dw == 'both')          -- Min: pointing right, into the range
+  handle(X(out_hi), -1, dw == 'hi' or dw == 'both')         -- Max: pointing left, into the range
   box('hi', nhi, uhi, ishi, barx + barw + gap)
   ig.PopID(ctx)
   if out_lo ~= lo or out_hi ~= hi then return out_lo, out_hi end
