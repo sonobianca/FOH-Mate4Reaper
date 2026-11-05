@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Inspector, Preview: the control has its **value box** on its right, like in the rack (the value written the same way, updated as it moves).
+
 - Limit values: switching to **List of values** asks whether to add the value it has now; **Cancel** now leaves the limits as they were (the mode you came from, or no limits), instead of switching to the list like Don't add.
 
 - Inspector: the curve's **Type** is above the graph; Strength (or Smooth) and Save / Delete a curve are under it (Delete only when you have saved curves of your own). The **Preview** can be **turned**: it is the same control as in the rack (limits, list, curve, drop-down, toggle), and moving it moves the parameter. **A list of values with only two values is a toggle**: off is the lower value, on the higher one (in the rack and in the Preview).

@@ -1725,8 +1725,10 @@ function draw_param_control_panel(P, fxs, gm, targets)
   end
 end
 
--- the control as the Performance draws it, in the Inspector: it can be turned too
+-- the control as the Performance draws it, in the Inspector, with its value box on its right: it can be
+-- turned too
 PREVIEW_MM = {}   -- a parameter that is not in the Performance: its memo here (guid:idx -> table)
+PREVIEW_VT = {}   -- the value box's text and drawing, per parameter (apart from the rack's, which is another size)
 function draw_param_preview(tr, fxi, first, row, k)
   local norm = reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx)
   local px, py = ig.GetCursorScreenPos(ctx)
@@ -1737,6 +1739,18 @@ function draw_param_preview(tr, fxi, first, row, k)
   local newv = draw_param_ctl('pv', tr, fxi, r, k, k.kind, mm, norm, px + 36, py + 34, 20, 1,
                               { body = ig.GetStyleColor(ctx, ig.Col_FrameBg()), col = ig.GetStyleColor(ctx, ig.Col_Text()), ptr = T.dots })
   if newv then reaper.TrackFX_SetParamNormalized(tr, fxi, first.idx, newv) end
+  -- the value box, as in the rack (the text read again when the value moves, or every 30 frames)
+  local vt = PREVIEW_VT[key]
+  if not vt then vt = {}; PREVIEW_VT[key] = vt end
+  if norm ~= vt.norm or FRAME - (vt.f or -99) >= 30 then
+    local _, txt = reaper.TrackFX_GetFormattedParamValue(tr, fxi, first.idx)
+    vt.text, vt.norm, vt.f = param_vtext(txt, norm, first.name, tr, fxi), norm, FRAME
+  end
+  local dl = ig.GetWindowDrawList(ctx)
+  local vx, vy, vw, vh = px + 36 + 20 + 16, py + 34 - 26, 22, 52
+  ig.DrawList_AddRectFilled(dl, vx, vy, vx + vw, vy + vh, ig.GetStyleColor(ctx, ig.Col_FrameBg()), ROUNDING)
+  ig.DrawList_AddRect(dl, vx, vy, vx + vw, vy + vh, ig.GetStyleColor(ctx, ig.Col_Border()), ROUNDING, 0, 1)
+  draw_vtext(dl, vt.text, vx, vy, vw, vh, ig.GetStyleColor(ctx, ig.Col_Text()), true, 1, vt)
   ig.SetCursorScreenPos(ctx, px, py)
   ig.Dummy(ctx, 1, 72)
 end
