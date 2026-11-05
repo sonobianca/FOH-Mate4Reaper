@@ -1178,268 +1178,276 @@ function draw_param_control_panel(P, fxs, gm, targets)
     ig.TextDisabled(ctx, 'The choice applies to all of them.')
   end
   if not fxi then return end
-  local r1 = { guid = first.guid, idx = first.idx, pname = first.name }
-  local k = param_kind(tr, fxi, r1)
-  ig.Spacing(ctx)
-  if section_header('Control', true) then
-    for _, o in ipairs(PARAM_CONTROL_OPTS) do
-      local on = #targets == 1 and ((o[1] == nil and not k.overridden) or (o[1] ~= nil and k.overridden and k.kind == o[1]))
-      local label = o[2] .. ((o[1] == nil and #targets == 1) and (' (now: ' .. PARAM_KIND_LABEL[k.guess] .. ')') or '')
-      if ig.RadioButton(ctx, label .. '##ctl' .. tostring(o[1]), on) then
-        for _, t in ipairs(targets) do
-          local f = gm[t.guid]
-          if f then param_set_override(t.tr or tr, f, { guid = t.guid, idx = t.idx, pname = t.name }, o[1]) end
-        end
-      end
-    end
-    ig.TextDisabled(ctx, 'Your choice is added to the training data.')
+  ig.Separator(ctx)
+  -- the rest scrolls under the title, which stays at the top
+  local function body()
+    local r1 = { guid = first.guid, idx = first.idx, pname = first.name }
+    local k = param_kind(tr, fxi, r1)
     ig.Spacing(ctx)
-  end
-  if #targets ~= 1 then return end
-
-  -- how this row behaves (saved with the project: only for a parameter that is in the Performance)
-  if not row then
-    ig.TextDisabled(ctx, 'Put the parameter in the Performance\nto set the rest.')
-  else
-    if section_header('Direction and default', true) then
-      local inv = row.inv == true
-      local rv, v = ig.Checkbox(ctx, 'Invert (turns the other way)', inv)
-      if rv then params_update(tr, first.guid, first.idx, { inv = v }) end
-      local has_def = row.def ~= nil
-      local rv2, v2 = ig.Checkbox(ctx, 'Default mark', has_def)
-      if rv2 then
-        params_update(tr, first.guid, first.idx, { def = v2 and reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx) or false })
-      end
-      if has_def then
-        ig.AlignTextToFramePadding(ctx)
-        ig.TextDisabled(ctx, 'Put it at:')
-        local at = { { 'Now', nil }, { 'Minimum', 0 }, { 'Middle', 0.5 }, { 'Maximum', 1 } }
-        for i, a_ in ipairs(at) do
-          ig.SameLine(ctx)
-          if ig.SmallButton(ctx, a_[1] .. '##defat' .. i) then
-            params_update(tr, first.guid, first.idx,
-                          { def = a_[2] or reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx) })
+    if section_header('Control', true) then
+      for _, o in ipairs(PARAM_CONTROL_OPTS) do
+        local on = #targets == 1 and ((o[1] == nil and not k.overridden) or (o[1] ~= nil and k.overridden and k.kind == o[1]))
+        local label = o[2] .. ((o[1] == nil and #targets == 1) and (' (now: ' .. PARAM_KIND_LABEL[k.guess] .. ')') or '')
+        if ig.RadioButton(ctx, label .. '##ctl' .. tostring(o[1]), on) then
+          for _, t in ipairs(targets) do
+            local f = gm[t.guid]
+            if f then param_set_override(t.tr or tr, f, { guid = t.guid, idx = t.idx, pname = t.name }, o[1]) end
           end
         end
       end
+      ig.TextDisabled(ctx, 'Your choice is added to the training data.')
       ig.Spacing(ctx)
     end
-    -- Limit values: Min / Max (the controls that turn, param_limit_ok) or a list (param_list_ok)
-    local can_mm, can_list = param_limit_ok(k.kind), param_list_ok(k.kind)
-    if (can_mm or can_list) and section_header('Limit values', true) then
-      local g, ix = first.guid, first.idx
-      local function mm_on() params_update(tr, g, ix, { lim = 'mm', lo = row.lo or 0, hi = row.hi or 1 }) end
-      -- choosing the list: when the value it has now isn't in it, ask whether to add it (once the list is
-      -- on, the parameter only takes the values of the list, so this is the moment to keep it)
-      local function list_on()
-        local cur = reaper.TrackFX_GetParamNormalized(tr, fxi, ix)
-        params_update(tr, g, ix, { lim = 'list' })
-        for _, x in ipairs(row.vals or {}) do
-          if math.abs(x - cur) < 1e-5 then param_list_snap(tr, fxi, ix, row.vals); return end
+    if #targets ~= 1 then return end
+
+    -- how this row behaves (saved with the project: only for a parameter that is in the Performance)
+    if not row then
+      ig.TextDisabled(ctx, 'Put the parameter in the Performance\nto set the rest.')
+    else
+      if section_header('Direction and default', true) then
+        local inv = row.inv == true
+        local rv, v = ig.Checkbox(ctx, 'Invert (turns the other way)', inv)
+        if rv then params_update(tr, first.guid, first.idx, { inv = v }) end
+        local has_def = row.def ~= nil
+        local rv2, v2 = ig.Checkbox(ctx, 'Default mark', has_def)
+        if rv2 then
+          params_update(tr, first.guid, first.idx, { def = v2 and reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx) or false })
         end
-        local function finish(add)
-          if not valid(tr) then return end
-          local r = params_find(tr, g, ix)
-          if not r then return end
-          local nv = {}
-          for _, x in ipairs(r.vals or {}) do nv[#nv + 1] = x end
-          if add then nv[#nv + 1] = cur; params_update(tr, g, ix, { vals = nv }) end
-          param_list_snap(tr, fxi, ix, nv)
-        end
-        request_confirm(('Add the value it has now (%s) to the list?'):format(param_text_at(tr, fxi, ix, cur)),
-          function() finish(true) end, 'Add it', nil, { label = "Don't add", fn = function() finish(false) end })
-      end
-      local rv3, v3 = ig.Checkbox(ctx, 'Use limits', row.lim ~= nil)
-      if ig.IsItemHovered(ctx) then
-        ig.SetTooltip(ctx, 'When it is moved from the Performance, the parameter only takes\nthe values between a Min and a Max, or the values of a list.')
-      end
-      if rv3 then
-        if not v3 then params_update(tr, g, ix, { lim = false })
-        elseif can_list and (row.vals or not can_mm) then list_on()
-        else mm_on() end
-      end
-      if row.lim and can_mm and can_list then
-        if ig.RadioButton(ctx, 'Min / Max', row.lim == 'mm') and row.lim ~= 'mm' then mm_on() end
-        ig.SameLine(ctx)
-        if ig.RadioButton(ctx, 'List of values', row.lim == 'list') and row.lim ~= 'list' then list_on() end
-      end
-      if row.lim == 'mm' and can_mm then
-        local lo, hi = row.lo, row.hi
-        -- caption, the value (the plug-in's number), its unit, then Now; both lines the same widths
-        local capw = math.max((ig.CalcTextSize(ctx, 'Min')), (ig.CalcTextSize(ctx, 'Max'))) + 8
-        local _, ulo = param_text_split(param_text_at(tr, fxi, ix, row.lo))
-        local _, uhi = param_text_split(param_text_at(tr, fxi, ix, row.hi))
-        local unitw = math.max((ig.CalcTextSize(ctx, ulo)), (ig.CalcTextSize(ctx, uhi)))
-        local noww = ig.CalcTextSize(ctx, 'Now') + 2 * select(1, ig.GetStyleVar(ctx, ig.StyleVar_FramePadding()))
-        local spx = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
-        local sw = select(1, ig.GetContentRegionAvail(ctx)) - capw - (unitw > 0 and unitw + 4 or 0) - spx - noww
-        for _, e in ipairs({ { 'Min', 'lo' }, { 'Max', 'hi' } }) do
-          local num, unit = param_text_split(param_text_at(tr, fxi, ix, row[e[2]]))
-          field_caption(e[1], capw)
-          ig.SetNextItemWidth(ctx, math.max(60, sw))
-          local rv, v = ig.SliderDouble(ctx, '##lim' .. e[2], row[e[2]], 0, 1, (num:gsub('%%', '%%%%')))
-          if unitw > 0 then
-            ig.SameLine(ctx, 0, 4)
-            ig.AlignTextToFramePadding(ctx)
-            ig.Text(ctx, unit)
-            ig.SameLine(ctx, 0, 4 + unitw - ig.CalcTextSize(ctx, unit) + spx - 4)
-          else
+        if has_def then
+          ig.AlignTextToFramePadding(ctx)
+          ig.TextDisabled(ctx, 'Put it at:')
+          local at = { { 'Now', nil }, { 'Minimum', 0 }, { 'Middle', 0.5 }, { 'Maximum', 1 } }
+          for i, a_ in ipairs(at) do
             ig.SameLine(ctx)
-          end
-          if ig.SmallButton(ctx, 'Now##limnow' .. e[2]) then rv, v = true, reaper.TrackFX_GetParamNormalized(tr, fxi, ix) end
-          if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Set ' .. e[1] .. ' to where the parameter is now') end
-          if rv then
-            if e[2] == 'lo' then lo = math.min(v, hi - 0.001) else hi = math.max(v, lo + 0.001) end
+            if ig.SmallButton(ctx, a_[1] .. '##defat' .. i) then
+              params_update(tr, first.guid, first.idx,
+                            { def = a_[2] or reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx) })
+            end
           end
         end
-        if lo ~= row.lo or hi ~= row.hi then
-          params_update(tr, g, ix, { lo = lo, hi = hi })
-          -- the parameter moves inside the new limits at once
+        ig.Spacing(ctx)
+      end
+      -- Limit values: Min / Max (the controls that turn, param_limit_ok) or a list (param_list_ok)
+      local can_mm, can_list = param_limit_ok(k.kind), param_list_ok(k.kind)
+      if (can_mm or can_list) and section_header('Limit values', true) then
+        local g, ix = first.guid, first.idx
+        local function mm_on() params_update(tr, g, ix, { lim = 'mm', lo = row.lo or 0, hi = row.hi or 1 }) end
+        -- choosing the list: when the value it has now isn't in it, ask whether to add it (once the list is
+        -- on, the parameter only takes the values of the list, so this is the moment to keep it)
+        local function list_on()
           local cur = reaper.TrackFX_GetParamNormalized(tr, fxi, ix)
-          if cur < lo or cur > hi then reaper.TrackFX_SetParamNormalized(tr, fxi, ix, math.max(lo, math.min(hi, cur))) end
+          params_update(tr, g, ix, { lim = 'list' })
+          for _, x in ipairs(row.vals or {}) do
+            if math.abs(x - cur) < 1e-5 then param_list_snap(tr, fxi, ix, row.vals); return end
+          end
+          local function finish(add)
+            if not valid(tr) then return end
+            local r = params_find(tr, g, ix)
+            if not r then return end
+            local nv = {}
+            for _, x in ipairs(r.vals or {}) do nv[#nv + 1] = x end
+            if add then nv[#nv + 1] = cur; params_update(tr, g, ix, { vals = nv }) end
+            param_list_snap(tr, fxi, ix, nv)
+          end
+          request_confirm(('Add the value it has now (%s) to the list?'):format(param_text_at(tr, fxi, ix, cur)),
+            function() finish(true) end, 'Add it', nil, { label = "Don't add", fn = function() finish(false) end })
         end
-        if param_fit_ok(k.kind) then
-          local rv4, v4 = ig.Checkbox(ctx, 'Use the full range of the control', row.fit == true)
-          if ig.IsItemHovered(ctx) then
-            ig.SetTooltip(ctx, 'On: the control turns all the way from Min to Max, for finer moves.\n'
-                            .. 'Off: the control stops at Min and Max (an arc shows where).')
-          end
-          if rv4 then params_update(tr, g, ix, { fit = v4 }) end
-        else
-          ig.TextDisabled(ctx, 'The control stops at Min and Max.')
+        local rv3, v3 = ig.Checkbox(ctx, 'Use limits', row.lim ~= nil)
+        if ig.IsItemHovered(ctx) then
+          ig.SetTooltip(ctx, 'When it is moved from the Performance, the parameter only takes\nthe values between a Min and a Max, or the values of a list.')
         end
-      elseif row.lim == 'list' and can_list then
-        -- the values, in the list's order (any order), with on the right: move up, move down, remove (red)
-        local vals = row.vals or {}
-        local function put(nv)
-          params_update(tr, g, ix, { vals = #nv > 0 and nv or false })
-          param_list_snap(tr, fxi, ix, nv)
+        if rv3 then
+          if not v3 then params_update(tr, g, ix, { lim = false })
+          elseif can_list and (row.vals or not can_mm) then list_on()
+          else mm_on() end
         end
-        local function copy() local nv = {}; for i, v in ipairs(vals) do nv[i] = v end; return nv end
-        if #vals == 0 then ig.TextDisabled(ctx, 'No values yet: add some below.') end
-        local bw = ig.GetFrameHeight(ctx)
-        local sp = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
-        local bx = ig.GetCursorPosX(ctx) + math.max(0, select(1, ig.GetContentRegionAvail(ctx)) - 3 * bw - 2 * sp)
-        -- the boxes are in the parameter's color (as readable as its name in the tree), the unit outside
-        local rcol = param_row_color(fx_color(tr, g, track_color(tr)), row)
-        local bgc = ig.GetStyleColor(ctx, ig.Col_WindowBg())
-        local dk = ((bgc >> 24) & 255) * 0.3 + ((bgc >> 16) & 255) * 0.59 + ((bgc >> 8) & 255) * 0.11 < 128
-        for i, v in ipairs(vals) do
-          ig.PushID(ctx, 'lv' .. i)
-          local num, unit, isnum = param_text_split(param_text_at(tr, fxi, ix, v))
-          ig.PushStyleColor(ctx, ig.Col_FrameBg(), (rcol & 0xFFFFFF00) | 0x40)
-          ig.PushStyleColor(ctx, ig.Col_Border(), (rcol & 0xFFFFFF00) | 0xB0)
-          ig.PushStyleColor(ctx, ig.Col_Text(), param_name_color(rcol, dk))
-          ig.PushStyleVar(ctx, ig.StyleVar_FrameBorderSize(), 1)
-          ig.SetNextItemWidth(ctx, isnum and 84 or math.max(84, ig.CalcTextSize(ctx, num) + 16))
-          -- a number can be typed: the parameter is asked for the position that prints it
-          local rv, typed = ig.InputText(ctx, '##val', num, isnum and ig.InputTextFlags_AutoSelectAll() or ig.InputTextFlags_ReadOnly())
-          ig.PopStyleVar(ctx)
-          ig.PopStyleColor(ctx, 3)
-          if rv then P.ve, P.ve_i = typed, i end
-          if isnum and ig.IsItemDeactivatedAfterEdit(ctx) and P.ve_i == i then
-            local tn, tu, tis = param_text_split((P.ve:gsub(',', '.')))
-            local nv = tis and param_find_value(tr, fxi, ix, tonumber(tn), tu ~= '' and tu or unit)
-            if nv then local nvals = copy(); nvals[i] = nv; put(nvals) end
-          end
-          if unit ~= '' then
-            ig.SameLine(ctx, 0, 4)
-            ig.AlignTextToFramePadding(ctx)
-            ig.TextDisabled(ctx, unit)
-          end
-          ig.SameLine(ctx, bx)
-          -- no up arrow on the first value, no down arrow on the last: an empty space keeps the others lined up
-          if i == 1 then ig.Dummy(ctx, bw, bw)
-          elseif ig.ArrowButton(ctx, 'up', ig.Dir_Up()) then
-            local nv = copy(); nv[i], nv[i - 1] = nv[i - 1], nv[i]; put(nv)
-          end
+        if row.lim and can_mm and can_list then
+          if ig.RadioButton(ctx, 'Min / Max', row.lim == 'mm') and row.lim ~= 'mm' then mm_on() end
           ig.SameLine(ctx)
-          if i == #vals then ig.Dummy(ctx, bw, bw)
-          elseif ig.ArrowButton(ctx, 'dn', ig.Dir_Down()) then
-            local nv = copy(); nv[i], nv[i + 1] = nv[i + 1], nv[i]; put(nv)
+          if ig.RadioButton(ctx, 'List of values', row.lim == 'list') and row.lim ~= 'list' then list_on() end
+        end
+        if row.lim == 'mm' and can_mm then
+          local lo, hi = row.lo, row.hi
+          -- caption, the value (the plug-in's number), its unit, then Now; both lines the same widths
+          local capw = math.max((ig.CalcTextSize(ctx, 'Min')), (ig.CalcTextSize(ctx, 'Max'))) + 8
+          local _, ulo = param_text_split(param_text_at(tr, fxi, ix, row.lo))
+          local _, uhi = param_text_split(param_text_at(tr, fxi, ix, row.hi))
+          local unitw = math.max((ig.CalcTextSize(ctx, ulo)), (ig.CalcTextSize(ctx, uhi)))
+          local noww = ig.CalcTextSize(ctx, 'Now') + 2 * select(1, ig.GetStyleVar(ctx, ig.StyleVar_FramePadding()))
+          local spx = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
+          local sw = select(1, ig.GetContentRegionAvail(ctx)) - capw - (unitw > 0 and unitw + 4 or 0) - spx - noww
+          for _, e in ipairs({ { 'Min', 'lo' }, { 'Max', 'hi' } }) do
+            local num, unit = param_text_split(param_text_at(tr, fxi, ix, row[e[2]]))
+            field_caption(e[1], capw)
+            ig.SetNextItemWidth(ctx, math.max(60, sw))
+            local rv, v = ig.SliderDouble(ctx, '##lim' .. e[2], row[e[2]], 0, 1, (num:gsub('%%', '%%%%')))
+            if unitw > 0 then
+              ig.SameLine(ctx, 0, 4)
+              ig.AlignTextToFramePadding(ctx)
+              ig.Text(ctx, unit)
+              ig.SameLine(ctx, 0, 4 + unitw - ig.CalcTextSize(ctx, unit) + spx - 4)
+            else
+              ig.SameLine(ctx)
+            end
+            if ig.SmallButton(ctx, 'Now##limnow' .. e[2]) then rv, v = true, reaper.TrackFX_GetParamNormalized(tr, fxi, ix) end
+            if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Set ' .. e[1] .. ' to where the parameter is now') end
+            if rv then
+              if e[2] == 'lo' then lo = math.min(v, hi - 0.001) else hi = math.max(v, lo + 0.001) end
+            end
           end
-          ig.SameLine(ctx)
-          ig.PushStyleColor(ctx, ig.Col_Button(), 0xB03030FF)
-          ig.PushStyleColor(ctx, ig.Col_ButtonHovered(), 0xD04040FF)
-          ig.PushStyleColor(ctx, ig.Col_ButtonActive(), 0x902020FF)
-          ig.PushStyleColor(ctx, ig.Col_Text(), 0xFFFFFFFF)
-          if ig.Button(ctx, 'x', bw, bw) then local nv = copy(); table.remove(nv, i); put(nv) end
-          ig.PopStyleColor(ctx, 4)
-          if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Remove this value from the list') end
-          ig.PopID(ctx)
-        end
-        -- adding, at the end: one of the FX's own values, or one picked. The field and the Add button
-        -- together are as wide as the list.
-        local function add(v)
-          for _, x in ipairs(vals) do if math.abs(x - v) < 1e-5 then return end end
-          local nv = copy(); nv[#nv + 1] = v; put(nv)
-        end
-        local W = select(1, ig.GetContentRegionAvail(ctx))
-        if k.items then
+          if lo ~= row.lo or hi ~= row.hi then
+            params_update(tr, g, ix, { lo = lo, hi = hi })
+            -- the parameter moves inside the new limits at once
+            local cur = reaper.TrackFX_GetParamNormalized(tr, fxi, ix)
+            if cur < lo or cur > hi then reaper.TrackFX_SetParamNormalized(tr, fxi, ix, math.max(lo, math.min(hi, cur))) end
+          end
+          if param_fit_ok(k.kind) then
+            local rv4, v4 = ig.Checkbox(ctx, 'Use the full range of the control', row.fit == true)
+            if ig.IsItemHovered(ctx) then
+              ig.SetTooltip(ctx, 'On: the control turns all the way from Min to Max, for finer moves.\n'
+                              .. 'Off: the control stops at Min and Max (an arc shows where).')
+            end
+            if rv4 then params_update(tr, g, ix, { fit = v4 }) end
+          else
+            ig.TextDisabled(ctx, 'The control stops at Min and Max.')
+          end
+        elseif row.lim == 'list' and can_list then
+          -- the values, in the list's order (any order), with on the right: move up, move down, remove (red)
+          local vals = row.vals or {}
+          local function put(nv)
+            params_update(tr, g, ix, { vals = #nv > 0 and nv or false })
+            param_list_snap(tr, fxi, ix, nv)
+          end
+          local function copy() local nv = {}; for i, v in ipairs(vals) do nv[i] = v end; return nv end
+          if #vals == 0 then ig.TextDisabled(ctx, 'No values yet: add some below.') end
+          local bw = ig.GetFrameHeight(ctx)
+          local sp = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
+          local bx = ig.GetCursorPosX(ctx) + math.max(0, select(1, ig.GetContentRegionAvail(ctx)) - 3 * bw - 2 * sp)
+          -- the boxes are in the parameter's color (as readable as its name in the tree), the unit outside
+          local rcol = param_row_color(fx_color(tr, g, track_color(tr)), row)
+          local bgc = ig.GetStyleColor(ctx, ig.Col_WindowBg())
+          local dk = ((bgc >> 24) & 255) * 0.3 + ((bgc >> 16) & 255) * 0.59 + ((bgc >> 8) & 255) * 0.11 < 128
+          for i, v in ipairs(vals) do
+            ig.PushID(ctx, 'lv' .. i)
+            local num, unit, isnum = param_text_split(param_text_at(tr, fxi, ix, v))
+            ig.PushStyleColor(ctx, ig.Col_FrameBg(), (rcol & 0xFFFFFF00) | 0x40)
+            ig.PushStyleColor(ctx, ig.Col_Border(), (rcol & 0xFFFFFF00) | 0xB0)
+            ig.PushStyleColor(ctx, ig.Col_Text(), param_name_color(rcol, dk))
+            ig.PushStyleVar(ctx, ig.StyleVar_FrameBorderSize(), 1)
+            ig.SetNextItemWidth(ctx, isnum and 84 or math.max(84, ig.CalcTextSize(ctx, num) + 16))
+            -- a number can be typed: the parameter is asked for the position that prints it
+            local rv, typed = ig.InputText(ctx, '##val', num, isnum and ig.InputTextFlags_AutoSelectAll() or ig.InputTextFlags_ReadOnly())
+            ig.PopStyleVar(ctx)
+            ig.PopStyleColor(ctx, 3)
+            if rv then P.ve, P.ve_i = typed, i end
+            if isnum and ig.IsItemDeactivatedAfterEdit(ctx) and P.ve_i == i then
+              local tn, tu, tis = param_text_split((P.ve:gsub(',', '.')))
+              local nv = tis and param_find_value(tr, fxi, ix, tonumber(tn), tu ~= '' and tu or unit)
+              if nv then local nvals = copy(); nvals[i] = nv; put(nvals) end
+            end
+            if unit ~= '' then
+              ig.SameLine(ctx, 0, 4)
+              ig.AlignTextToFramePadding(ctx)
+              ig.TextDisabled(ctx, unit)
+            end
+            ig.SameLine(ctx, bx)
+            -- no up arrow on the first value, no down arrow on the last: an empty space keeps the others lined up
+            if i == 1 then ig.Dummy(ctx, bw, bw)
+            elseif ig.ArrowButton(ctx, 'up', ig.Dir_Up()) then
+              local nv = copy(); nv[i], nv[i - 1] = nv[i - 1], nv[i]; put(nv)
+            end
+            ig.SameLine(ctx)
+            if i == #vals then ig.Dummy(ctx, bw, bw)
+            elseif ig.ArrowButton(ctx, 'dn', ig.Dir_Down()) then
+              local nv = copy(); nv[i], nv[i + 1] = nv[i + 1], nv[i]; put(nv)
+            end
+            ig.SameLine(ctx)
+            ig.PushStyleColor(ctx, ig.Col_Button(), 0xB03030FF)
+            ig.PushStyleColor(ctx, ig.Col_ButtonHovered(), 0xD04040FF)
+            ig.PushStyleColor(ctx, ig.Col_ButtonActive(), 0x902020FF)
+            ig.PushStyleColor(ctx, ig.Col_Text(), 0xFFFFFFFF)
+            if ig.Button(ctx, 'x', bw, bw) then local nv = copy(); table.remove(nv, i); put(nv) end
+            ig.PopStyleColor(ctx, 4)
+            if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Remove this value from the list') end
+            ig.PopID(ctx)
+          end
+          -- adding, at the end: one of the FX's own values, or one picked. The field and the Add button
+          -- together are as wide as the list.
+          local function add(v)
+            for _, x in ipairs(vals) do if math.abs(x - v) < 1e-5 then return end end
+            local nv = copy(); nv[#nv + 1] = v; put(nv)
+          end
+          local W = select(1, ig.GetContentRegionAvail(ctx))
+          if k.items then
+            ig.SetNextItemWidth(ctx, W)
+            if ig.BeginCombo(ctx, '##ladd', 'Add one of its values...') then
+              for _, it in ipairs(k.items) do
+                if ig.Selectable(ctx, it.label .. '##' .. it.norm, false) then add(it.norm) end
+              end
+              ig.EndCombo(ctx)
+            end
+          else
+            if P.lpick_key ~= g .. ':' .. ix then
+              P.lpick_key, P.lpick = g .. ':' .. ix, reaper.TrackFX_GetParamNormalized(tr, fxi, ix)
+            end
+            -- the value (the plug-in's number), its unit, then Add
+            local addw = ig.CalcTextSize(ctx, 'Add') + 2 * select(1, ig.GetStyleVar(ctx, ig.StyleVar_FramePadding()))
+            local num, unit = param_text_split(param_text_at(tr, fxi, ix, P.lpick))
+            local unitw = unit ~= '' and ig.CalcTextSize(ctx, unit) + 4 or 0
+            ig.SetNextItemWidth(ctx, W - addw - sp - unitw)
+            local rv, v = ig.SliderDouble(ctx, '##lpick', P.lpick, 0, 1, (num:gsub('%%', '%%%%')))
+            if rv then P.lpick = v end
+            field_unit(unit)
+            ig.SameLine(ctx)
+            if ig.Button(ctx, 'Add', addw, 0) then add(P.lpick) end
+          end
+          -- what the control becomes: its caption right above the menu
+          ig.Spacing(ctx)
+          ig.Text(ctx, 'Show as')
+          local auto = param_list_show({}, k.kind, #vals)
+          local opts = { { false, ('Automatic (%s)'):format(PARAM_KIND_LABEL[auto == 'list' and 'list' or 'steps']) },
+                         { 'steps', 'Stepped encoder' }, { 'list', 'Drop-down' } }
+          local cur_l = opts[1][2]
+          for _, o in ipairs(opts) do if o[1] and o[1] == row.vshow then cur_l = o[2] end end
           ig.SetNextItemWidth(ctx, W)
-          if ig.BeginCombo(ctx, '##ladd', 'Add one of its values...') then
-            for _, it in ipairs(k.items) do
-              if ig.Selectable(ctx, it.label .. '##' .. it.norm, false) then add(it.norm) end
+          if ig.BeginCombo(ctx, '##lshow', cur_l) then
+            for _, o in ipairs(opts) do
+              if ig.Selectable(ctx, o[2], (o[1] or nil) == row.vshow) then params_update(tr, g, ix, { vshow = o[1] }) end
             end
             ig.EndCombo(ctx)
           end
-        else
-          if P.lpick_key ~= g .. ':' .. ix then
-            P.lpick_key, P.lpick = g .. ':' .. ix, reaper.TrackFX_GetParamNormalized(tr, fxi, ix)
-          end
-          -- the value (the plug-in's number), its unit, then Add
-          local addw = ig.CalcTextSize(ctx, 'Add') + 2 * select(1, ig.GetStyleVar(ctx, ig.StyleVar_FramePadding()))
-          local num, unit = param_text_split(param_text_at(tr, fxi, ix, P.lpick))
-          local unitw = unit ~= '' and ig.CalcTextSize(ctx, unit) + 4 or 0
-          ig.SetNextItemWidth(ctx, W - addw - sp - unitw)
-          local rv, v = ig.SliderDouble(ctx, '##lpick', P.lpick, 0, 1, (num:gsub('%%', '%%%%')))
-          if rv then P.lpick = v end
-          field_unit(unit)
-          ig.SameLine(ctx)
-          if ig.Button(ctx, 'Add', addw, 0) then add(P.lpick) end
+          if #vals == 1 then ig.TextDisabled(ctx, 'A single value is always a drop-down.') end
         end
-        -- what the control becomes: its caption right above the menu
         ig.Spacing(ctx)
-        ig.Text(ctx, 'Show as')
-        local auto = param_list_show({}, k.kind, #vals)
-        local opts = { { false, ('Automatic (%s)'):format(PARAM_KIND_LABEL[auto == 'list' and 'list' or 'steps']) },
-                       { 'steps', 'Stepped encoder' }, { 'list', 'Drop-down' } }
-        local cur_l = opts[1][2]
-        for _, o in ipairs(opts) do if o[1] and o[1] == row.vshow then cur_l = o[2] end end
-        ig.SetNextItemWidth(ctx, W)
-        if ig.BeginCombo(ctx, '##lshow', cur_l) then
-          for _, o in ipairs(opts) do
-            if ig.Selectable(ctx, o[2], (o[1] or nil) == row.vshow) then params_update(tr, g, ix, { vshow = o[1] }) end
-          end
-          ig.EndCombo(ctx)
+      end
+      -- the value curve (curves.lua), for encoders and width / Q bands
+      if param_curve_ok(k.kind) and section_header('Curve', true) then
+        if row.lim == 'list' then
+          ig.TextDisabled(ctx, 'Not with a list of values.')
+        else
+          local u = param_to_ctl(row, k.kind, reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx))
+          local cvp = param_curve_of(row, k.kind)
+          draw_curve_section(tr, row, cvp and curve_inv(cvp, u, param_row_memo(tr, row, fxi).cpos) or u)
         end
-        if #vals == 1 then ig.TextDisabled(ctx, 'A single value is always a drop-down.') end
+        ig.Spacing(ctx)
       end
-      ig.Spacing(ctx)
     end
-    -- the value curve (curves.lua), for encoders and width / Q bands
-    if param_curve_ok(k.kind) and section_header('Curve', true) then
-      if row.lim == 'list' then
-        ig.TextDisabled(ctx, 'Not with a list of values.')
-      else
-        local u = param_to_ctl(row, k.kind, reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx))
-        local cvp = param_curve_of(row, k.kind)
-        draw_curve_section(tr, row, cvp and curve_inv(cvp, u, param_row_memo(tr, row, fxi).cpos) or u)
-      end
-      ig.Spacing(ctx)
+
+    -- a preview of the control, and what REAPER says about the parameter
+    if section_header('Preview', true) then draw_param_preview(tr, fxi, first, row, k) end
+    if section_header('Details', false) then
+      local f = param_facts(tr, fxi, first.idx)
+      local _, now = reaper.TrackFX_GetFormattedParamValue(tr, fxi, first.idx)
+      ig.TextDisabled(ctx, ('Now: %s'):format(now or ''))
+      ig.TextDisabled(ctx, ('At the minimum: %s'):format(f.t0 or ''))
+      ig.TextDisabled(ctx, ('At the maximum: %s'):format(f.t1 or ''))
+      ig.TextDisabled(ctx, ('Range: %s to %s, step %s'):format(tostring(f.min), tostring(f.max), tostring(f.step)))
+      ig.TextDisabled(ctx, ('REAPER says toggle: %s'):format(f.toggle and 'yes' or 'no'))
     end
   end
-
-  -- a preview of the control, and what REAPER says about the parameter
-  if section_header('Preview', true) then draw_param_preview(tr, fxi, first, row, k) end
-  if section_header('Details', false) then
-    local f = param_facts(tr, fxi, first.idx)
-    local _, now = reaper.TrackFX_GetFormattedParamValue(tr, fxi, first.idx)
-    ig.TextDisabled(ctx, ('Now: %s'):format(now or ''))
-    ig.TextDisabled(ctx, ('At the minimum: %s'):format(f.t0 or ''))
-    ig.TextDisabled(ctx, ('At the maximum: %s'):format(f.t1 or ''))
-    ig.TextDisabled(ctx, ('Range: %s to %s, step %s'):format(tostring(f.min), tostring(f.max), tostring(f.step)))
-    ig.TextDisabled(ctx, ('REAPER says toggle: %s'):format(f.toggle and 'yes' or 'no'))
+  if ig.BeginChild(ctx, 'insp_body', 0, 0) then
+    body()
+    ig.EndChild(ctx)
   end
 end
 

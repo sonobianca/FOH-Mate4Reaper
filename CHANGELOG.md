@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Inspector: the top (the parameter's name, its nickname box, the FX) stays at the top; the sections under it (Control, Direction and default, Limit values, Curve, Preview, Details) scroll under it, with a line between the two.
+
 - Fix: FOH-Mate stopped on an error ("attempt to compare number with nil", curves.lua) when the Inspector showed a curve, and could do the same in Limit values > Min / Max and in Settings: a text width was compared with a missing second value.
 
 - Fields read **caption first, then the field, then its unit**, everywhere it wasn't the case: the Inspector's curve (**Type**, **Strength**), its **Min** / **Max** (caption, the value, its unit, then Now), the value slider of a list of values (value, unit, then Add), and the whole **Settings** window: captions in a column on the left, the fields lined up after them, the units after the fields ("px", "s", "dB"...), the colored type names before their color swatch. The tooltips also show over the captions. Check boxes keep their box before the label.
