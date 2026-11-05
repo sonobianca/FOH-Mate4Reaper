@@ -46,9 +46,10 @@ function draw_display_menu()
     save_cfg_value({ key = 'perf_fold_auto' })
   end
   if ig.IsItemHovered(ctx) then
-    ig.SetTooltip(ctx, 'Performance mode: an open FX section (Show mode) and a widened parameter section fold back by\n'
+    ig.SetTooltip(ctx, 'Performance mode, Show mode: an open FX section and a widened parameter section fold back by\n'
                     .. 'themselves after a while without activity (the time is in Settings > Performance mode).\n'
-                    .. 'Each rack and each parameter section can choose for itself in its "..." menu.')
+                    .. 'Right-click its handle to pin a section open with a push pin. Edit mode: not by default\n'
+                    .. '(Settings > Performance mode).')
   end
   toggle_setting('Hide disabled parameters', 'hide_dead', 'hidedead',
     'Performance mode: the parameters whose FX was deleted (or changed) are left out of the columns.\nThey are kept: a new FX of the same plug-in on the rack takes them back.')

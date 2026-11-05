@@ -554,6 +554,14 @@ end
 --    what is drawn is the value the curve gives (norm): the encoder rises and falls with the curve as
 --    it is turned one way. o.def is then a value, o.def_pos where double-click goes.
 -- Returns the new position 0..1 when the user changed it.
+-- a push pin (a thumb tack seen from the side, 15 px tall) centered on cx, cy
+function draw_pin(dl, cx, cy, col)
+  ig.DrawList_AddRectFilled(dl, cx - 4.5, cy - 7.5, cx + 4.5, cy - 5, col, 1.5)                                   -- the head
+  ig.DrawList_AddQuadFilled(dl, cx - 3, cy - 5, cx + 3, cy - 5, cx + 2, cy + 1, cx - 2, cy + 1, col)             -- the body
+  ig.DrawList_AddRectFilled(dl, cx - 6, cy + 1, cx + 6, cy + 3, col, 1)                                          -- the plate
+  ig.DrawList_AddLine(dl, cx, cy + 3, cx, cy + 8, col, 1.8)                                                      -- the needle
+end
+
 function draw_encoder(id, cx, cy, r, norm, o)
   local s = o.s or 1
   local dl = ig.GetWindowDrawList(ctx)

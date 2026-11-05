@@ -89,6 +89,8 @@ SCHEMA = {
 
   { group = 'Performance mode', key = 'perf_fold_auto', label = 'Fold the FX and parameter sections by themselves', kind = 'bool', min = 0, max = 1, def = 1,
     tip = 'On: an open FX section (Show mode) and a widened parameter section fold back after the time below\nwithout you using FOH-Mate. Off: they stay open until you fold them.' },
+  { group = 'Performance mode', key = 'perf_fold_edit', label = 'Also fold them by themselves in Edit mode', kind = 'bool', min = 0, max = 1, def = 0,
+    tip = 'Off (default): in Edit mode, the configuration mode, a widened parameter section stays open until you\nfold it. On: it folds back by itself after the time below, like in Show mode. A section pinned open\n(right-click its handle) never folds by itself.' },
   { group = 'Performance mode', key = 'perf_fold_after', label = 'Fold them after', kind = 'i', min = 0, max = 120, def = 15, fmt = '%d s',
     tip = 'An open FX section (Show mode) and a widened parameter column fold back after this long\nwithout activity in the Plugins Host window (the mouse moving over it, a click, a drag, scrolling\nor a key). Nothing outside the window counts. Only when the option above is on.' },
   { group = 'Performance mode', key = 'remember_nicks', label = 'Remember parameters nicknames', kind = 'bool', min = 0, max = 1, def = 1,

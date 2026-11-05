@@ -281,19 +281,36 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
     local fs = perf_fold_state(guid)
     local hy = y0 + vh - PAD - HANDLE_H
     ig.SetCursorScreenPos(ctx, x0 + 2, hy)
+    if not fs.open then fs.pin = false end                  -- a pin only holds an open section
     if ig.InvisibleButton(ctx, 'fold', RACK_W - 4, HANDLE_H + PAD - 2) then
       fs.open = not fs.open
+      fs.pin = false                                        -- clicked: the pin is gone (and a folded section isn't pinned)
       PERF_ACT = now
       if fs.open then for _, ps in pairs(PERF_PARAMS) do ps.open = false end end   -- widened parameters fold back first
     end
-    handle = { hov = ig.IsItemHovered(ctx), open = fs.open, y = hy + (HANDLE_H + PAD) / 2 }   -- centered between the section above and the bottom edge
-    if handle.hov then ig.SetTooltip(ctx, fs.open and 'Fold the FX section' or 'Show the FX section') end
-    hint_hovered('Click: show or fold the FX section of this rack  \194\183  right-click: fold by itself or not')
-    -- right-click: whether this FX section folds back by itself (Show mode has no rack "..." menu)
-    if ig.BeginPopupContextItem(ctx, 'fold_ctx') then
-      draw_auto_fold_menu('Fold the FX section by itself', 'fx', targets_for(tr))
-      ig.EndPopup(ctx)
+    local pinned_now = fs.open and fs.pin
+    handle = { hov = ig.IsItemHovered(ctx), open = fs.open, pin = pinned_now, y = hy + (HANDLE_H + PAD) / 2 }   -- centered between the section above and the bottom edge
+    if ig.IsItemClicked(ctx, 1) then                        -- right-click: pin it open, or take the pin off
+      PERF_ACT = now
+      if pinned_now then
+        fs.pin = false
+      else
+        if not fs.open then
+          fs.open = true
+          for _, ps in pairs(PERF_PARAMS) do ps.open = false end
+        end
+        fs.pin = true
+      end
     end
+    if handle.hov then
+      ig.SetTooltip(ctx, pinned_now and 'Pinned open: click to fold it' or (fs.open and 'Fold the FX section' or 'Show the FX section'))
+    end
+    hint_hovered(pinned_now
+      and 'Pinned open: it stays open until you click the handle (which folds it)  \194\183  right-click: take the pin off, the section folds back by itself again as set in Display > Fold automatically'
+      or (fs.open
+        and 'Click: fold the FX section  \194\183  right-click: pin it open (a push pin: it stays until you click the handle); it folds back by itself otherwise, as set in Display > Fold automatically'
+        or 'Click: show the FX section (it folds back by itself as set in Display > Fold automatically)  \194\183  right-click: show it pinned open'))
+
     ig.PopID(ctx)
   end
 
@@ -367,8 +384,6 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
     ig.Separator(ctx)
     if ig.MenuItem(ctx, 'Recolor automatically') then rack_action(tr, 'Recolor automatically', recolor_rack_auto) end
     if ig.MenuItem(ctx, 'Choose color...') then open_picker('rack', tr) end
-    ig.Separator(ctx)
-    draw_auto_fold_menu('Fold the FX section by itself', 'fx', targets_for(tr))
     ig.Separator(ctx)
     if ig.MenuItem(ctx, 'Remove every FX') then
       fx_removal(tr, 'Remove every FX', remove_all_fx, function() return nil end)
@@ -917,13 +932,18 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
 
   clip_off()
 
-  -- the handle's chevron, over everything: down when folded, up when open
+  -- the handle's chevron, over everything: down when folded, up when open; a push pin in a contrasting
+  -- color when it is pinned open
   if handle then
     local hx = x0 + RACK_W / 2
     local hcol = (c.name_txt & 0xFFFFFF00) | (handle.hov and 0xFF or 0xA0)
     local dir = handle.open and -3 or 3
-    ig.DrawList_AddLine(dl, hx - 12, handle.y - dir * 0.5, hx, handle.y + dir * 0.5, hcol, 2.5)
-    ig.DrawList_AddLine(dl, hx, handle.y + dir * 0.5, hx + 12, handle.y - dir * 0.5, hcol, 2.5)
+    if handle.pin then
+      draw_pin(dl, hx, handle.y, contrast_glow(tr))
+    else
+      ig.DrawList_AddLine(dl, hx - 12, handle.y - dir * 0.5, hx, handle.y + dir * 0.5, hcol, 2.5)
+      ig.DrawList_AddLine(dl, hx, handle.y + dir * 0.5, hx + 12, handle.y - dir * 0.5, hcol, 2.5)
+    end
     -- Performance mode, Show mode: thin horizontal meters either side of the chevron (input on the
     -- left, output on the right) are the only meters; the FX section has the full width.
     if metering then

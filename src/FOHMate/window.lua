@@ -455,20 +455,43 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
   -- back to widen, face to face to fold back. The whole width is the button.
   local bh = HANDLE_H + PAD
   ig.PushID(ctx, guid)
-  local menu_w = 18                                      -- the "..." menu takes the right corner (both modes)
+  local menu_w = is_locked() and 0 or 18                 -- Edit mode: the "..." menu takes the right corner
   ig.SetCursorScreenPos(ctx, x + 2, y + 2)
+  if not ps.open then ps.pin = false end                 -- a pin only holds a widened section
   if ig.InvisibleButton(ctx, 'widen', w - 4 - menu_w, bh - 2) then
     ps.open = not ps.open
+    ps.pin = false                                       -- clicked: the pin is gone
     PERF_ACT = reaper.time_precise()
     if ps.open then
       for g, o in pairs(PERF_PARAMS) do if g ~= guid then o.open = false end end   -- one at a time
       for _, f in pairs(PERF_FOLD) do f.open = false end                            -- FX sections fold first
     end
   end
+  local pinned = ps.open and ps.pin
+  if ig.IsItemClicked(ctx, 1) then                       -- right-click: pin it widened, or take the pin off
+    PERF_ACT = reaper.time_precise()
+    if pinned then
+      ps.pin = false
+    else
+      if not ps.open then
+        ps.open = true
+        for g, o in pairs(PERF_PARAMS) do if g ~= guid then o.open = false end end
+        for _, f in pairs(PERF_FOLD) do f.open = false end
+      end
+      ps.pin = true
+    end
+  end
+  pinned = ps.open and ps.pin
   local band_hov = ig.IsItemHovered(ctx)
-  if band_hov then ig.SetTooltip(ctx, ps.open and 'Fold the parameters back' or 'Widen the parameters') end
-  hint_hovered('Click: widen the parameters over the other columns, or fold them back')
-  -- the "..." in the right corner, above the position bar: fold by itself, and (Edit mode) clean up the parameters
+  if band_hov then
+    ig.SetTooltip(ctx, pinned and 'Pinned open: click to fold it back' or (ps.open and 'Fold the parameters back' or 'Widen the parameters'))
+  end
+  hint_hovered(pinned
+    and 'Pinned open: it stays widened until you click the band (which folds it)  \194\183  right-click: take the pin off, it folds back by itself again as set in Display > Fold automatically'
+    or (ps.open
+      and 'Click: fold the parameters back  \194\183  right-click: pin them widened (a push pin: they stay until you click the band); they fold back by themselves otherwise, as set in Display > Fold automatically'
+      or 'Click: widen the parameters over the other columns (they fold back by themselves as set in Display > Fold automatically)  \194\183  right-click: widen them pinned'))
+  -- the "..." in the right corner, above the position bar (Edit mode): clean up the parameters
   if menu_w > 0 then
     ig.SetCursorScreenPos(ctx, x + w - 2 - menu_w, y + 2)
     if ig.InvisibleButton(ctx, 'pmenu', menu_w, bh - 2) then
@@ -477,8 +500,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     end
     local mhov = ig.IsItemHovered(ctx)
     if mhov then ig.SetTooltip(ctx, 'Parameter menu') end
-    hint_hovered(is_locked() and 'Click: this section folds back by itself or not'
-                 or 'Click: fold by itself, remove the parameters not linked any more, or all of them')
+    hint_hovered('Click: remove the parameters not linked any more, or all of them')
     local dcol = (c.name_txt & 0xFFFFFF00) | (mhov and 0xFF or 0xA0)
     local rx, dy = x + w - PAD - 1, math.floor(y + bh / 2) + 1   -- the dots end where the position bar ends
     for i = 0, 2 do ig.DrawList_AddCircleFilled(pdl, rx - 1.5 - i * 4, dy, 1.5, dcol) end
@@ -495,7 +517,9 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
       local flip = tip < base and -1 or 1
       ig.DrawList_AddTriangleFilled(pdl, tip, by, base, by + th * flip, base, by - th * flip, bcol)
     end
-    if ps.open then       -- face to face: tips toward the middle
+    if pinned then        -- a push pin in a contrasting color
+      draw_pin(pdl, bx, by, contrast_glow(tr))
+    elseif ps.open then   -- face to face: tips toward the middle
       tri(bx - tg - tw, bx - tg)
       tri(bx + tg + tw, bx + tg)
     else                  -- back to back: tips away from the middle
@@ -908,12 +932,10 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
   if outer then ig.EndChild(ctx) end
 end
 
--- the "..." menu of a rack's parameters (Show mode: only the folding)
+-- the "..." menu of a rack's parameters (Edit mode)
 function draw_param_menu(tr)
   local n = #params_read(tr)
-  draw_auto_fold_menu('Fold this section by itself', 'par', { tr })
-  if is_locked() then return end                         -- Show mode: only this
-  ig.Separator(ctx)
+
   local nu = PARAM_UNLINKED and #PARAM_UNLINKED or 0
   local label = nu > 0 and ('Remove the %d parameter%s not linked any more'):format(nu, nu == 1 and '' or 's')
                         or 'Every parameter is linked: nothing to remove'
@@ -935,52 +957,6 @@ PERF_FOLD, PERF_ACT, PERF_MX, PERF_MY, PERF_FRAME, PERF_FOLD_SECS = {}, 0, 0, 0,
 -- the same for a rack's parameter column: open = widened (asked for), t = how far it is,
 -- last = the row touched last, reveal = frames left to scroll to it after folding back
 PERF_PARAMS = {}
-
--- Fold back by itself, set for a rack's FX section ('fx') and for its parameter section ('par'): nil =
--- like the general setting (Display menu, Settings), true = yes, false = no. Kept with the rack.
-PERF_AUTO = {}
-function perf_auto_get(tr)
-  local g = reaper.GetTrackGUID(tr)
-  local c = PERF_AUTO[g]
-  if c and FRAME - c.frame < 20 then return c.v end
-  local ok, s = reaper.GetSetMediaTrackInfo_String(tr, EXT_AUTOFOLD, '', false)
-  if not ok then s = '' end
-  if c and c.raw == s then c.frame = FRAME; return c.v end
-  local v = {}
-  for k, x in s:gmatch('(%a+)=(%d)') do v[k] = (x == '1') end
-  PERF_AUTO[g] = { raw = s, v = v, frame = FRAME }
-  return v
-end
-
-function perf_auto_set(tr, which, val)
-  local v = perf_auto_get(tr)
-  local t = {}
-  for _, k in ipairs({ 'fx', 'par' }) do
-    local x = v[k]
-    if k == which then x = val end
-    if x ~= nil then t[#t + 1] = k .. '=' .. (x and '1' or '0') end
-  end
-  reaper.GetSetMediaTrackInfo_String(tr, EXT_AUTOFOLD, table.concat(t, ';'), true)
-  PERF_AUTO[reaper.GetTrackGUID(tr)] = nil
-end
-
--- does this section fold back by itself?
-function perf_auto_on(tr, which)
-  local x = perf_auto_get(tr)[which]
-  if x == nil then return CFG.perf_fold_auto ~= 0 end
-  return x
-end
-
--- the submenu of a section (which = 'fx' or 'par') for the racks trs
-function draw_auto_fold_menu(label, which, trs)
-  if not ig.BeginMenu(ctx, label) then return end
-  local cur = perf_auto_get(trs[1])[which]
-  if ig.MenuItem(ctx, 'Yes', nil, cur == true) then for _, t in ipairs(trs) do perf_auto_set(t, which, true) end end
-  if ig.MenuItem(ctx, 'No', nil, cur == false) then for _, t in ipairs(trs) do perf_auto_set(t, which, false) end end
-  local like = ('Like the general setting (%s)'):format(CFG.perf_fold_auto ~= 0 and 'yes' or 'no')
-  if ig.MenuItem(ctx, like, nil, cur == nil) then for _, t in ipairs(trs) do perf_auto_set(t, which, nil) end end
-  ig.EndMenu(ctx)
-end
 
 function perf_param_state(guid)
   local st = PERF_PARAMS[guid]
@@ -1056,17 +1032,14 @@ function draw_perf_area(infos, M, dt, now)
   end
   for _, ps in pairs(PERF_PARAMS) do if ps.open then any_open = true; break end end
   perf_activity(now, any_open)
-  -- no activity for a while: the FX sections and parameter sections that fold by themselves fold back
-  -- (the general setting: Display menu / Settings > Performance mode; each rack and each parameter
-  -- section can say yes or no for itself in its "..." menu)
+  -- no activity for a while: the FX sections and parameter sections fold back, except the ones pinned
+  -- open (right-click the handle). Show mode, as set in Display > Fold automatically (Settings >
+  -- Performance mode); Edit mode only when Settings says so.
   local after = CFG.perf_fold_after
-  if any_open and after > 0 and now - PERF_ACT >= after then
-    for _, inf in ipairs(infos) do
-      local g = reaper.GetTrackGUID(inf.tr)
-      local fs, ps = PERF_FOLD[g], PERF_PARAMS[g]
-      if fs and fs.open and perf_auto_on(inf.tr, 'fx') then fs.open = false end
-      if ps and ps.open and perf_auto_on(inf.tr, 'par') then ps.open = false end
-    end
+  if any_open and CFG.perf_fold_auto ~= 0 and (is_locked() or CFG.perf_fold_edit ~= 0)
+     and after > 0 and now - PERF_ACT >= after then
+    for _, st in pairs(PERF_FOLD) do if not st.pin then st.open = false end end
+    for _, ps in pairs(PERF_PARAMS) do if not ps.pin then ps.open = false end end
   end
 
   local row_h = 0                                  -- Edit mode: full racks, all as tall as the tallest
