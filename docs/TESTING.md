@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 162).
+New items get the next free number (next: 163).
 
 ## Open
 
+- [ ] 162. (0.14.116) Centered controls. (a) Left and right rows: each control is centered in the space between the value box and the edge of the row; the yellow default arrow (also at 9 or 3 o'clock), the min / max ticks and the limits arc all stay inside the row, also inside the glow when hovered or selected. (b) A drop-down and a toggle: centered in the same space. (c) Widened column (1.5x): still centered and inside. (d) The name boxes are a little narrower than in 0.14.115: tell me if a name now gets cut too soon.
 - [ ] 161. (0.14.115) Parameter column width. (a) A rack whose parameters all fit (no position bar on the right): the rows reach the right edge of the column like the left one. (b) A rack with more parameters than fit: the rows stop just before the bar (a small gap), wider than before. (c) A parameter with Limit values > Min / Max (not the full range), on a left row and a right row: the blue arc and its handles stay inside the row, within the glow when hovered or selected, and don't touch the value box. (d) Rows without an arc: the control still a little toward the outer edge; the value box a little further from the control. (e) Widen the column: rows still look right, 1.5 times bigger.
 - [ ] 160. (0.14.114) Inspector header. Open the Inspector on an encoder with every section open (a list of values helps make it long), make the window short: the name, the nickname box and the FX name stay at the top; the rest scrolls under them with the wheel or the scroll bar. Typing a nickname, the curve graph, the list's boxes and arrows, the right-click menus: all still work while scrolled. Several parameters selected: the title stays, Control scrolls under it.
 - [ ] 159. (0.14.113) The error of 0.14.112. With the Inspector open on a parameter that has a Curve section (an encoder), switch Daylight mode on and off, select other parameters, open Limit values > Min / Max, open Settings: no error. If it stops again, send the console text.

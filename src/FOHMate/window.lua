@@ -651,13 +651,14 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           kind = param_kind(tr, fxi, r)
         end
         local cd = rh - 8 * f                                    -- the control, outside the name box
+        local kw = cd + 9 * f                                    -- its area: a little wider, for the arc of its limits
         -- the value box between control and name, a little closer to the name (gap vn) than to the control (vc)
-        local vw, vn, vc = 22 * f, 2.5 * f, 7.5 * f
-        local box_w = rw2 - cd - vw - vn - vc
+        local vw, vn, vc = 22 * f, 2.5 * f, 5.5 * f
+        local box_w = rw2 - kw - vw - vn - vc
         local left = (j % 2 == 1)                            -- odd rows: name left; even rows: name right
         local bx = left and rx or (rx + rw2 - box_w)
-        local kx = left and (rx + rw2 - cd) or rx
-        local vx = left and (bx + box_w + vn) or (kx + cd + vc)
+        local kx = left and (rx + rw2 - kw) or rx
+        local vx = left and (bx + box_w + vn) or (kx + kw + vc)
         -- hover: the whole row (name box and control) glows; the rows of an FX whose name is
         -- pointed at in the rack glow in another color
         local over = mx_in and mouse_in(rx, ry, rx + rw2, ry + rh)
@@ -740,11 +741,9 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
             ig.EndDragDropSource(ctx)
           end
         end
-        -- the control, a little further out than the middle of its box to leave room for the marks;
-        -- a little further in when it has the arc of its limits (Limit values without the full range),
-        -- which reaches farther out: the arc then stays inside the row (and its glow), clear of the value box
-        local arc = r.lim == 'mm' and kind and param_limit_ok(kind.kind) and not (r.fit and param_fit_ok(kind.kind))
-        local kcx = kx + cd / 2 + (left and 1 or -1) * (arc and -(2.5 * f + 1) or 3 * f)
+        -- every control (encoder, band, pan, drop-down, toggle) in the middle of its area, which is wide
+        -- enough for its marks and the arc of its limits to stay inside the row (and its glow)
+        local kcx = kx + kw / 2
         local kcy, kr = ry + rh / 2, cd / 2 - 6 * f
         local dead = missing or not fxi
         local newv
