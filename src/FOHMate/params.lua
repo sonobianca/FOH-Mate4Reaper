@@ -1458,17 +1458,22 @@ function draw_param_control_panel(P, fxs, gm, targets)
         -- on, the parameter only takes the values of the list, so this is the moment to keep it)
         local function list_on()
           local cur = reaper.TrackFX_GetParamNormalized(tr, fxi, ix)
-          params_update(tr, g, ix, { lim = 'list' })
           for _, x in ipairs(row.vals or {}) do
-            if math.abs(x - cur) < 1e-5 then param_list_snap(tr, fxi, ix, row.vals); return end
+            if math.abs(x - cur) < 1e-5 then
+              params_update(tr, g, ix, { lim = 'list' })
+              param_list_snap(tr, fxi, ix, row.vals)
+              return
+            end
           end
+          -- the list is only turned on by an answer: Cancel leaves the limits as they were
           local function finish(add)
             if not valid(tr) then return end
             local r = params_find(tr, g, ix)
             if not r then return end
             local nv = {}
             for _, x in ipairs(r.vals or {}) do nv[#nv + 1] = x end
-            if add then nv[#nv + 1] = cur; params_update(tr, g, ix, { vals = nv }) end
+            if add then nv[#nv + 1] = cur end
+            params_update(tr, g, ix, { lim = 'list', vals = #nv > 0 and nv or false })
             param_list_snap(tr, fxi, ix, nv)
           end
           request_confirm(('Add the value it has now (%s) to the list?'):format(param_text_at(tr, fxi, ix, cur)),
