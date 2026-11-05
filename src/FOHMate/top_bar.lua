@@ -63,6 +63,13 @@ function draw_display_menu()
     end
     ig.EndMenu(ctx)
   end
+  if ig.BeginMenu(ctx, 'Windows') then
+    local P = PARAM_PICK
+    local can = not is_locked()                          -- (the parameter windows are for Edit mode)
+    if ig.MenuItem(ctx, 'Show parameter treeview', nil, P ~= nil and P.tree_open == true, can) then param_pick_toggle('tree') end
+    if ig.MenuItem(ctx, 'Show parameters inspector', nil, P ~= nil and P.insp_open == true, can) then param_pick_toggle('insp') end
+    ig.EndMenu(ctx)
+  end
   if ig.BeginMenu(ctx, 'Dock') then
     if ig.MenuItem(ctx, 'Floating') then dock_request = 0 end
     ig.Separator(ctx)

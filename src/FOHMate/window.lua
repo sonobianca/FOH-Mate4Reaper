@@ -675,7 +675,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         -- the parameter window opens on it (Edit mode; it is the same window as the + opens)
         if fxi and over and not is_locked() and ig.IsMouseDoubleClicked(ctx, 0)
            and mouse_in(left and bx or vx, ry, left and (vx + vw) or (bx + box_w), ry + rh) then
-          if not PARAM_PICK then param_picker_open(tr) end
+          param_picker_open(tr, nil, 'insp')
           param_pick_select(tr, r)
         end
         if over and ig.IsMouseClicked(ctx, 1) and not is_locked() then      -- Edit mode: the row's menu
@@ -904,7 +904,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           ig.EndMenu(ctx)
         end
         if mfx and ig.MenuItem(ctx, 'Inspect parameter...') then
-          param_picker_open(tr, 'p:' .. mr.guid .. ':' .. mr.idx)
+          param_picker_open(tr, 'p:' .. mr.guid .. ':' .. mr.idx, 'insp')
         end
         ig.Separator(ctx)
       end

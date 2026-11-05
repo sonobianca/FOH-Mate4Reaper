@@ -904,13 +904,37 @@ function param_set_uhidden(plug, pname, on)
 end
 
 -- sel_key: a parameter to select at once ('p:' .. FX guid .. ':' .. index), for the row menu
-function param_picker_open(tr, sel_key)
-  PARAM_PICK = { tr = tr, filter = '', sel = {}, anchor = sel_key, order = {} }
+-- Opens the parameter windows from rack tr: the tree and the inspector, or only the inspector
+-- (which = 'insp'); the state (what is selected, which racks are open in the tree) is kept between
+-- openings. sel_key: a parameter to select at once ('p:' .. FX guid .. ':' .. index), for the row menu.
+function param_picker_open(tr, sel_key, which)
+  local P = PARAM_PICK
+  if not P then P = { filter = '', sel = {}, order = {} }; PARAM_PICK = P end
+  P.tr = tr
+  P.open = P.open or {}
+  P.open['R:' .. reaper.GetTrackGUID(tr)] = true
+  if which ~= 'insp' then P.tree_open = true end
+  P.insp_open = true
   if sel_key then
-    PARAM_PICK.sel[sel_key] = true
+    P.sel, P.anchor = { [sel_key] = true }, sel_key
     local g, ix = sel_key:match('^p:({[^}]+}):(%d+)$')      -- its branches are opened to show it
-    if g then PARAM_PICK.reveal = { guid = g, idx = tonumber(ix) } end
+    if g then P.reveal = { guid = g, idx = tonumber(ix) } end
   end
+end
+
+-- Display > Windows: shows or hides one of the two windows (which = 'tree' or 'insp')
+function param_pick_toggle(which)
+  local P = PARAM_PICK
+  if not P or not valid(P.tr) then
+    local racks = param_racks()
+    if #racks == 0 then return end
+    if not P then P = { filter = '', sel = {}, order = {} }; PARAM_PICK = P end
+    P.tr = racks[1].tr
+    P.open = P.open or {}
+    P.open['R:' .. racks[1].guid] = true
+  end
+  local f = which == 'tree' and 'tree_open' or 'insp_open'
+  P[f] = not P[f]
 end
 
 -- the racks of the project, in track order
@@ -929,7 +953,7 @@ end
 -- would hide it is cleared.
 function param_pick_select(tr, r)
   local P = PARAM_PICK
-  if not P then return end
+  if not P or not (P.tree_open or P.insp_open) then return end
   P.no_focus = true                                         -- it was clicked in the rack: no need to scroll there
   local key = 'p:' .. r.guid .. ':' .. r.idx
   P.sel, P.anchor = { [key] = true }, key
@@ -1428,49 +1452,68 @@ function draw_param_preview(tr, fxi, first, row, k)
   ig.Dummy(ctx, 1, 72)
 end
 
-function draw_param_picker()
-  local P = PARAM_PICK
-  if not P then return end
-  if not valid(P.tr) or is_locked() then PARAM_PICK = nil; return end
-  local tr = P.tr
-  local vis, open = begin_window('parampick', 'Performance parameters###parampick', 760, 560, true)
-  if vis then
-    -- every rack of the project is a branch; the FX of the racks that are open, and the names of their
-    -- parameters, are read once per FX
-    local racks = param_racks()
-    P.open = P.open or {}
-    if not P.open_init then P.open['R:' .. reaper.GetTrackGUID(P.tr)], P.open_init = true, true end
-    local fxs, gm = {}, {}
-    for _, rk in ipairs(racks) do
-      rk.fxs = {}
-      if P.open['R:' .. rk.guid] then
-        for _, it in ipairs(chain_info(rk.tr).list) do
-          local g = reaper.TrackFX_GetFXGUID(rk.tr, it.fx)
-          local f = P.cache and P.cache[g]
-          if not f or f.fx ~= it.fx or f.name ~= it.name then
-            -- hidden: by the rules above (auto) or by hand (uhid); shown anyway with Show hidden
-            local names, hide, auto, uhid, nvis = {}, {}, {}, {}, 0
-            local plug = param_plugin_key(it.name)
-            for p = 0, reaper.TrackFX_GetNumParams(rk.tr, it.fx) - 1 do
-              local _, nm = reaper.TrackFX_GetParamName(rk.tr, it.fx, p, '')
-              names[p + 1] = nm
-              auto[p], uhid[p] = param_hidden(nm), param_uhidden(plug, nm)
-              if (auto[p] or uhid[p]) and not P.show_hidden then hide[p] = true else nvis = nvis + 1 end
-            end
-            f = { guid = g, fx = it.fx, name = it.name, names = names, hide = hide, auto = auto, uhid = uhid,
-                  plug = plug, nvis = nvis, reaper = param_reaper_set(names) }
-            param_pick_groups(f)
-            P.cache = P.cache or {}
-            P.cache[g] = f
+-- The parameters have two windows, the tree and the inspector, each of which opens, closes, floats and
+-- docks on its own (Display > Windows). They are drawn from the same data, worked out once a frame here:
+-- the racks (and the FX of the ones open in the tree, with the names of their parameters, read once per
+-- FX), and what is selected.
+function param_pick_data(P)
+  -- every rack of the project is a branch; the FX of the racks that are open, and the names of their
+  -- parameters, are read once per FX
+  local racks = param_racks()
+  P.open = P.open or {}
+  local fxs, gm = {}, {}
+  for _, rk in ipairs(racks) do
+    rk.fxs = {}
+    if P.open['R:' .. rk.guid] then
+      for _, it in ipairs(chain_info(rk.tr).list) do
+        local g = reaper.TrackFX_GetFXGUID(rk.tr, it.fx)
+        local f = P.cache and P.cache[g]
+        if not f or f.fx ~= it.fx or f.name ~= it.name then
+          -- hidden: by the rules above (auto) or by hand (uhid); shown anyway with Show hidden
+          local names, hide, auto, uhid, nvis = {}, {}, {}, {}, 0
+          local plug = param_plugin_key(it.name)
+          for p = 0, reaper.TrackFX_GetNumParams(rk.tr, it.fx) - 1 do
+            local _, nm = reaper.TrackFX_GetParamName(rk.tr, it.fx, p, '')
+            names[p + 1] = nm
+            auto[p], uhid[p] = param_hidden(nm), param_uhidden(plug, nm)
+            if (auto[p] or uhid[p]) and not P.show_hidden then hide[p] = true else nvis = nvis + 1 end
           end
-          f.tr = rk.tr
-          gm[g] = it.fx
-          rk.fxs[#rk.fxs + 1] = f
-          fxs[#fxs + 1] = f
+          f = { guid = g, fx = it.fx, name = it.name, names = names, hide = hide, auto = auto, uhid = uhid,
+                plug = plug, nvis = nvis, reaper = param_reaper_set(names) }
+          param_pick_groups(f)
+          P.cache = P.cache or {}
+          P.cache[g] = f
         end
+        f.tr = rk.tr
+        gm[g] = it.fx
+        rk.fxs[#rk.fxs + 1] = f
+        fxs[#fxs + 1] = f
       end
     end
+  end
 
+  -- what is selected glows in the rack's column (window.lua); a single parameter picked here is also
+  -- scrolled to, once (the rack into view, then the column to the row)
+  local targets = param_pick_targets(P, fxs)
+  P.hl = {}
+  local sig = #targets .. ':' .. (targets[1] and (targets[1].guid .. ':' .. targets[1].idx) or '')
+  for _, t in ipairs(targets) do P.hl[t.guid .. ':' .. t.idx] = true end
+  if P.sel_sig ~= sig then
+    P.sel_sig = sig
+    P.focus = (#targets == 1 and not P.no_focus) and { guid = targets[1].guid, idx = targets[1].idx, t = reaper.time_precise() } or nil
+    P.no_focus = false
+  end
+  if P.focus and reaper.time_precise() - P.focus.t > 1 then P.focus = nil end   -- not in any column: forget it
+
+  P.data = { racks = racks, fxs = fxs, gm = gm, targets = targets }
+  return P.data
+end
+
+-- the tree: the racks, their FX, groups and parameters, with the check boxes that add them to the Performance
+function draw_param_tree(P, D)
+  local racks, fxs, gm = D.racks, D.fxs, D.gm
+  local vis, open = begin_window('parampick', 'Performance parameters###parampick', 480, 560, true)
+  if vis then
     ig.SetNextItemWidth(ctx, -ig.CalcTextSize(ctx, 'Show hidden') - ig.GetFrameHeight(ctx) - 16)
     local rv, ftxt = ig.InputTextWithHint(ctx, '##pf', 'Search parameters', P.filter)
     if rv then P.filter = ftxt end
@@ -1528,7 +1571,7 @@ function draw_param_picker()
 
     local avail_w, avail_h = ig.GetContentRegionAvail(ctx)
     local foot = ig.GetFrameHeightWithSpacing(ctx) + 4
-    if ig.BeginChild(ctx, 'pptree', avail_w * 0.62, avail_h - foot) then
+    if ig.BeginChild(ctx, 'pptree', avail_w, avail_h - foot) then
       -- Every line is drawn here, not by ImGui's tree: a branch has its arrow, then (FX, groups,
       -- parameters) a check box, then its name. What a branch holds is one step in, and the step is
       -- the width of a check box and its gap: the check boxes of what is in a branch start where the
@@ -1736,26 +1779,6 @@ function draw_param_picker()
     end
     P.order = order
 
-    -- what is selected glows in the rack's column (window.lua); a single parameter picked here is also
-    -- scrolled to, once (the rack into view, then the column to the row)
-    local targets = param_pick_targets(P, fxs)
-    P.hl = {}
-    local sig = #targets .. ':' .. (targets[1] and (targets[1].guid .. ':' .. targets[1].idx) or '')
-    for _, t in ipairs(targets) do P.hl[t.guid .. ':' .. t.idx] = true end
-    if P.sel_sig ~= sig then
-      P.sel_sig = sig
-      P.focus = (#targets == 1 and not P.no_focus) and { guid = targets[1].guid, idx = targets[1].idx, t = reaper.time_precise() } or nil
-      P.no_focus = false
-    end
-    if P.focus and reaper.time_precise() - P.focus.t > 1 then P.focus = nil end   -- not in any column: forget it
-
-    -- the right-hand section: the control of what is selected
-    ig.SameLine(ctx)
-    if ig.BeginChild(ctx, 'ppctl', 0, avail_h - foot) then
-      draw_param_control_panel(P, fxs, gm, targets)
-      ig.EndChild(ctx)
-    end
-
     local any = next(P.sel) ~= nil
     if not any and ig.BeginDisabled then ig.BeginDisabled(ctx, true) end
     if ig.Button(ctx, 'Add to Performance') then param_pick_apply(P, fxs, true) end
@@ -1766,5 +1789,28 @@ function draw_param_picker()
     ig.TextDisabled(ctx, ('%d selected'):format((function() local c = 0 for _ in pairs(P.sel) do c = c + 1 end return c end)()))
     ig.End(ctx)
   end
-  if not open then PARAM_PICK = nil end
+  if not open then P.tree_open = false end
+end
+
+-- the inspector: the settings of what is selected (its own window)
+function draw_param_inspector(P, D)
+  local vis, open = begin_window('paraminsp', 'Parameters inspector###paraminsp', 320, 560, true)
+  if vis then
+    draw_param_control_panel(P, D.fxs, D.gm, D.targets)
+    ig.End(ctx)
+  end
+  if not open then P.insp_open = false end
+end
+
+function draw_param_picker()
+  local P = PARAM_PICK
+  if not P then return end
+  if not (P.tree_open or P.insp_open) then P.hl, P.focus = nil, nil; return end
+  if not valid(P.tr) or is_locked() then
+    P.tree_open, P.insp_open, P.hl, P.focus = false, false, nil, nil     -- (Show mode closes them)
+    return
+  end
+  local D = param_pick_data(P)
+  if P.tree_open then draw_param_tree(P, D) end
+  if P.insp_open then draw_param_inspector(P, D) end
 end
