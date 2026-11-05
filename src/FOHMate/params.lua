@@ -1266,10 +1266,10 @@ function draw_param_control_panel(P, fxs, gm, targets)
       if row.lim == 'mm' and can_mm then
         local lo, hi = row.lo, row.hi
         -- caption, the value (the plug-in's number), its unit, then Now; both lines the same widths
-        local capw = math.max(ig.CalcTextSize(ctx, 'Min'), ig.CalcTextSize(ctx, 'Max')) + 8
+        local capw = math.max((ig.CalcTextSize(ctx, 'Min')), (ig.CalcTextSize(ctx, 'Max'))) + 8
         local _, ulo = param_text_split(param_text_at(tr, fxi, ix, row.lo))
         local _, uhi = param_text_split(param_text_at(tr, fxi, ix, row.hi))
-        local unitw = math.max(ig.CalcTextSize(ctx, ulo), ig.CalcTextSize(ctx, uhi))
+        local unitw = math.max((ig.CalcTextSize(ctx, ulo)), (ig.CalcTextSize(ctx, uhi)))
         local noww = ig.CalcTextSize(ctx, 'Now') + 2 * select(1, ig.GetStyleVar(ctx, ig.StyleVar_FramePadding()))
         local spx = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
         local sw = select(1, ig.GetContentRegionAvail(ctx)) - capw - (unitw > 0 and unitw + 4 or 0) - spx - noww

@@ -1414,7 +1414,7 @@ function draw_settings()
     -- bit more than half the window), the fields line up after it, the units after them
     local capw, unitw = 0, 0
     for _, e in ipairs(SCHEMA) do
-      if e.kind ~= 'bool' then capw = math.max(capw, ig.CalcTextSize(ctx, e.label)) end
+      if e.kind ~= 'bool' then capw = math.max(capw, (ig.CalcTextSize(ctx, e.label))) end
       local _, u = fmt_unit(e.fmt)
       if u ~= '' then unitw = math.max(unitw, ig.CalcTextSize(ctx, u) + 4) end
     end

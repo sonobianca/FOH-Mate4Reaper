@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 159).
+New items get the next free number (next: 160).
 
 ## Open
 
+- [ ] 159. (0.14.113) The error of 0.14.112. With the Inspector open on a parameter that has a Curve section (an encoder), switch Daylight mode on and off, select other parameters, open Limit values > Min / Max, open Settings: no error. If it stops again, send the console text.
 - [ ] 158. (0.14.112) Caption first. (a) Inspector > Curve: "Type" then its menu, "Strength" then its slider, on the same left edge, the fields lined up and as wide as the graph. (b) Inspector > Limit values > Min / Max: "Min", the slider with the number only, the unit (Hz, dB...) after it, then Now; the same for Max, both sliders the same width. (c) A list of values without named values: the slider with the number, the unit, then Add, together as wide as the list. (d) Settings: every setting that is not a check box has its caption on the left, its field after it (all fields start at the same place), its unit after the field (e.g. "4" then "px"); the FX type colors: the type name (in its color) then the swatch. Hovering a caption shows its tooltip. Cmd/Ctrl-click a slider to type still works. Narrow the window: long captions don't push the fields off screen. (e) Check boxes unchanged.
 - [ ] 157. (0.14.111) Daylight marks. Display > Daylight mode, Performance mode: (a) Edit mode: the + at the end of every parameter column is clearly visible (dark), and hovering it lights its circle. (b) The two small triangles of the band at the top of each parameter column, and the "..." in its corner: visible. (c) Show mode: the chevron of the handle under each rack: visible. (d) Back to the dark look: all of them as before (light). Try a pale rack color and a dark one.
 - [ ] 156. (0.14.110) Reopen at start. (a) Edit mode, open Parameters and Inspector (dock one, leave one floating), quit FOH-Mate (close the Racks window), run it again: both open, where they were. (b) Close only the Inspector, restart: only Parameters opens. Close both: none. (c) Settings > Performance mode > Reopen the Parameters and Inspector windows off: restart: none open; on again: they reopen as they were last left. (d) Leave them open, switch to Show mode (they close), quit, start in Show mode: none; and they are not reopened later when you switch to Edit (this run).

@@ -284,7 +284,7 @@ function draw_curve_section(tr, row, pos)
   -- curve and its strength or smoothing
   ig.Indent(ctx, pad)
   local spx = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
-  local capw = math.max(ig.CalcTextSize(ctx, 'Type'), ig.CalcTextSize(ctx, 'Strength')) + 8   -- the captions' column
+  local capw = math.max((ig.CalcTextSize(ctx, 'Type')), (ig.CalcTextSize(ctx, 'Strength'))) + 8   -- the captions' column
   local lib = curve_lib()
   local half = (cv and #lib > 0) and (W - spx) / 2 or W
   if cv then
