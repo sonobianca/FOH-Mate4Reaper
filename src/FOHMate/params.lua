@@ -1104,6 +1104,100 @@ function param_set_override(tr, fxi, r, kind)
   param_ovr_save()
 end
 
+---------------------------------------------------------------- copy / paste of limits and curves
+--
+-- Right-click a parameter (a rack's row in Edit mode, or the tree): copy its limits (Range, List of values,
+-- List of ranges, or none), its curve, or both, and paste them on other parameters. The values are kept as
+-- positions along the control (0..1), like everything else in a row. Pasting puts the parameter in the
+-- Performance if it isn't, and changes its control when the current one can't have what is pasted (a
+-- toggle can't have a range, a drop-down can't have a curve...): it gets the control of the one copied.
+PARAM_CLIP = nil   -- { lims = {...} or nil, curve = text or false or nil, kind, from }
+
+PARAM_CLIP_FIELDS = { 'lim', 'lo', 'hi', 'fit', 'vals', 'vshow', 'rngs', 'rinv' }
+
+function param_clip_copy(tr, fxi, r, what)
+  local row = params_find(tr, r.guid, r.idx) or {}
+  local c = { kind = param_kind(tr, fxi, r).kind, from = row.name or r.pname }
+  if what ~= 'curve' then
+    c.lims = {}
+    for _, f in ipairs(PARAM_CLIP_FIELDS) do
+      local v = row[f]
+      if type(v) == 'table' then                             -- a copy, not the row's own list
+        local t = {}
+        for i, x in ipairs(v) do t[i] = type(x) == 'table' and { x[1], x[2] } or x end
+        v = t
+      end
+      c.lims[f] = v
+    end
+  end
+  if what ~= 'lims' then c.curve = row.curve or false end   -- false: linear (pasting it takes the curve off)
+  PARAM_CLIP = c
+end
+
+-- pastes what = 'lims', 'curve' or 'both' of the clipboard on targets ({ tr, guid, idx, name }); gm: FX guid -> index
+function param_clip_paste(targets, gm, what)
+  local c = PARAM_CLIP
+  if not c then return end
+  with_undo('Paste parameter limits / curve', function()
+    for _, t in ipairs(targets) do
+      local tr, fxi = t.tr, gm[t.guid]
+      if tr and fxi then
+        if not params_find(tr, t.guid, t.idx) then params_apply(tr, { { guid = t.guid, idx = t.idx, name = t.name } }, true) end
+        local r = { guid = t.guid, idx = t.idx, pname = t.name }
+        local ch = {}
+        local lims = what ~= 'curve' and c.lims
+        local curve = what ~= 'lims' and c.curve
+        if lims then
+          for _, f in ipairs(PARAM_CLIP_FIELDS) do
+            local v = lims[f]
+            if type(v) == 'table' then
+              local n = {}
+              for i, x in ipairs(v) do n[i] = type(x) == 'table' and { x[1], x[2] } or x end
+              v = n
+            end
+            ch[f] = (v == nil) and false or v
+          end
+        end
+        if what ~= 'lims' and c.curve ~= nil then ch.curve = c.curve end
+        -- the control: changed only when the one it has can't take what is pasted
+        local k = param_kind(tr, fxi, r).kind
+        local lim = lims and lims.lim
+        local bad = (lim == 'list' and not param_list_ok(k))
+                    or ((lim == 'mm' or lim == 'ranges') and not param_limit_ok(k))
+                    or (curve and lim ~= 'list' and not param_curve_ok(k))
+        if bad then
+          local nk = c.kind
+          if curve and not param_curve_ok(nk) then nk = 'knob' end
+          if nk ~= k then param_set_override(tr, fxi, r, nk) end
+        end
+        params_update(tr, t.guid, t.idx, ch)
+        local fresh = params_find(tr, t.guid, t.idx)
+        if fresh then param_limits_snap(tr, fxi, t.idx, fresh, param_kind(tr, fxi, r).kind) end
+      end
+    end
+  end)
+end
+
+-- the menu items: copy from parameter r (tr, fxi), paste on targets (the parameter itself, or the selection)
+function param_clip_menu(tr, fxi, r, targets, gm)
+  if ig.BeginMenu(ctx, 'Copy') then
+    if ig.MenuItem(ctx, 'Limits') then param_clip_copy(tr, fxi, r, 'lims') end
+    if ig.MenuItem(ctx, 'Curve') then param_clip_copy(tr, fxi, r, 'curve') end
+    if ig.MenuItem(ctx, 'Limits and curve') then param_clip_copy(tr, fxi, r, 'both') end
+    ig.EndMenu(ctx)
+  end
+  local c = PARAM_CLIP
+  local n = #targets
+  local label = n > 1 and ('Paste on the %d selected'):format(n) or 'Paste'
+  if ig.BeginMenu(ctx, label, c ~= nil) then
+    ig.TextDisabled(ctx, 'Copied from: ' .. (c.from or '?'))
+    if c.lims and ig.MenuItem(ctx, 'Limits') then param_clip_paste(targets, gm, 'lims') end
+    if c.curve ~= nil and ig.MenuItem(ctx, 'Curve') then param_clip_paste(targets, gm, 'curve') end
+    if c.lims and c.curve ~= nil and ig.MenuItem(ctx, 'Limits and curve') then param_clip_paste(targets, gm, 'both') end
+    ig.EndMenu(ctx)
+  end
+end
+
 ---------------------------------------------------------------- the parameter window (Edit mode)
 --
 -- A tree of the rack: the rack, its FX, and under each FX every parameter. Click selects, Cmd/Ctrl-click
@@ -2041,6 +2135,16 @@ function draw_param_tree(P, D)
               ig.TextDisabled(ctx, 'Hidden by FOH-Mate (a placeholder or a MIDI CC entry)')
             elseif ig.MenuItem(ctx, 'Hide this parameter') then
               param_set_uhidden(fx.fx_key, nm, true)
+            end
+            -- copy / paste its limits and curve: pasted on the whole selection when it is part of it
+            if gm[fx.guid] then
+              ig.Separator(ctx)
+              local tg = { { tr = fx.tr, guid = fx.guid, idx = p, name = nm } }
+              if P.sel[key] then
+                local all = param_pick_targets(P, fxs)
+                if #all > 1 then tg = all end
+              end
+              param_clip_menu(fx.tr, gm[fx.guid], { guid = fx.guid, idx = p, pname = nm }, tg, gm)
             end
           end })
       end

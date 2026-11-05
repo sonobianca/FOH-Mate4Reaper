@@ -891,6 +891,10 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         if mfx and ig.MenuItem(ctx, 'Inspect parameter...') then
           param_picker_open(tr, 'p:' .. mr.guid .. ':' .. mr.idx, 'insp')
         end
+        if mfx then                                         -- copy / paste its limits and curve (params.lua)
+          ig.Separator(ctx)
+          param_clip_menu(tr, mfx, mr, { { tr = tr, guid = mr.guid, idx = mr.idx, name = mr.pname } }, gmap)
+        end
         ig.Separator(ctx)
       end
       if ig.MenuItem(ctx, 'Remove this parameter') and rows[PARAM_MENU_ROW or 0] then

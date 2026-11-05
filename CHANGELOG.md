@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Parameters: right-click a parameter (a rack's row in Edit mode, or the Parameters tree) > Copy its limits, its curve or both, and Paste them on another parameter, or on the whole selection in the tree. Pasting puts the parameter in the Performance if needed, and gives it the copied one's control when its own can't take what is pasted.
+
 - Performance mode: the help line of a parameter section's handle says whether it folds back by itself in this mode (in Edit mode, only with Settings > Also fold them by themselves in Edit mode).
 
 - Performance mode: **the mouse wheel (or two fingers on a trackpad) turns the controls**, in the racks and in the Inspector's Preview: an encoder, band or pan moves smoothly (Shift: finer), a stepped encoder, a list or a drop-down moves a step at a time, a toggle goes on (up) or off (down); the column (or the Inspector) doesn't scroll while the pointer is on a control. With **Cmd (Ctrl on Windows) + wheel**, the **current range** (the one the value is in, Range or List of ranges) changes: up / down moves it, stopping when one of its ends reaches the value or the gap before another range; sideways makes it wider or narrower (the value stays inside). The help line at the bottom of the window says so when the pointer is on a control.
