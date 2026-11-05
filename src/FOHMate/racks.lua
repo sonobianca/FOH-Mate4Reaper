@@ -288,7 +288,12 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
     end
     handle = { hov = ig.IsItemHovered(ctx), open = fs.open, y = hy + (HANDLE_H + PAD) / 2 }   -- centered between the section above and the bottom edge
     if handle.hov then ig.SetTooltip(ctx, fs.open and 'Fold the FX section' or 'Show the FX section') end
-    hint_hovered('Click: show or fold the FX section of this rack')
+    hint_hovered('Click: show or fold the FX section of this rack  \194\183  right-click: fold by itself or not')
+    -- right-click: whether this FX section folds back by itself (Show mode has no rack "..." menu)
+    if ig.BeginPopupContextItem(ctx, 'fold_ctx') then
+      draw_auto_fold_menu('Fold the FX section by itself', 'fx', targets_for(tr))
+      ig.EndPopup(ctx)
+    end
     ig.PopID(ctx)
   end
 

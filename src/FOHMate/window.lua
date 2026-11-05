@@ -455,7 +455,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
   -- back to widen, face to face to fold back. The whole width is the button.
   local bh = HANDLE_H + PAD
   ig.PushID(ctx, guid)
-  local menu_w = is_locked() and 0 or 18                 -- Edit mode: the "..." menu takes the right corner
+  local menu_w = 18                                      -- the "..." menu takes the right corner (both modes)
   ig.SetCursorScreenPos(ctx, x + 2, y + 2)
   if ig.InvisibleButton(ctx, 'widen', w - 4 - menu_w, bh - 2) then
     ps.open = not ps.open
@@ -468,7 +468,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
   local band_hov = ig.IsItemHovered(ctx)
   if band_hov then ig.SetTooltip(ctx, ps.open and 'Fold the parameters back' or 'Widen the parameters') end
   hint_hovered('Click: widen the parameters over the other columns, or fold them back')
-  -- the "..." in the right corner, above the position bar (Edit mode): clean up the parameters
+  -- the "..." in the right corner, above the position bar: fold by itself, and (Edit mode) clean up the parameters
   if menu_w > 0 then
     ig.SetCursorScreenPos(ctx, x + w - 2 - menu_w, y + 2)
     if ig.InvisibleButton(ctx, 'pmenu', menu_w, bh - 2) then
@@ -477,7 +477,8 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
     end
     local mhov = ig.IsItemHovered(ctx)
     if mhov then ig.SetTooltip(ctx, 'Parameter menu') end
-    hint_hovered('Click: remove the parameters not linked any more, or all of them')
+    hint_hovered(is_locked() and 'Click: this section folds back by itself or not'
+                 or 'Click: fold by itself, remove the parameters not linked any more, or all of them')
     local dcol = (c.name_txt & 0xFFFFFF00) | (mhov and 0xFF or 0xA0)
     local rx, dy = x + w - PAD - 1, math.floor(y + bh / 2) + 1   -- the dots end where the position bar ends
     for i = 0, 2 do ig.DrawList_AddCircleFilled(pdl, rx - 1.5 - i * 4, dy, 1.5, dcol) end
@@ -907,10 +908,11 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
   if outer then ig.EndChild(ctx) end
 end
 
--- the "..." menu of a rack's parameters (Edit mode)
+-- the "..." menu of a rack's parameters (Show mode: only the folding)
 function draw_param_menu(tr)
   local n = #params_read(tr)
   draw_auto_fold_menu('Fold this section by itself', 'par', { tr })
+  if is_locked() then return end                         -- Show mode: only this
   ig.Separator(ctx)
   local nu = PARAM_UNLINKED and #PARAM_UNLINKED or 0
   local label = nu > 0 and ('Remove the %d parameter%s not linked any more'):format(nu, nu == 1 and '' or 's')
