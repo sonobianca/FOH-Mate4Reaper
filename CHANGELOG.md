@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- List of ranges: a range dragged as a whole (by its blue part) can now **go past another range**: it goes to the nearest place where it fits, on either side of the others (the gap away from them), instead of stopping at its neighbour.
+
 - Range control: each handle now sits **inside its range** (its flat side on the value, its tip pointing into the range), so the space seen between two ranges of a list is the real gap; before, the handles stuck out of their ranges and neighbouring ranges looked like they overlapped. The blue part's ends hide under the handles' flat sides.
 
 - Limit values: the kind of limits (**Range**, **List of values**, **List of ranges**) is a **menu right of Use limits** (choosing one also turns the limits on). An inverted Range always has the **notch** (the option is gone). The range control: the blue part goes on a little under each handle (no visible end), and **dragging the blue part moves the whole range**. **List of ranges**: ranges never overlap, and stay at least a gap apart (Settings > Performance mode > **Gap between ranges in a list**, 2% of the travel at first); **Add a range** makes a small one as close to the value it has now as it can, outside the others, and is gone when there is no room left; **Invert: the gaps between the ranges are the ranges** (the value moves to the nearest allowed one only when a control is next turned).

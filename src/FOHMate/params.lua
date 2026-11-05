@@ -455,6 +455,28 @@ function param_range_room(rngs, i, gap)
   return lo, hi
 end
 
+-- Where range i (w wide) goes when it is moved as a whole to lo: the nearest place it fits, on either
+-- side of the other ranges (the gap away from them): it can be moved past another one.
+function param_range_place(rngs, i, gap, lo, w)
+  local others = {}
+  for j, o in ipairs(rngs) do if j ~= i then others[#others + 1] = o end end
+  table.sort(others, function(a, b) return a[1] < b[1] end)
+  local best, bd
+  local function try(f0, f1)                     -- a free stretch: the nearest start in it that fits
+    if f1 - f0 < w - 1e-9 then return end
+    local a = math.max(f0, math.min(f1 - w, lo))
+    local d = math.abs(a - lo)
+    if not bd or d < bd then best, bd = a, d end
+  end
+  local x = 0
+  for _, o in ipairs(others) do
+    try(x, o[1] - gap)
+    x = o[2] + gap
+  end
+  try(x, 1)
+  return best
+end
+
 -- Where a new range goes: a small one (5% of the travel at most) as close to v as can be, outside the
 -- other ranges and the gap away from them; nil when there is no room left.
 function param_range_new(rngs, gap, v)
@@ -1548,8 +1570,9 @@ function draw_param_control_panel(P, fxs, gm, targets)
             elseif nlo then
               local L, R = param_range_room(rngs, i, gap)
               local w = v[2] - v[1]
-              if math.abs((nhi - nlo) - w) < 1e-6 then          -- moved as a whole: it keeps its size
-                nlo = math.max(L, math.min(R - w, nlo)); nhi = nlo + w
+              if math.abs((nhi - nlo) - w) < 1e-6 then          -- moved as a whole: it keeps its size, and goes
+                nlo = param_range_place(rngs, i, gap, nlo, w) or v[1]   -- to the nearest place it fits (past others too)
+                nhi = nlo + w
               else
                 nlo = math.max(L, math.min(nlo, nhi - 0.001))
                 nhi = math.min(R, math.max(nhi, nlo + 0.001))
