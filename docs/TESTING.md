@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 144).
+New items get the next free number (next: 145).
 
 ## Open
 
+- [ ] 144. (0.14.97) List of values, boxes. (a) A parameter in Hz (a frequency) with a list of values: each value is a box with the number ("1000") and the unit (Hz) right of it, once, never "Hz Hz"; same for dB, %, ms. (b) The box and its text are in the parameter's color (change the FX's color, or Recolor the parameter: they follow), readable on dark and in Daylight mode. (c) Click a box, type 440, Enter: the value becomes 440 Hz (as close as the plug-in prints), the row's control follows. Type 2 with a kHz plug-in: 2 kHz. Type something the plug-in never prints (a unit it doesn't use): nothing changes. (d) A text value (a Kirchhoff band type) is in a box you can't type in. (e) The arrows and the red x still work and stay lined up on the right.
 - [ ] 143. (0.14.95) FX colors. (a) Right-click an FX in a rack (Edit mode) > Color...: a picker; the parameters of that FX in the Performance take the color at once (an EQ's odd and even bands still differ slightly; a parameter you recolored by hand keeps its own). A small tab in the color shows on the FX button. **Automatic**: the rack's color again, no tab. (b) The same in the parameter window: right-click an FX line > Color...; its name and its parameters' names in the tree follow. Rack names are in the rack's color. (c) Duplicate the rack: the copy's FX have the same colors. Save and reopen the project: colors are kept. (d) Hover a parameter in the Performance: the FX in the rack glows in that parameter's color; hover the FX's name: its parameters glow in the FX's color. Try a very dark color, a very light one, grey, and the same color as the rack: the glow is always easy to see and pulses a little. Daylight mode too. (e) The row you point at still glows in the usual blue.
 
 - [ ] 142. (0.14.94) Tree outline and indentation. (a) No dotted frame around the tree any more; instead a thin dotted vertical line under the arrow of every open rack, FX and group, from below its row down to its last line (also when scrolled: only the part in view). (b) An FX's arrow is under the first letter of its rack's name, its check box one step further: clearly indented from the rack. (c) Check boxes of parameters and groups still line up as in 141.

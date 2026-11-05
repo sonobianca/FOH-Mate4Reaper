@@ -329,11 +329,60 @@ end
 -- drop-down of them (param_list_show). Any kind of control but a toggle.
 function param_list_ok(kind) return kind ~= nil and kind ~= 'toggle' end
 
+-- What the plug-in prints for a position (ok, text). Some print their unit twice ("1000 Hz Hz"):
+-- a last word that repeats the one before it is dropped.
+function param_fmt(tr, fxi, idx, v)
+  local ok, t = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, idx, v, '')
+  local head, w1, w2 = t:match('^(.-)(%S+)%s+(%S+)%s*$')
+  if w1 and not w1:find('%d') and w1:lower() == w2:lower() then t = head .. w1 end
+  return ok, t
+end
+
 -- the plug-in's own text for a position, when it can give it (otherwise a percentage)
 function param_text_at(tr, fxi, idx, v)
-  local ok, t = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, idx, v, '')
+  local ok, t = param_fmt(tr, fxi, idx, v)
   if not ok or t == '' then t = ('%d%%'):format(math.floor(v * 100 + 0.5)) end
   return t
+end
+
+-- a text split into its number and its unit ("1000 Hz" > "1000", "Hz"; "-6.0 dB"; "50%" > "50", "%");
+-- a text that doesn't start with a number ("Low Pass", "-inf dB") is all text: text, "", false
+function param_text_split(t)
+  local num, unit = t:match('^%s*([%-%+]?%d[%d%.]*)%s*(.-)%s*$')
+  if num then return num, unit, true end
+  return t, '', false
+end
+
+-- The position that prints as a number (with this unit): the plug-in is asked at 401 positions for the
+-- nearest, then between its neighbours by halving (16 times, for a text that rises or falls there).
+-- Nothing when no position prints that unit.
+function param_find_value(tr, fxi, idx, num, unit)
+  local ok = param_fmt(tr, fxi, idx, 0)
+  if not ok then return math.max(0, math.min(1, num / 100)) end        -- no text from the plug-in: a percentage
+  local function at(v)
+    local n, u, isnum = param_text_split(select(2, param_fmt(tr, fxi, idx, v)))
+    if isnum then return tonumber(n), u end
+  end
+  local N, best, bd = 400, nil, nil
+  for i = 0, N do
+    local n, u = at(i / N)
+    if n and u:lower() == unit:lower() then
+      local d = math.abs(n - num)
+      if not bd or d < bd then best, bd = i, d end
+    end
+  end
+  if not best then return nil end
+  local lo, hi = math.max(0, best - 1) / N, math.min(N, best + 1) / N
+  local nlo, nhi = at(lo), at(hi)
+  if not (nlo and nhi and nlo ~= nhi) then return best / N end
+  local rising = nhi > nlo
+  for _ = 1, 16 do
+    local nm = at((lo + hi) / 2)
+    if not nm then break end
+    if (nm < num) == rising then lo = (lo + hi) / 2 else hi = (lo + hi) / 2 end
+  end
+  local a, b = at(lo), at(hi)
+  return (math.abs((a or math.huge) - num) <= math.abs((b or math.huge) - num)) and lo or hi
 end
 
 -- what a list shows as: the user's choice (Show as), or else a drop-down for a plug-in's named values
@@ -634,8 +683,8 @@ end
 function param_facts(tr, fxi, idx)
   local ok, step, _, _, istoggle = reaper.TrackFX_GetParameterStepSizes(tr, fxi, idx)
   local _, mn, mx = reaper.TrackFX_GetParamEx(tr, fxi, idx)
-  local _, t0 = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, idx, 0, '')
-  local _, t1 = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, idx, 1, '')
+  local _, t0 = param_fmt(tr, fxi, idx, 0, '')
+  local _, t1 = param_fmt(tr, fxi, idx, 1, '')
   return { ok = ok, step = step, toggle = ok and istoggle, min = mn, max = mx, t0 = t0, t1 = t1 }
 end
 
@@ -649,7 +698,7 @@ function param_db_marks(tr, fxi, idx)
   local pts, is_db = {}, false
   for i = 0, 40 do
     local v = i / 40
-    local _, txt = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, idx, v, '')
+    local _, txt = param_fmt(tr, fxi, idx, v, '')
     if txt:lower():find('db', 1, true) then is_db = true end
     local num = tonumber((txt:match('^%s*([%-%+]?%d+%.?%d*)')))
     if num then pts[#pts + 1] = { v, num } end
@@ -691,7 +740,7 @@ function param_kind(tr, fxi, r)
     local words = true                                     -- no value is a number (placeholders aside)
     for i = 0, n - 1 do
       local v = i / (n - 1)
-      local _, txt = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, r.idx, v, '')
+      local _, txt = param_fmt(tr, fxi, r.idx, v, '')
       if txt == '' then txt = ('%d%%'):format(math.floor(v * 100 + 0.5)) end
       items[#items + 1] = { label = txt, norm = v }
       if not param_hidden_value(txt) then
@@ -758,7 +807,7 @@ function param_kind(tr, fxi, r)
       n, items = 11, {}
       for i = 0, 10 do
         local v = i / 10
-        local _, txt = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, r.idx, v, '')
+        local _, txt = param_fmt(tr, fxi, r.idx, v, '')
         if txt == '' then txt = ('%d%%'):format(i * 10) end
         items[#items + 1] = { label = txt, norm = v }
       end
@@ -1200,10 +1249,33 @@ function draw_param_control_panel(P, fxs, gm, targets)
         local bw = ig.GetFrameHeight(ctx)
         local sp = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
         local bx = ig.GetCursorPosX(ctx) + math.max(0, select(1, ig.GetContentRegionAvail(ctx)) - 3 * bw - 2 * sp)
+        -- the boxes are in the parameter's color (as readable as its name in the tree), the unit outside
+        local rcol = param_row_color(fx_color(tr, g, track_color(tr)), row)
+        local bgc = ig.GetStyleColor(ctx, ig.Col_WindowBg())
+        local dk = ((bgc >> 24) & 255) * 0.3 + ((bgc >> 16) & 255) * 0.59 + ((bgc >> 8) & 255) * 0.11 < 128
         for i, v in ipairs(vals) do
           ig.PushID(ctx, 'lv' .. i)
-          ig.AlignTextToFramePadding(ctx)
-          ig.Text(ctx, param_text_at(tr, fxi, ix, v))
+          local num, unit, isnum = param_text_split(param_text_at(tr, fxi, ix, v))
+          ig.PushStyleColor(ctx, ig.Col_FrameBg(), (rcol & 0xFFFFFF00) | 0x40)
+          ig.PushStyleColor(ctx, ig.Col_Border(), (rcol & 0xFFFFFF00) | 0xB0)
+          ig.PushStyleColor(ctx, ig.Col_Text(), param_name_color(rcol, dk))
+          ig.PushStyleVar(ctx, ig.StyleVar_FrameBorderSize(), 1)
+          ig.SetNextItemWidth(ctx, isnum and 84 or math.max(84, ig.CalcTextSize(ctx, num) + 16))
+          -- a number can be typed: the parameter is asked for the position that prints it
+          local rv, typed = ig.InputText(ctx, '##val', num, isnum and ig.InputTextFlags_AutoSelectAll() or ig.InputTextFlags_ReadOnly())
+          ig.PopStyleVar(ctx)
+          ig.PopStyleColor(ctx, 3)
+          if rv then P.ve, P.ve_i = typed, i end
+          if isnum and ig.IsItemDeactivatedAfterEdit(ctx) and P.ve_i == i then
+            local tn, tu, tis = param_text_split((P.ve:gsub(',', '.')))
+            local nv = tis and param_find_value(tr, fxi, ix, tonumber(tn), tu ~= '' and tu or unit)
+            if nv then local nvals = copy(); nvals[i] = nv; put(nvals) end
+          end
+          if unit ~= '' then
+            ig.SameLine(ctx, 0, 4)
+            ig.AlignTextToFramePadding(ctx)
+            ig.TextDisabled(ctx, unit)
+          end
           ig.SameLine(ctx, bx)
           -- no up arrow on the first value, no down arrow on the last: an empty space keeps the others lined up
           if i == 1 then ig.Dummy(ctx, bw, bw)
