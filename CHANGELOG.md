@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Parameters tree: Paste goes on the whole selection also when the parameter right-clicked is selected through its group, its FX or its rack (it said "Paste" instead of "Paste on the N selected"). Curves: Reset the curve (and any custom curve of two points) is a straight line again, not an S.
+
 - Parameters tree: clicking a rack's name selects the rack in the Racks window too (Cmd/Ctrl or Shift: adds it to the selection).
 
 - Parameters window: right-click a rack's name to select it in the tree (Shift+right-click: and unfold it, with its FX and groups); a rack can be selected in the tree like an FX (click its name; the arrow folds it), which selects all its parameters. FX right-click > Inspect FX... selects the FX in the tree and opens the Inspector.

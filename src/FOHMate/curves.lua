@@ -27,7 +27,8 @@ local function curve_y(cv, x)
   while i < #p - 1 and x > p[i + 1].x do i = i + 1 end
   local a, b = p[i], p[i + 1]
   local t = (b.x > a.x) and (x - a.x) / (b.x - a.x) or 0
-  if not cv.smooth then return a.y + (b.y - a.y) * t end
+  -- (two points only: a straight line, smooth or not; smoothing them would make an S)
+  if not cv.smooth or #p == 2 then return a.y + (b.y - a.y) * t end
   -- smooth: a Catmull-Rom curve through the points (the ends repeated), kept inside 0..1
   local y0, y3 = (p[i - 1] or a).y, (p[i + 2] or b).y
   local y1, y2 = a.y, b.y

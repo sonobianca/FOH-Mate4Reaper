@@ -2167,10 +2167,13 @@ function draw_param_tree(P, D)
             -- copy / paste its limits and curve: pasted on the whole selection when it is part of it
             if gm[fx.guid] then
               ig.Separator(ctx)
+              -- (selected itself, or through its group, its FX or its rack)
               local tg = { { tr = fx.tr, guid = fx.guid, idx = p, name = nm } }
-              if P.sel[key] then
-                local all = param_pick_targets(P, fxs)
-                if #all > 1 then tg = all end
+              local all = param_pick_targets(P, fxs)
+              if #all > 1 then
+                for _, t in ipairs(all) do
+                  if t.guid == fx.guid and t.idx == p then tg = all; break end
+                end
               end
               param_clip_menu(fx.tr, gm[fx.guid], { guid = fx.guid, idx = p, pname = nm }, tg, gm)
             end
