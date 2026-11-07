@@ -106,6 +106,25 @@ function has_mod(name)
   return (mods & flag) ~= 0
 end
 
+-- a modifier held now, also when the FOH-Mate window under the mouse doesn't have the keyboard focus (ImGui
+-- only knows the keys of the focused window): asked of the system through js_ReaScriptAPI when it is
+-- installed. For the wheel over a control, which then works without a click in the window first.
+function mod_down(name)
+  if has_mod(name) then return true end
+  if not reaper.JS_Mouse_GetState then return false end
+  local bit = (name == 'shift' and 8) or (name == 'alt' and 16) or 4      -- 4: Cmd on a Mac, Ctrl elsewhere
+  return (reaper.JS_Mouse_GetState(bit) & bit) ~= 0
+end
+
+-- Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z pressed in a FOH-Mate window go to REAPER's Undo and Redo (ImGui keeps
+-- the keys, so REAPER wouldn't see them). Not while typing in a box: the box has its own undo.
+function pass_undo_keys()
+  if not ig.IsWindowFocused(ctx, ig.FocusedFlags_AnyWindow()) or ig.IsAnyItemActive(ctx) then return end
+  if has_mod('ctrl') and ig.IsKeyPressed(ctx, ig.Key_Z(), false) then
+    reaper.Main_OnCommand(has_mod('shift') and 40030 or 40029, 0)     -- Edit: Redo / Edit: Undo
+  end
+end
+
 -- the name of a modifier key as printed on this system's keyboard
 function mod_label(name)
   if name == 'shift' then return 'Shift' end

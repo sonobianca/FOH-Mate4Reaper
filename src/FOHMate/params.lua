@@ -524,7 +524,7 @@ function param_wheel_range(tr, fxi, r, kind, wv, wh, v)
     L, R = param_range_room(r.rngs, i, param_range_gap())
   end
   local inside = v >= lo and v <= hi                 -- (the value may be outside the nearest range)
-  local step = has_mod('shift') and 0.0025 or 0.01
+  local step = mod_down('shift') and WHEEL_FINE or WHEEL_STEP
   if wv ~= 0 then
     local d = wv * step
     d = math.max(d, L - lo)
@@ -593,6 +593,9 @@ function param_fmt(tr, fxi, idx, v)
   local ok, t = reaper.TrackFX_FormatParamValueNormalized(tr, fxi, idx, v, '')
   local head, w1, w2 = t:match('^(.-)(%S+)%s+(%S+)%s*$')
   if w1 and not w1:find('%d') and w1:lower() == w2:lower() then t = head .. w1 end
+  -- a "%" left after a unit by some FX ("12.0dB/oct %"): dropped ("50 %" stays)
+  local h2 = t:match('^(.-%d.-%a)%s+%%%s*$')
+  if h2 then t = h2 end
   return ok, t
 end
 
@@ -1225,6 +1228,16 @@ function param_hidden_value(label)
   return l:find('^%-+$') ~= nil or l:find('^reserved') ~= nil or l:find('^unused') ~= nil
 end
 
+-- a parameter whose every value is a placeholder ("Reserved" at the start, middle and end: a choice the FX
+-- doesn't use, like Kirchhoff-EQ's Speakers Type in stereo) is hidden too. Read when the FX's list is made.
+function param_dead_values(tr, fxi, idx)
+  for _, v in ipairs({ 0, 0.5, 1 }) do
+    local _, t = param_fmt(tr, fxi, idx, v)
+    if t == '' or not param_hidden_value(t) then return false end
+  end
+  return true
+end
+
 -- REAPER adds Bypass, Wet and Delta at the end of every FX's parameters: they get a branch of their
 -- own ("REAPER") at the end of the FX. names: the FX's parameter names (1-based); returns a set of indexes.
 REAPER_PARAMS = { bypass = true, wet = true, delta = true }
@@ -1569,7 +1582,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
     local r1 = { guid = first.guid, idx = first.idx, pname = first.name }
     local k = param_kind(tr, fxi, r1)
     ig.Spacing(ctx)
-    if section_header('Control', true) then
+    if section_header('Control', false) then
       for _, o in ipairs(PARAM_CONTROL_OPTS) do
         local on = #targets == 1 and ((o[1] == nil and not k.overridden) or (o[1] ~= nil and k.overridden and k.kind == o[1]))
         local label = o[2] .. ((o[1] == nil and #targets == 1) and (' (now: ' .. PARAM_KIND_LABEL[k.guess] .. ')') or '')
@@ -1589,7 +1602,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
     if not row then
       ig.TextDisabled(ctx, 'Put the parameter in the Performance\nto set the rest.')
     else
-      if section_header('Direction and default', true) then
+      if section_header('Direction and default', false) then
         local inv = row.inv == true
         local rv, v = ig.Checkbox(ctx, 'Invert (turns the other way)', inv)
         if rv then params_update(tr, first.guid, first.idx, { inv = v }) end
@@ -1614,7 +1627,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
       end
       -- Limit values: Min / Max (the controls that turn, param_limit_ok) or a list (param_list_ok)
       local can_mm, can_list = param_limit_ok(k.kind), param_list_ok(k.kind)
-      if (can_mm or can_list) and section_header('Limit values', true) then
+      if (can_mm or can_list) and section_header('Limit values', false) then
         local g, ix = first.guid, first.idx
         -- after a change: the parameter moves into what is allowed now
         local function snap()
@@ -1856,6 +1869,8 @@ function draw_param_control_panel(P, fxs, gm, targets)
                          { 'steps', 'Stepped encoder' }, { 'list', 'Drop-down' } }
           local cur_l = opts[1][2]
           for _, o in ipairs(opts) do if o[1] and o[1] == row.vshow then cur_l = o[2] end end
+          local two = #vals == 2                               -- two values: always a toggle (draw_param_ctl)
+          if two then cur_l = PARAM_KIND_LABEL.toggle; ig.BeginDisabled(ctx) end
           ig.SetNextItemWidth(ctx, W)
           if ig.BeginCombo(ctx, '##lshow', cur_l) then
             for _, o in ipairs(opts) do
@@ -1863,12 +1878,13 @@ function draw_param_control_panel(P, fxs, gm, targets)
             end
             ig.EndCombo(ctx)
           end
+          if two then ig.EndDisabled(ctx); ig.TextDisabled(ctx, 'Two values are always a toggle, the lower one off.') end
           if #vals == 1 then ig.TextDisabled(ctx, 'A single value is always a drop-down.') end
         end
         ig.Spacing(ctx)
       end
       -- the value curve (curves.lua), for encoders and width / Q bands
-      if param_curve_ok(k.kind) and section_header('Curve', true) then
+      if param_curve_ok(k.kind) and section_header('Curve', false) then
         if row.lim == 'list' then
           ig.TextDisabled(ctx, 'Not with a list of values.')
         else
@@ -1881,7 +1897,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
     end
 
     -- a preview of the control, and what REAPER says about the parameter
-    if section_header('Preview', true) then draw_param_preview(tr, fxi, first, row, k) end
+    if section_header('Preview', false) then draw_param_preview(tr, fxi, first, row, k) end
     if section_header('Details', false) then
       local f = param_facts(tr, fxi, first.idx)
       local _, now = reaper.TrackFX_GetFormattedParamValue(tr, fxi, first.idx)
@@ -1951,7 +1967,7 @@ function param_pick_data(P)
           for p = 0, reaper.TrackFX_GetNumParams(rk.tr, it.fx) - 1 do
             local _, nm = reaper.TrackFX_GetParamName(rk.tr, it.fx, p, '')
             names[p + 1] = nm
-            auto[p], uhid[p] = param_hidden(nm), param_uhidden(fx_key, nm)
+            auto[p], uhid[p] = param_hidden(nm) or param_dead_values(rk.tr, it.fx, p), param_uhidden(fx_key, nm)
             if (auto[p] or uhid[p]) and not P.show_hidden then hide[p] = true else nvis = nvis + 1 end
           end
           f = { guid = g, fx = it.fx, name = it.name, names = names, hide = hide, auto = auto, uhid = uhid,
@@ -2166,7 +2182,7 @@ function draw_param_tree(P, D)
             if fx.uhid[p] then
               if ig.MenuItem(ctx, 'Show this parameter again') then param_set_uhidden(fx.fx_key, nm, false) end
             elseif fx.auto[p] then
-              ig.TextDisabled(ctx, 'Hidden by FOH-Mate (a placeholder or a MIDI CC entry)')
+              ig.TextDisabled(ctx, 'Hidden by FOH-Mate (a placeholder, a MIDI CC entry, or every value "Reserved")')
             elseif ig.MenuItem(ctx, 'Hide this parameter') then
               param_set_uhidden(fx.fx_key, nm, true)
             end
@@ -2289,9 +2305,13 @@ end
 function draw_param_inspector(P, D)
   local vis, open = begin_window('paraminsp', 'Inspector###paraminsp', 320, 560, true, nil, true)
   if vis then
+    CONFIRM_HOST = 'insp'                                  -- a question asked here opens here
     draw_param_control_panel(P, D.fxs, D.gm, D.targets)
+    draw_confirm('insp')
+    CONFIRM_HOST = nil
     ig.End(ctx)
   end
+  if confirm and confirm.host == 'insp' and not (vis and open) then confirm = nil end   -- closed while asking: Cancel
   if not open then P.insp_open = false; param_win_save() end
 end
 

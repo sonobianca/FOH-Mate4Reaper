@@ -27,7 +27,7 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.14.131'   -- major.minor.revision, shown in the window's title bar
+VERSION         = '0.14.132'   -- major.minor.revision, shown in the window's title bar
 DEBUG_TIMER     = true      -- status bar shows how long the script takes per frame; must be false in a
                             -- public version (tools/make_reapack_index.sh refuses to build otherwise)
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
@@ -119,17 +119,19 @@ function push_theme()
   ig.PushStyleVar(ctx, ig.StyleVar_PopupRounding(), ROUNDING)
   local nc = 0
   if S.daylight then
+    -- a thin outline on frames: an empty check box or radio button stays visible on the light background
+    ig.PushStyleVar(ctx, ig.StyleVar_FrameBorderSize(), 1)
     for _, e in ipairs(LIGHT_COLORS) do
       ig.PushStyleColor(ctx, ig['Col_' .. e[1]](), e[2])
       nc = nc + 1
     end
   end
-  return nc
+  return nc, S.daylight and 3 or 2                    -- what pop_theme takes back: colors, style vars
 end
 
-function pop_theme(nc)
+function pop_theme(nc, nv)
   if nc > 0 then ig.PopStyleColor(ctx, nc) end
-  ig.PopStyleVar(ctx, 2)
+  ig.PopStyleVar(ctx, nv)
 end
 
 function loop()
@@ -171,7 +173,7 @@ function loop()
     end
   end
 
-  local nc = push_theme()
+  local nc, nv = push_theme()
   local flags = ig.WindowFlags_NoScrollbar() | ig.WindowFlags_NoScrollWithMouse()
   local visible, open = ig.Begin(ctx, 'Racks v' .. VERSION .. '###Plugins Host', true, flags)
   if visible then
@@ -204,7 +206,8 @@ function loop()
   draw_param_picker()
   draw_fx_list()
   draw_scan_window()
-  pop_theme(nc)
+  pass_undo_keys()
+  pop_theme(nc, nv)
   was_visible = visible
   if DEBUG_TIMER then timer_frame(t0) end
 

@@ -985,6 +985,7 @@ end
 -- reaches the value, or the gap before another range), sideways makes it wider or narrower.
 -- wkey: the window it is in, which then doesn't scroll (CTL_HOVER).
 CTL_HOVER_NOW, CTL_HOVER_PREV = {}, {}
+WHEEL_STEP, WHEEL_FINE = 0.006, 0.0015     -- a notch of the wheel on a smooth control (Shift: finer), of its travel
 
 function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, cl, wkey)
   local dl = ig.GetWindowDrawList(ctx)
@@ -999,16 +1000,20 @@ function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, 
     local cm = mod_label('ctrl')
     HINT = 'Scroll: change the value' .. (ranged and ('  \194\183  ' .. cm .. '+scroll up / down: move the current range (the one the value is in; it stops at the value or before another range)'
                                                     .. '  \194\183  ' .. cm .. '+scroll sideways: make the current range wider or narrower') or '')
-    if has_mod('ctrl') then
-      if ranged and (wv ~= 0 or wh ~= 0) then param_wheel_range(tr, fxi, r, kind.kind, wv, wh, norm) end
+    if (wv ~= 0 or wh ~= 0) and mod_down('ctrl') then
+      if ranged then param_wheel_range(tr, fxi, r, kind.kind, wv, wh, norm) end
       wv = 0
+    elseif wv == 0 and wh ~= 0 and mod_down('shift') then
+      wv = wh                                     -- (a Mac turns Shift+wheel sideways: still the finer turn)
     end
   end
-  -- whole steps from the wheel (a trackpad gives small amounts: they add up)
+  -- whole steps from the wheel (a trackpad gives small amounts: they add up), one step at a time at
+  -- most, so a fast swipe doesn't skip values and every step is felt
   local function wheel_steps()
     mm.wacc = (mm.wacc or 0) + wv
     local n = mm.wacc >= 0 and math.floor(mm.wacc) or -math.floor(-mm.wacc)
     mm.wacc = mm.wacc - n
+    if n > 1 or n < -1 then n, mm.wacc = (n > 0 and 1 or -1), 0 end
     return n
   end
   local function step_item(items, pos)
@@ -1068,7 +1073,7 @@ function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, 
           local n = wheel_steps()
           if n ~= 0 then newv = math.max(0, math.min(1, c0 + n / (kind.steps - 1))) end
         else
-          newv = math.max(0, math.min(1, c0 + wv * (has_mod('shift') and 0.0025 or 0.01)))
+          newv = math.max(0, math.min(1, c0 + wv * (mod_down('shift') and WHEEL_FINE or WHEEL_STEP)))
         end
       end
     end

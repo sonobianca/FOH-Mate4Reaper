@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Wheel: Cmd/Ctrl and Shift are seen over a control even when the Racks window has no keyboard focus (with js_ReaScriptAPI installed); smooth controls turn slower (0.6% of the travel per notch), stepped ones and lists one step at a time, so no value is skipped; Shift+wheel on a Mac (sent sideways) turns finer. Inspector: every section starts folded; the "Add the value it has now?" question opens in the Inspector; with two listed values, Show as reads Toggle. Parameters whose every value is "Reserved" (Kirchhoff-EQ Speakers Type) are hidden like placeholders; a "%" an FX leaves after a unit ("12.0dB/oct %") is dropped. Daylight: frames have a thin outline (empty check boxes and radio buttons stay visible). Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z in a FOH-Mate window go to REAPER's Undo / Redo (not while typing in a box).
+
 - Controls: a parameter with many named values (Kirchhoff-EQ band Type: 72, a few starting with a number) is a drop-down of all of them again; a Drop-down or Stepped encoder chosen by hand lists the FX's own values (it showed 11 positions along it, Bell missing). A slope in dB/oct no longer gets the marks of a fader.
 
 - Parameters tree: Paste goes on the whole selection also when the parameter right-clicked is selected through its group, its FX or its rack (it said "Paste" instead of "Paste on the N selected"). Curves: Reset the curve (and any custom curve of two points) is a straight line again, not an S.

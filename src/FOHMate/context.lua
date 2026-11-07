@@ -95,9 +95,10 @@ function in_sub_ctx(key, label, fn)
   end
   local main = ctx
   use_ctx(c)
-  local nc = push_theme()
+  local nc, nv = push_theme()
   fn()
-  pop_theme(nc)
+  pass_undo_keys()
+  pop_theme(nc, nv)
   use_ctx(main)
 end
 
