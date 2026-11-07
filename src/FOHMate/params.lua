@@ -1357,7 +1357,7 @@ end
 -- FX right-click > Inspect FX...: the FX is selected (every parameter of it) and opened in the tree, and the
 -- Inspector opens
 function param_pick_fx(tr, guid)
-  param_picker_open(tr, 'P:' .. guid, 'insp')
+  param_picker_open(tr, 'P:' .. guid)                      -- both windows: the tree is what you work with there
   local P = PARAM_PICK
   P.open['F:' .. guid], P.scroll_key, P.filter = true, 'P:' .. guid, ''
 end
@@ -1587,9 +1587,17 @@ function draw_param_control_panel(P, fxs, gm, targets)
         local on = #targets == 1 and ((o[1] == nil and not k.overridden) or (o[1] ~= nil and k.overridden and k.kind == o[1]))
         local label = o[2] .. ((o[1] == nil and #targets == 1) and (' (now: ' .. PARAM_KIND_LABEL[k.guess] .. ')') or '')
         if ig.RadioButton(ctx, label .. '##ctl' .. tostring(o[1]), on) then
-          for _, t in ipairs(targets) do
-            local f = gm[t.guid]
-            if f then param_set_override(t.tr or tr, f, { guid = t.guid, idx = t.idx, pname = t.name }, o[1]) end
+          local function apply()
+            for _, t in ipairs(targets) do
+              local f = gm[t.guid]
+              if f then param_set_override(t.tr or tr, f, { guid = t.guid, idx = t.idx, pname = t.name }, o[1]) end
+            end
+          end
+          if #targets > 1 then                             -- several at once: asked first (can be switched off)
+            request_confirm(('Change the control of %d parameters to "%s"?'):format(#targets, o[2]),
+              apply, 'Change', 'ctl_multi')
+          else
+            apply()
           end
         end
       end
