@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Controls: a parameter with many named values (Kirchhoff-EQ band Type: 72, a few starting with a number) is a drop-down of all of them again; a Drop-down or Stepped encoder chosen by hand lists the FX's own values (it showed 11 positions along it, Bell missing). A slope in dB/oct no longer gets the marks of a fader.
+
 - Parameters tree: Paste goes on the whole selection also when the parameter right-clicked is selected through its group, its FX or its rack (it said "Paste" instead of "Paste on the N selected"). Curves: Reset the curve (and any custom curve of two points) is a straight line again, not an S.
 
 - Parameters tree: clicking a rack's name selects the rack in the Racks window too (Cmd/Ctrl or Shift: adds it to the selection).

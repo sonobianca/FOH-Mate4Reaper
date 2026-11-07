@@ -957,7 +957,8 @@ function param_db_marks(tr, fxi, idx)
   for i = 0, 40 do
     local v = i / 40
     local _, txt = param_fmt(tr, fxi, idx, v, '')
-    if txt:lower():find('db', 1, true) then is_db = true end
+    local lt = txt:lower()                                 -- (a slope in dB/oct is not a level)
+    if lt:find('db', 1, true) and not lt:find('db/', 1, true) then is_db = true end
     local num = tonumber((txt:match('^%s*([%-%+]?%d+%.?%d*)')))
     if num then pts[#pts + 1] = { v, num } end
   end
@@ -983,8 +984,9 @@ function param_kind(tr, fxi, r)
   if not PARAM_OVR then param_ovr_load() end
 
   -- how many values there are, when there are few (the step is in the parameter's own units). Up to
-  -- 128 values are read: past 32, they are only kept when every one is a word (a band's types, many
-  -- of them "Reserved"), which makes a drop-down
+  -- 128 values are read: past 32, they are only kept when they are mostly words (a band's types, many
+  -- of them "Reserved", a few starting with a number like "1st Order"), which makes a drop-down. A long
+  -- list of numbers stops being read after its first numbers.
   local ok, step, _, _, istoggle = reaper.TrackFX_GetParameterStepSizes(tr, fxi, r.idx)
   local _, mn, mx = reaper.TrackFX_GetParamEx(tr, fxi, r.idx)
   local n
@@ -992,21 +994,23 @@ function param_kind(tr, fxi, r)
     local cnt = (mx - mn) / step
     if cnt <= 127.5 then n = math.floor(cnt + 0.5) + 1 end
   end
-  local items, numeric
+  local items, numeric, all
   if n and n >= 2 then
-    items, numeric = {}, true
-    local words = true                                     -- no value is a number (placeholders aside)
+    items = {}
+    local nw, nn, whole = 0, 0, true                       -- words, numbers (placeholders aside)
     for i = 0, n - 1 do
       local v = i / (n - 1)
       local _, txt = param_fmt(tr, fxi, r.idx, v, '')
       if txt == '' then txt = ('%d%%'):format(math.floor(v * 100 + 0.5)) end
       items[#items + 1] = { label = txt, norm = v }
       if not param_hidden_value(txt) then
-        if tonumber((txt:match('^%s*([%-%+]?[%d%.]+)'))) then words = false else numeric = false end
+        if tonumber((txt:match('^%s*([%-%+]?[%d%.]+)'))) then nn = nn + 1 else nw = nw + 1 end
       end
-      if n > 32 and not words then break end
+      if n > 32 and nw == 0 and nn >= 8 then whole = false; break end
     end
-    if n > 32 and not words then n, items, numeric = nil, nil, nil end
+    numeric = nw == 0
+    if whole then all = items end                          -- every value, for a drop-down chosen by hand
+    if n > 32 and not (whole and nw >= 0.8 * (nw + nn)) then n, items, numeric = nil, nil, nil end
   end
 
   -- the guess
@@ -1060,7 +1064,9 @@ function param_kind(tr, fxi, r)
   local ovr = PARAM_OVR[param_fx_key(tr, fxi) .. '\t' .. (r.pname or '')]
   if ovr and PARAM_KIND_LABEL[ovr.kind] then
     kind, overridden = ovr.kind, true
-    if (kind == 'steps' or kind == 'list') and not items then
+    if (kind == 'steps' or kind == 'list') and not items and all then
+      n, items = #all, all                                 -- the FX's own values, even many of them
+    elseif (kind == 'steps' or kind == 'list') and not items then
       -- the FX doesn't say what its values are: take 11 positions along it
       n, items = 11, {}
       for i = 0, 10 do
