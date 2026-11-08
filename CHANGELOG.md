@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- The position dot reaches both ends of the travel also with limits: a value the FX rounds (a stepped encoder, a limit between two of its steps) no longer pulls the control back.
+
 - The position dot also shows with "Use the full range of the control" on.
 
 - An encoder with a curve and limits shows a small pink dot on its ring where the control itself is turned to, next to the hand that shows the value (a width or Q band: a dot at each edge).

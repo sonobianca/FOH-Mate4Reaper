@@ -1083,7 +1083,7 @@ function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, 
       newv = param_from_ctl(r, ekind, newv, norm)
       -- the curve keeps the position it was turned to, also when the limits held the value at an
       -- edge: the next wheel notch goes on from there (and can cross a stretch that isn't allowed)
-      if cv then mm.cu, mm.ccv = param_to_ctl(r, ekind, newv), cv end
+      if cv then mm.cu, mm.ccv, mm.ct = param_to_ctl(r, ekind, newv), cv, reaper.time_precise() end
     end
   end
   return newv

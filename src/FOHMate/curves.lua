@@ -107,8 +107,13 @@ end
 -- make it jump, and looks again only when the value moved. A stepped encoder sits on a step. After a
 -- turn, mm.cu is the value the turn gave (draw_param_ctl), so the control stays where it was turned
 -- even when the limits held the value at the edge of an allowed part.
+-- Just after a turn (mm.ct, 0.3 s), the value read back is taken as the turn's: the FX may round it
+-- (a stepped one, a limit's edge between two of its steps), which isn't a move from elsewhere.
 function curve_ctl_pos(cv, u, mm, steps)
-  if mm.cu and math.abs(mm.cu - u) < 1e-5 and mm.cpos and mm.ccv == cv then return mm.cpos end
+  if mm.cpos and mm.ccv == cv then
+    if mm.cu and math.abs(mm.cu - u) < 1e-5 then return mm.cpos end
+    if mm.ct and reaper.time_precise() - mm.ct < 0.3 then mm.cu = u; return mm.cpos end
+  end
   local c = curve_inv(cv, u, mm.cpos)
   if steps and steps > 1 then c = math.floor(c * (steps - 1) + 0.5) / (steps - 1) end
   mm.cu, mm.cpos, mm.ccv = u, c, cv
