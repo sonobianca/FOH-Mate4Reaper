@@ -1066,7 +1066,7 @@ function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, 
       newv = draw_encoder(id, kcx, kcy, kr, shown, { body = cl.body, col = cl.col, ptr = cl.ptr, s = f,
                           style = ekind == 'pan' and 'pan' or (ekind == 'band' or ekind == 'qband') and 'band' or 'line', narrow = ekind == 'qband', steps = kind.steps, marks = marks,
                           def = def, range = range, joins = joins, curve = cv, pos = cpos, def_pos = cv and def and curve_inv(cv, def, cpos),
-                          show = mm })
+                          show = mm, pos_dot = cv and param_segs(r, ekind) ~= nil })
       if not newv and wv ~= 0 then
         -- the wheel: along the control (the curve's position when it has one), a step at a time when stepped
         local c0 = cpos or shown

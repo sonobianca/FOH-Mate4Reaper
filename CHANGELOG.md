@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- The position dot also shows with "Use the full range of the control" on.
+
 - An encoder with a curve and limits shows a small pink dot on its ring where the control itself is turned to, next to the hand that shows the value (a width or Q band: a dot at each edge).
 
 - An encoder with a list of ranges (or an inverted range) and a curve: its hand no longer shows values in the gaps, while dragging or scrolling; it jumps straight across them.

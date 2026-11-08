@@ -843,9 +843,10 @@ function draw_encoder(id, cx, cy, r, norm, o)
     ig.DrawList_AddLine(dl, cx + math.cos(ang) * r * 0.3, cy + math.sin(ang) * r * 0.3,
                         cx + math.cos(ang) * r * 0.85, cy + math.sin(ang) * r * 0.85, o.ptr, 3 * s)
   end
-  -- a curve with limits: the hand shows the value, which may wait at an edge; a small dot on the ring
-  -- shows where the control itself is turned to (a band: one at each edge of the width it is turned to)
-  if o.curve and o.range and cpos then
+  -- a curve with limits (o.pos_dot, with or without the full range): the hand shows the value, which may
+  -- wait at an edge; a small dot on the ring shows where the control itself is turned to (a band: one at
+  -- each edge of the width it is turned to)
+  if o.curve and o.pos_dot and cpos then
     local dr = 2.2 * s
     local function dot(a) ig.DrawList_AddCircleFilled(dl, cx + math.cos(a) * r, cy + math.sin(a) * r, dr, ENC_POS_COL, 0) end
     if o.style == 'band' then

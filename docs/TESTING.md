@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 184).
+New items get the next free number (next: 185).
 
 ## Open
 
+- [ ] 184. (0.14.138) Curve + limits with "Use the full range of the control" on: the pink dot shows where the control is turned to and moves evenly with your hand, while the hand follows the curve. Turn the box off and on: the dot stays in both cases. No limits: no dot.
 - [ ] 183. (0.14.137) Encoder with a List of ranges, full range off, Rising wave curve: a small pink dot sits on the ring. Drag and scroll: the dot moves smoothly with your hand, also through the gaps, while the hand waits at the edges and jumps. Let go: the dot stays where it was. No dot without a curve or without limits; on a width / Q band with a curve and limits, two dots at the edges of the width. The dot is easy to see in both themes.
 - [ ] 182. (0.14.136) List of ranges with a gap + Rising wave, full range off: drag and scroll the encoder through the whole travel. The hand stays on the arcs: it waits at an edge and jumps across the gap at once, never shows a position in the gap. Same with an inverted Range (Max below Min) and a curve; without a curve nothing changed.
 - [ ] 181. (0.14.135) Curve with limits (Inspector): set a List of ranges (two ranges with a gap), leave "Use the full range of the control" off, pick the Rising wave curve. (a) Under the curve a grey note explains that the value stops at the edges and jumps, with a "Use the full range of the control" button; the button ticks the box in Limits and the note goes away. (b) Box off again: scroll the wheel over the encoder all the way up and down: the value crosses the gap to the other range (it waits at the edge for a few notches, then jumps), never sticks. (c) Drag it and let go in the gap: the pointer stays at the edge it shows, no jump on the next notch. (d) A stepped encoder with a curve and limits: the note shows, without the button. Found (Bianca): (a) ok; (b) the value crosses and never sticks, values right, but the hand wiggled in the gaps while scrolling and dragging (outer ends fine) → fixed in 182. (c), (d) still to check.
