@@ -1899,7 +1899,21 @@ function draw_param_control_panel(P, fxs, gm, targets)
         else
           local u = param_to_ctl(row, k.kind, reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx))
           local cvp = param_curve_of(row, k.kind)
-          draw_curve_section(tr, row, cvp and curve_inv(cvp, u, param_row_memo(tr, row, fxi).cpos) or u)
+          draw_curve_section(tr, row, cvp and curve_ctl_pos(cvp, u, param_row_memo(tr, row, fxi), k.steps) or u)
+          -- a curve with limits but not the full range: it is laid over the whole travel, so the value
+          -- stops at the edges of the allowed values and jumps across what isn't allowed; say so
+          if cvp and param_segs(row, k.kind) and not (row.fit and param_fit_ok(k.kind)) then
+            ig.PushTextWrapPos(ctx, 0)
+            ig.TextDisabled(ctx, 'With limits, the curve covers the whole travel of the control: the value '
+                              .. 'stops at the edges of the allowed values and jumps across the rest.')
+            ig.PopTextWrapPos(ctx)
+            if param_fit_ok(k.kind) then
+              if ig.Button(ctx, 'Use the full range of the control##crvfit') then params_update(tr, row.guid, row.idx, { fit = true }) end
+              if ig.IsItemHovered(ctx) then
+                ig.SetTooltip(ctx, 'The curve then covers only the allowed values (Limits section).')
+              end
+            end
+          end
         end
         ig.Spacing(ctx)
       end

@@ -1081,6 +1081,9 @@ function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, 
     if newv then
       if cv then newv = curve_ctl_value(cv, newv, mm, kind.steps) end
       newv = param_from_ctl(r, ekind, newv, norm)
+      -- the curve keeps the position it was turned to, also when the limits held the value at an
+      -- edge: the next wheel notch goes on from there (and can cross a stretch that isn't allowed)
+      if cv then mm.cu, mm.ccv = param_to_ctl(r, ekind, newv), cv end
     end
   end
   return newv

@@ -104,9 +104,11 @@ end
 
 -- a control with a curve: the position it shows for the value u (0..1, after invert and limits). It
 -- remembers where it was (mm, the row's memo), so a curve that reaches a value several times doesn't
--- make it jump, and looks again only when the value moved. A stepped encoder sits on a step.
+-- make it jump, and looks again only when the value moved. A stepped encoder sits on a step. After a
+-- turn, mm.cu is the value the turn gave (draw_param_ctl), so the control stays where it was turned
+-- even when the limits held the value at the edge of an allowed part.
 function curve_ctl_pos(cv, u, mm, steps)
-  if mm.cu == u and mm.cpos and mm.ccv == cv then return mm.cpos end
+  if mm.cu and math.abs(mm.cu - u) < 1e-5 and mm.cpos and mm.ccv == cv then return mm.cpos end
   local c = curve_inv(cv, u, mm.cpos)
   if steps and steps > 1 then c = math.floor(c * (steps - 1) + 0.5) / (steps - 1) end
   mm.cu, mm.cpos, mm.ccv = u, c, cv
