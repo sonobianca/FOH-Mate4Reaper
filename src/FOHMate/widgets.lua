@@ -517,6 +517,7 @@ end
 
 ENC = {}                    -- per encoder: what the current drag started from
 ENC_DEFAULT_COL = 0xFFD21EFF   -- the default value's mark: yellow
+ENC_POS_COL = 0xFF3D9EFF       -- with a curve and limits, the dot on the ring where the control is turned to: pink
 ENC_A0, ENC_A1 = math.rad(135), math.rad(405)   -- screen angles of 7:30 and 4:30 (y points down)
 
 -- a tiny arrow just outside the circle, pointing at it (perpendicular to the circumference)
@@ -691,6 +692,7 @@ function draw_encoder(id, cx, cy, r, norm, o)
   local dl = ig.GetWindowDrawList(ctx)
   local changed
   local hover = false
+  local cpos = o.pos                                 -- where the control is turned to (with a curve)
   if not o.static then
     local R = r + 6 * s
     ig.SetCursorScreenPos(ctx, cx - R, cy - R)
@@ -702,7 +704,7 @@ function draw_encoder(id, cx, cy, r, norm, o)
     if ig.IsItemActivated(ctx) then st.raw, st.a = base, nil end
     if hover and ig.IsMouseDoubleClicked(ctx, 0) and o.def then
       local d = o.def_pos or o.def
-      changed, st.raw = d, d
+      changed, st.raw, cpos = d, d, d
     elseif ig.IsItemActive(ctx) then
       local mx, my = ig.GetMousePos(ctx)
       local raw = st.raw or base
@@ -726,6 +728,7 @@ function draw_encoder(id, cx, cy, r, norm, o)
       local v = raw
       if o.steps and o.steps > 1 then v = math.floor(raw * (o.steps - 1) + 0.5) / (o.steps - 1) end
       if v ~= base then changed = v end
+      cpos = v
     end
   end
   local v = norm
@@ -839,6 +842,18 @@ function draw_encoder(id, cx, cy, r, norm, o)
   else
     ig.DrawList_AddLine(dl, cx + math.cos(ang) * r * 0.3, cy + math.sin(ang) * r * 0.3,
                         cx + math.cos(ang) * r * 0.85, cy + math.sin(ang) * r * 0.85, o.ptr, 3 * s)
+  end
+  -- a curve with limits: the hand shows the value, which may wait at an edge; a small dot on the ring
+  -- shows where the control itself is turned to (a band: one at each edge of the width it is turned to)
+  if o.curve and o.range and cpos then
+    local dr = 2.2 * s
+    local function dot(a) ig.DrawList_AddCircleFilled(dl, cx + math.cos(a) * r, cy + math.sin(a) * r, dr, ENC_POS_COL, 0) end
+    if o.style == 'band' then
+      local mid, half = (ENC_A0 + ENC_A1) / 2, band_half(o.narrow and 1 - cpos or cpos)
+      dot(mid - half); dot(mid + half)
+    else
+      dot(ENC_A0 + (ENC_A1 - ENC_A0) * cpos)
+    end
   end
   return changed
 end

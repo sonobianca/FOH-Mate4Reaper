@@ -27,7 +27,7 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.14.136'   -- major.minor.revision, shown in the window's title bar
+VERSION         = '0.14.137'   -- major.minor.revision, shown in the window's title bar
 DEBUG_TIMER     = true      -- status bar shows how long the script takes per frame; must be false in a
                             -- public version (tools/make_reapack_index.sh refuses to build otherwise)
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
