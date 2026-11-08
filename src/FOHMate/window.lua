@@ -985,6 +985,7 @@ end
 -- reaches the value, or the gap before another range), sideways makes it wider or narrower.
 -- wkey: the window it is in, which then doesn't scroll (CTL_HOVER).
 CTL_HOVER_NOW, CTL_HOVER_PREV = {}, {}
+WHEEL_STEPPED = 0.4                         -- a stepped encoder: 2.5 notches of the wheel per step (lists and drop-downs: 1)
 WHEEL_STEP, WHEEL_FINE = 0.006, 0.0015     -- a notch of the wheel on a smooth control (Shift: finer), of its travel
 
 function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, cl, wkey)
@@ -1009,15 +1010,15 @@ function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, 
   end
   -- whole steps from the wheel (a trackpad gives small amounts: they add up), one step at a time at
   -- most, so a fast swipe doesn't skip values and every step is felt
-  local function wheel_steps()
-    mm.wacc = (mm.wacc or 0) + wv
+  local function wheel_steps(scale)
+    mm.wacc = (mm.wacc or 0) + wv * (scale or 1)
     local n = mm.wacc >= 0 and math.floor(mm.wacc) or -math.floor(-mm.wacc)
     mm.wacc = mm.wacc - n
     if n > 1 or n < -1 then n, mm.wacc = (n > 0 and 1 or -1), 0 end
     return n
   end
-  local function step_item(items, pos)
-    local n = wheel_steps()
+  local function step_item(items, pos, scale)
+    local n = wheel_steps(scale)
     if n == 0 then return nil end
     return items[math.max(1, math.min(#items, pos + n))].norm
   end
@@ -1039,7 +1040,7 @@ function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, 
     local c_ = draw_encoder(id, kcx, kcy, kr, (lv.pos - 1) / (n_ - 1), { body = cl.body, col = cl.col, ptr = cl.ptr, s = f,
                             style = 'line', steps = n_, def = lv.def })
     if c_ then newv = lv.items[math.floor(c_ * (n_ - 1) + 0.5) + 1].norm end
-    if not newv and wv ~= 0 then newv = step_item(lv.items, lv.pos) end
+    if not newv and wv ~= 0 then newv = step_item(lv.items, lv.pos, WHEEL_STEPPED) end
   elseif kind.kind == 'list' then
     newv = draw_dropdown(id, kcx, kcy, kr, norm, kind.items, { body = cl.body, col = cl.col, ptr = cl.ptr, s = f })
     if not newv and wv ~= 0 and kind.items and #kind.items > 0 then
@@ -1070,7 +1071,7 @@ function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, 
         -- the wheel: along the control (the curve's position when it has one), a step at a time when stepped
         local c0 = cpos or shown
         if kind.steps and kind.steps > 1 then
-          local n = wheel_steps()
+          local n = wheel_steps(WHEEL_STEPPED)
           if n ~= 0 then newv = math.max(0, math.min(1, c0 + n / (kind.steps - 1))) end
         else
           newv = math.max(0, math.min(1, c0 + wv * (mod_down('shift') and WHEEL_FINE or WHEEL_STEP)))

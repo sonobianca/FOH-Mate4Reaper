@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Stepped encoders turn slower with the wheel (about 2.5 notches per step; lists and drop-downs still one value per notch). Show mode closes the Parameters and Inspector windows and Edit mode brings them back (Settings > Reopen the Parameters and Inspector windows). Each Inspector edit (limits, list values, ranges, curve, nickname...) now gets its own undo point, "Rack: edit parameter settings", once it has been still for half a second (one point per drag, not per frame).
+
 - Inspect FX... opens both the Parameters tree and the Inspector (it only opened the Inspector). Changing the control type of several parameters at once asks first ("Change the control of N parameters to ...?"), with a "Don't show this again" check box (Settings > Reset warning popups brings the question back).
 
 - Wheel: Cmd/Ctrl and Shift are seen over a control even when the Racks window has no keyboard focus (with js_ReaScriptAPI installed); smooth controls turn slower (0.6% of the travel per notch), stepped ones and lists one step at a time, so no value is skipped; Shift+wheel on a Mac (sent sideways) turns finer. Inspector: every section starts folded; the "Add the value it has now?" question opens in the Inspector; with two listed values, Show as reads Toggle. Parameters whose every value is "Reserved" (Kirchhoff-EQ Speakers Type) are hidden like placeholders; a "%" an FX leaves after a unit ("12.0dB/oct %") is dropped. Daylight: frames have a thin outline (empty check boxes and radio buttons stay visible). Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z in a FOH-Mate window go to REAPER's Undo / Redo (not while typing in a box).

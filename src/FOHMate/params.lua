@@ -96,6 +96,7 @@ end
 -- FX guid -> index, for the FX of a rack
 -- changes fields of one row (inv, def...): changes = { inv = true, def = 0.5 }; a field set to false is cleared
 function params_update(tr, guid, idx, changes)
+  undo_mark('Rack: edit parameter settings')
   local rows = {}
   for _, r in ipairs(params_read(tr)) do
     local n = {}
@@ -2343,8 +2344,14 @@ function draw_param_picker()
   end
   local P = PARAM_PICK
   if not P then return end
+  -- Show mode closes them; back in Edit mode they come back (Settings > Reopen the Parameters and Inspector windows)
+  if P.back and not is_locked() then
+    if CFG.reopen_windows ~= 0 and valid(P.tr) and #param_racks() > 0 then P.tree_open, P.insp_open = P.back.tree, P.back.insp end
+    P.back = nil
+  end
   if not (P.tree_open or P.insp_open) then P.hl, P.focus = nil, nil; return end
   if not valid(P.tr) or is_locked() then
+    if is_locked() then P.back = { tree = P.tree_open, insp = P.insp_open } end
     P.tree_open, P.insp_open, P.hl, P.focus = false, false, nil, nil     -- (Show mode closes them)
     return
   end

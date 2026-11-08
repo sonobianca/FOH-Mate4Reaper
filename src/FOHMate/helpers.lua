@@ -91,10 +91,29 @@ function fit_text(s, w)
   return s .. '...'
 end
 
+UNDO_DEPTH, UNDO_PENDING, UNDO_T = 0, nil, 0
 function with_undo(label, fn)
   reaper.Undo_BeginBlock2(0)
+  UNDO_DEPTH = UNDO_DEPTH + 1
   fn()
+  UNDO_DEPTH = UNDO_DEPTH - 1
   reaper.Undo_EndBlock2(0, label, -1)
+end
+
+-- An edit made outside a with_undo block (the Inspector's limits, curve, list values...) gets its own
+-- undo point once it has been still for half a second (so a drag or a run of wheel notches is one point,
+-- not one per frame). undo_mark notes the change; undo_commit (every frame, and before an Undo) writes the point.
+function undo_mark(label)
+  if UNDO_DEPTH > 0 then return end
+  UNDO_PENDING, UNDO_T = label, reaper.time_precise()
+end
+
+function undo_commit(force)
+  if not UNDO_PENDING then return end
+  if force or reaper.time_precise() - UNDO_T > 0.5 then
+    reaper.Undo_OnStateChangeEx2(0, UNDO_PENDING, 1, -1)      -- 1: the track configuration (where the rows are kept)
+    UNDO_PENDING = nil
+  end
 end
 
 function has_mod(name)
@@ -121,6 +140,7 @@ end
 function pass_undo_keys()
   if not ig.IsWindowFocused(ctx, ig.FocusedFlags_AnyWindow()) or ig.IsAnyItemActive(ctx) then return end
   if has_mod('ctrl') and ig.IsKeyPressed(ctx, ig.Key_Z(), false) then
+    undo_commit(true)                                        -- an edit still waiting for its point is one too
     reaper.Main_OnCommand(has_mod('shift') and 40030 or 40029, 0)     -- Edit: Redo / Edit: Undo
   end
 end
