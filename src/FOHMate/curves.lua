@@ -62,6 +62,10 @@ function curve_parse(spec)
   return cv
 end
 
+-- a straight curve, never saved: a width / Q band with limits but no curve of its own turns with it, so
+-- the control keeps where it is turned to (its dots reach both ends) while the value keeps to the limits
+CURVE_LINEAR = curve_parse('pts:0:0.000,0.000 1.000,1.000')
+
 function curve_spec(cv)
   if cv.kind ~= 'pts' then return ('%s:%.2f'):format(cv.kind, cv.k) end
   local t = {}

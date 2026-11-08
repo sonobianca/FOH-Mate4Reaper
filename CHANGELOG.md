@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- A width or Q band with limits but no curve: its dots reach both ends of the travel, like with a curve (the control keeps where it is turned to).
+
 - A width or Q band with limits shows the position dots also without a curve.
 
 - A parameter named with BW (bandwidth), such as "BW" or "Band 2 BW", gets a width control.

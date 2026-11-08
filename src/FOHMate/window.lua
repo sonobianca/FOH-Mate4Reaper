@@ -1055,6 +1055,7 @@ function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, 
     -- and its curve (curves.lua): the drag moves evenly along the curve (cpos), the encoder
     -- shows the value it gives, rising and falling with the curve
     local cv = param_curve_of(r, ekind)
+    if not cv and (ekind == 'band' or ekind == 'qband') and param_segs(r, ekind) then cv = CURVE_LINEAR end
     local shown = param_to_ctl(r, ekind, norm)
     local cpos = cv and curve_ctl_pos(cv, shown, mm, kind.steps)
     if kind.kind == 'toggle' then
