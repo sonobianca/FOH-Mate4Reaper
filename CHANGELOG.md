@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- An encoder with a list of ranges (or an inverted range) and a curve: its hand no longer shows values in the gaps, while dragging or scrolling; it jumps straight across them.
+
 - An encoder with a curve and limits (without the full range): the mouse wheel keeps the position it was turned to, so it can now cross a stretch that is not allowed instead of sticking at its edge; the control no longer jumps back after a drag. The Curve section says how a curve behaves with limits and offers a button to use the full range of the control.
 
 - Stepped encoders turn slower with the wheel (about 2.5 notches per step; lists and drop-downs still one value per notch). Show mode closes the Parameters and Inspector windows and Edit mode brings them back (Settings > Reopen the Parameters and Inspector windows). Each Inspector edit (limits, list values, ranges, curve, nickname...) now gets its own undo point, "Rack: edit parameter settings", once it has been still for half a second (one point per drag, not per frame).

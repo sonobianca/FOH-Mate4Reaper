@@ -733,8 +733,9 @@ function draw_encoder(id, cx, cy, r, norm, o)
   -- with a curve and limits, the value is kept inside them by the caller: draw it there
   if o.curve and o.range then v = math.max(o.range[1], math.min(o.range[2], v)) end
   -- several parts (an inverted range, a list of ranges): the control turns through the gaps, but the
-  -- pointer shows the value the parameter has (it keeps to a part, and may hold at a notch)
-  if o.range and o.range.parts and #o.range.parts > 1 and not o.curve then v = norm end
+  -- pointer shows the value the parameter has (it keeps to a part, and may hold at a notch), also with a curve
+  local parts = o.range and o.range.parts and #o.range.parts > 1 and o.range.parts
+  if parts then v = norm end
   -- the pointer moves at most so far per frame (the whole range in about a sixth of a second): a value
   -- that jumps (a steep curve dragged quickly, the FX, automation) sweeps over the top, instead of
   -- seeming to pass under the encoder. Only the drawing; the value is set at once.
@@ -744,7 +745,17 @@ function draw_encoder(id, cx, cy, r, norm, o)
     local now = reaper.time_precise()
     if ds.sv then
       local step = math.max(0.02, (now - ds.st) * 6)
-      if math.abs(v - ds.sv) > step then v = ds.sv + (v > ds.sv and step or -step) end
+      if math.abs(v - ds.sv) > step then
+        local sv = ds.sv + (v > ds.sv and step or -step)
+        -- several parts: the sweep never shows a value in a gap; it jumps straight across it
+        local inside = not parts
+        if parts then
+          for _, p in ipairs(parts) do
+            if sv >= math.min(p[1], p[2]) - 1e-6 and sv <= math.max(p[1], p[2]) + 1e-6 then inside = true; break end
+          end
+        end
+        if inside then v = sv end
+      end
     end
     ds.sv, ds.st = v, now
   end
