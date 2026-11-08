@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 186).
+New items get the next free number (next: 187).
 
 ## Open
 
+- [ ] 186. (0.14.140) An FX with a BW parameter (an EQ band "BW", "Band 2 BW", "BW1"): in the Performance it shows as a width band (Inspector: Show as = Width band). A parameter set by hand to another control keeps it. A name that only contains the letters (like "BWD") is unchanged.
 - [ ] 185. (0.14.139) Stepped encoder and smooth encoder, each with limits and a curve (full range off, then on): scroll and drag all the way to both ends: the pink dot reaches the 7:30 and 4:30 marks every time, while the hand stays at the limits. Moving the parameter from REAPER (the FX window or automation) still moves the dot to match.
 - [ ] 184. (0.14.138) Curve + limits with "Use the full range of the control" on: the pink dot shows where the control is turned to and moves evenly with your hand, while the hand follows the curve. Turn the box off and on: the dot stays in both cases. No limits: no dot.
 - [ ] 183. (0.14.137) Encoder with a List of ranges, full range off, Rising wave curve: a small pink dot sits on the ring. Drag and scroll: the dot moves smoothly with your hand, also through the gaps, while the hand waits at the edges and jumps. Let go: the dot stays where it was. No dot without a curve or without limits; on a width / Q band with a curve and limits, two dots at the edges of the width. The dot is easy to see in both themes.

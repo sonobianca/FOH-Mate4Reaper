@@ -1045,8 +1045,8 @@ function param_kind(tr, fxi, r)
          or low:find('[%s%-_]q[%s%-_]') then
     guess = 'qband'     -- a higher Q is a tighter band
   elseif low:find('width', 1, true) or low:find('range', 1, true) or low:find('spread', 1, true)
-         or low:find('knee', 1, true) then
-    guess = 'band'
+         or low:find('knee', 1, true) or low:find('%f[%a]bw%f[%A]') then
+    guess = 'band'      -- (BW on its own, as in "BW", "Band 2 BW" or "BW1": bandwidth)
   end
 
   -- a Pan/Width parameter follows a stereo placement parameter of the same band, when there is one

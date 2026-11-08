@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- A parameter named with BW (bandwidth), such as "BW" or "Band 2 BW", gets a width control.
+
 - The position dot reaches both ends of the travel also with limits: a value the FX rounds (a stepped encoder, a limit between two of its steps) no longer pulls the control back.
 
 - The position dot also shows with "Use the full range of the control" on.
