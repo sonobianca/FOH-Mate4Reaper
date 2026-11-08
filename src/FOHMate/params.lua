@@ -303,7 +303,7 @@ end
 -- Limit values, Range (r.lim == 'mm') and List of ranges (r.lim == 'ranges'): a parameter in the
 -- Performance may be kept to some parts of its travel (0..1, as REAPER counts it), its "segments":
 --   Range: from lo to hi; lo above hi is an inverted range: from 0 to hi, and from lo to 1 (two parts);
---   List of ranges: r.rngs, { lo, hi } each, in the list's order, never overlapping; with r.rinv, the
+--   List of ranges: r.rngs, { lo, hi } each, in any order (shown and used from low to high), never overlapping; with r.rinv, the
 --   gaps between them are the parts instead (from low to high).
 -- How the control turns (param_map, worked out once per row and kind): x is where the control is along
 -- its travel (0..1, before Invert), v the parameter's value.
@@ -366,7 +366,7 @@ function param_seg_near(segs, v)
 end
 
 -- full range, skipping the gaps: where each part lies along the control's travel, { lo, hi, from, to }
--- each, in the list's order
+-- each, from low to high
 function param_fit_layout(segs)
   local total = 0
   for _, sg in ipairs(segs) do total = total + (sg[2] - sg[1]) end
@@ -400,7 +400,7 @@ function param_map(r, kind, cv)
       M.skip = not r.noskip
       if fit and M.skip then
         M.mode = 'chain'
-        M.lay = param_fit_layout((r.lim == 'ranges' and not r.rinv) and r.rngs or segs)
+        M.lay = param_fit_layout(segs)
       elseif fit then M.mode = 'stretch'
       else M.mode, M.A, M.B = 'span', M.S, M.E end
     end
@@ -690,14 +690,17 @@ end
 
 -- the move up / move down / remove buttons on the right of a line of a list (i of n), as in the list of
 -- values: no up arrow on the first, no down arrow on the last, a red x. Returns 'up', 'dn', 'x' or nil.
-function draw_list_buttons(i, n, bw, what)
+-- (xonly: only the remove button, for a list kept in its own order)
+function draw_list_buttons(i, n, bw, what, xonly)
   local act
-  if i == 1 then ig.Dummy(ctx, bw, bw)
-  elseif ig.ArrowButton(ctx, 'up', ig.Dir_Up()) then act = 'up' end
-  ig.SameLine(ctx)
-  if i == n then ig.Dummy(ctx, bw, bw)
-  elseif ig.ArrowButton(ctx, 'dn', ig.Dir_Down()) then act = 'dn' end
-  ig.SameLine(ctx)
+  if not xonly then
+    if i == 1 then ig.Dummy(ctx, bw, bw)
+    elseif ig.ArrowButton(ctx, 'up', ig.Dir_Up()) then act = 'up' end
+    ig.SameLine(ctx)
+    if i == n then ig.Dummy(ctx, bw, bw)
+    elseif ig.ArrowButton(ctx, 'dn', ig.Dir_Down()) then act = 'dn' end
+    ig.SameLine(ctx)
+  end
   ig.PushStyleColor(ctx, ig.Col_Button(), 0xB03030FF)
   ig.PushStyleColor(ctx, ig.Col_ButtonHovered(), 0xD04040FF)
   ig.PushStyleColor(ctx, ig.Col_ButtonActive(), 0x902020FF)
@@ -1887,7 +1890,8 @@ function draw_param_control_panel(P, fxs, gm, targets)
           end
           fit_box()
         elseif row.lim == 'ranges' and can_mm then
-          -- each range on its range control, in the list's order, with on the right: up, down, remove
+          -- each range on its range control, from low to high (the order they take on the control), with
+          -- a remove button on the right
           local rngs = row.rngs or {}
           local function put(nr)
             params_update(tr, g, ix, { rngs = #nr > 0 and nr or false })
@@ -1901,18 +1905,20 @@ function draw_param_control_panel(P, fxs, gm, targets)
           if #rngs == 0 then ig.TextDisabled(ctx, 'No ranges yet: add one below.') end
           local bw = ig.GetFrameHeight(ctx)
           local sp = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
-          local btns = 3 * bw + 2 * sp
+          local btns = bw
           local bx = ig.GetCursorPosX(ctx) + math.max(0, select(1, ig.GetContentRegionAvail(ctx)) - btns)
           -- the ranges never overlap: each stays the gap (Settings) away from the others
           local gap = param_range_gap()
-          for i, v in ipairs(rngs) do
+          local order = {}
+          for i = 1, #rngs do order[i] = i end
+          table.sort(order, function(a, b) return rngs[a][1] < rngs[b][1] end)
+          for _, i in ipairs(order) do
+            local v = rngs[i]
             ig.PushID(ctx, 'rg' .. i)
             local nlo, nhi = draw_range_bar('rg' .. i, v[1], v[2], { text = rtext, find = rfind, width = bx - ig.GetCursorPosX(ctx) - sp })
             ig.SameLine(ctx, bx)
-            local act = draw_list_buttons(i, #rngs, bw, 'range')
-            if act == 'up' then local nr = copy(); nr[i], nr[i - 1] = nr[i - 1], nr[i]; put(nr)
-            elseif act == 'dn' then local nr = copy(); nr[i], nr[i + 1] = nr[i + 1], nr[i]; put(nr)
-            elseif act == 'x' then local nr = copy(); table.remove(nr, i); put(nr)
+            local act = draw_list_buttons(i, #rngs, bw, 'range', true)
+            if act == 'x' then local nr = copy(); table.remove(nr, i); put(nr)
             elseif nlo then
               local L, R = param_range_room(rngs, i, gap)
               local w = v[2] - v[1]
