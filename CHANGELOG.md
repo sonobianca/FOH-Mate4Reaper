@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Limits, new rules (encoders, width and Q bands, pans). A Range: the control stops at Min and Max again; new option "Limit only values": the control turns all the way while the value stays in the range. A List of ranges (and a Range with Max below Min, which loses its notch): the control turns between the lowest and the highest limit; new option "Skip the gaps" (on by default; lists made before keep what they did): the control jumps over the gaps, or, off, turns through them while the value waits at the nearest allowed value. Full range: one range covers the whole travel; several cover it from the lowest to the highest limit, gaps included, or one after the other when the gaps are skipped. A curve now covers the stretch the control turns through (the whole travel with Limit only values). The pink dot shows wherever the value and the control can differ: with a curve, Limit only values, or gaps that are not skipped. The Curve section warns when a curve meets Skip the gaps (the control may jump several times) or Limit only values.
+
 - A width or Q band with limits but no curve: its dots reach both ends of the travel, like with a curve (the control keeps where it is turned to).
 
 - A width or Q band with limits shows the position dots also without a curve.

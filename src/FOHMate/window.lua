@@ -1051,40 +1051,66 @@ function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, 
       newv = step_item(kind.items, pos)
     end
   else
-    -- the control shows (and sets) the value through the row's invert and limits (param_to_ctl),
-    -- and its curve (curves.lua): the drag moves evenly along the curve (cpos), the encoder
-    -- shows the value it gives, rising and falling with the curve
+    -- the control turns through the row's invert, limits and curve (param_map, params.lua): the hand
+    -- shows the value (where it lies along the travel), the control keeps where it is turned to (cpos),
+    -- and a dot shows that place when the two can differ
     local cv = param_curve_of(r, ekind)
-    if not cv and (ekind == 'band' or ekind == 'qband') and param_segs(r, ekind) then cv = CURVE_LINEAR end
-    local shown = param_to_ctl(r, ekind, norm)
-    local cpos = cv and curve_ctl_pos(cv, shown, mm, kind.steps)
+    local M = param_map(r, ekind, cv)
+    local shown = param_map_flip(M, param_map_unlim(M, norm))
+    local cpos = param_ctl_pos(M, norm, mm, kind.steps)
+    local newc
     if kind.kind == 'toggle' then
       local d = 2 * (kr + 3 * f)
-      if circle_check(dl, id, kcx - d / 2, kcy - d / 2, d, shown > 0.5) then newv = shown > 0.5 and 0 or 1 end
-      if not newv and wv ~= 0 then newv = wv > 0 and 1 or 0 end
+      if circle_check(dl, id, kcx - d / 2, kcy - d / 2, d, shown > 0.5) then newc = shown > 0.5 and 0 or 1 end
+      if not newc and wv ~= 0 then newc = wv > 0 and 1 or 0 end
     else
-      local marks, def, range, joins = param_ctl_view(r, ekind, kind.marks)
-      newv = draw_encoder(id, kcx, kcy, kr, shown, { body = cl.body, col = cl.col, ptr = cl.ptr, s = f,
+      local marks, def, range, joins = param_ctl_view(r, ekind, kind.marks, M)
+      -- the ends of the travel, and (made once per row) the hand for a place and the jump over a gap
+      local ta, tb = param_map_flip(M, M.A), param_map_flip(M, M.B)
+      if ta > tb then ta, tb = tb, ta end
+      local trv = mm.trv or {}
+      trv[1], trv[2], mm.trv, mm.M = ta, tb, trv, M
+      mm.hand_fn = mm.hand_fn or function(c)
+        local m = mm.M
+        return param_map_flip(m, param_map_unlim(m, param_map_val(m, param_map_flip(m, c))))
+      end
+      mm.jump_fn = mm.jump_fn or function(c, prev)
+        local m = mm.M
+        local dir = (c >= prev) and 1 or -1
+        if m.inv then dir = -dir end
+        local x = param_map_skip(m, param_map_flip(m, c), dir)
+        return x and param_map_flip(m, x) or prev
+      end
+      local def_pos = def
+      if def and M.dot then def_pos = param_map_flip(M, param_map_pos(M, r.def, param_map_flip(M, cpos))) end
+      newc = draw_encoder(id, kcx, kcy, kr, shown, { body = cl.body, col = cl.col, ptr = cl.ptr, s = f,
                           style = ekind == 'pan' and 'pan' or (ekind == 'band' or ekind == 'qband') and 'band' or 'line', narrow = ekind == 'qband', steps = kind.steps, marks = marks,
-                          def = def, range = range, joins = joins, curve = cv, pos = cpos, def_pos = cv and def and curve_inv(cv, def, cpos),
-                          show = mm, pos_dot = (cv or ekind == 'band' or ekind == 'qband') and param_segs(r, ekind) ~= nil })
-      if not newv and wv ~= 0 then
-        -- the wheel: along the control (the curve's position when it has one), a step at a time when stepped
-        local c0 = cpos or shown
+                          def = def, range = range, joins = joins, pos = cpos, def_pos = def_pos, travel = trv,
+                          hand = mm.hand_fn, jump = M.jumps and mm.jump_fn or nil, dot = M.dot, show = mm })
+      if not newc and wv ~= 0 then
+        -- the wheel: along the control, from where it is turned to, a step at a time when stepped
+        local c1
         if kind.steps and kind.steps > 1 then
           local n = wheel_steps(WHEEL_STEPPED)
-          if n ~= 0 then newv = math.max(0, math.min(1, c0 + n / (kind.steps - 1))) end
+          if n ~= 0 then c1 = cpos + n / (kind.steps - 1) end
         else
-          newv = math.max(0, math.min(1, c0 + wv * (mod_down('shift') and WHEEL_FINE or WHEEL_STEP)))
+          c1 = cpos + wv * (mod_down('shift') and WHEEL_FINE or WHEEL_STEP)
+        end
+        if c1 then
+          c1 = math.max(ta, math.min(tb, c1))
+          if M.jumps then c1 = mm.jump_fn(c1, cpos) end
+          if c1 ~= cpos then newc = c1 end
         end
       end
     end
-    if newv then
-      if cv then newv = curve_ctl_value(cv, newv, mm, kind.steps) end
-      newv = param_from_ctl(r, ekind, newv, norm)
-      -- the curve keeps the position it was turned to, also when the limits held the value at an
-      -- edge: the next wheel notch goes on from there (and can cross a stretch that isn't allowed)
-      if cv then mm.cu, mm.ccv, mm.ct = param_to_ctl(r, ekind, newv), cv, reaper.time_precise() end
+    if newc then
+      -- the place -> the value (on a step of the FX for a stepped one, then back inside the limits)
+      newv = param_map_val(M, param_map_flip(M, newc))
+      if kind.steps and kind.steps > 1 then
+        newv = math.floor(newv * (kind.steps - 1) + 0.5) / (kind.steps - 1)
+        if M.segs then newv = param_seg_near(M.segs, newv) end
+      end
+      mm.cpos, mm.cu, mm.csig, mm.ct = newc, newv, M.sig, reaper.time_precise()
     end
   end
   return newv

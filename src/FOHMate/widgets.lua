@@ -692,7 +692,11 @@ function draw_encoder(id, cx, cy, r, norm, o)
   local dl = ig.GetWindowDrawList(ctx)
   local changed
   local hover = false
-  local cpos = o.pos                                 -- where the control is turned to (with a curve)
+  -- o.pos: where the control is turned to, when it can differ from where the hand shows the value (norm);
+  -- o.travel: { lo, hi }, the ends it turns between; o.jump(c, prev): where it goes when turned from prev
+  -- to c (over a gap); o.hand(c): the hand for a place (drawn at once while it is turned); o.dot: a dot
+  -- on the ring shows o.pos
+  local cpos = o.pos
   if not o.static then
     local R = r + 6 * s
     ig.SetCursorScreenPos(ctx, cx - R, cy - R)
@@ -723,7 +727,8 @@ function draw_encoder(id, cx, cy, r, norm, o)
         raw = raw - dy * k
       end
       raw = math.max(0, math.min(1, raw))
-      if o.range and not o.curve then raw = math.max(o.range[1], math.min(o.range[2], raw)) end
+      if o.travel then raw = math.max(o.travel[1], math.min(o.travel[2], raw)) end
+      if o.jump then raw = o.jump(raw, st.raw or base) end
       st.raw = raw
       local v = raw
       if o.steps and o.steps > 1 then v = math.floor(raw * (o.steps - 1) + 0.5) / (o.steps - 1) end
@@ -732,13 +737,8 @@ function draw_encoder(id, cx, cy, r, norm, o)
     end
   end
   local v = norm
-  if changed then v = o.curve and curve_eval(o.curve, changed) or changed end
-  -- with a curve and limits, the value is kept inside them by the caller: draw it there
-  if o.curve and o.range then v = math.max(o.range[1], math.min(o.range[2], v)) end
-  -- several parts (an inverted range, a list of ranges): the control turns through the gaps, but the
-  -- pointer shows the value the parameter has (it keeps to a part, and may hold at a notch), also with a curve
+  if changed then v = o.hand and o.hand(changed) or changed end
   local parts = o.range and o.range.parts and #o.range.parts > 1 and o.range.parts
-  if parts then v = norm end
   -- the pointer moves at most so far per frame (the whole range in about a sixth of a second): a value
   -- that jumps (a steep curve dragged quickly, the FX, automation) sweeps over the top, instead of
   -- seeming to pass under the encoder. Only the drawing; the value is set at once.
@@ -843,11 +843,10 @@ function draw_encoder(id, cx, cy, r, norm, o)
     ig.DrawList_AddLine(dl, cx + math.cos(ang) * r * 0.3, cy + math.sin(ang) * r * 0.3,
                         cx + math.cos(ang) * r * 0.85, cy + math.sin(ang) * r * 0.85, o.ptr, 3 * s)
   end
-  -- limits with a curve, or on a width / Q band (o.pos_dot, with or without the full range): the hand
-  -- shows the value, which may wait at an edge; a small dot on the ring shows where the control itself is
-  -- turned to (a band: one at each edge of the width it is turned to; no curve: the value when not dragged)
-  cpos = cpos or norm
-  if o.pos_dot and cpos then
+  -- the value and the place can differ (o.dot: a curve, Limit only values, gaps not skipped): the hand
+  -- shows the value, a small dot on the ring where the control itself is turned to (a band: one at each
+  -- edge of the width it is turned to)
+  if o.dot and cpos then
     local dr = 2.2 * s
     local function dot(a) ig.DrawList_AddCircleFilled(dl, cx + math.cos(a) * r, cy + math.sin(a) * r, dr, ENC_POS_COL, 0) end
     if o.style == 'band' then

@@ -36,8 +36,8 @@ function params_read(tr)
   if c and c.raw == s then c.frame = FRAME; return c.rows end
   local rows = {}
   for rec in s:gmatch('[^;]+') do
-    local g, i, pn, nm, df, iv, cl, lo, hi, ft, vl, lm, vs, cu, rg, nt =
-      rec:match('^([^|]*)|(%d+)|([^|]*)|([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)$')
+    local g, i, pn, nm, df, iv, cl, lo, hi, ft, vl, lm, vs, cu, rg, nt, vo, sk =
+      rec:match('^([^|]*)|(%d+)|([^|]*)|([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)$')
     if g then
       local r = { guid = g, idx = tonumber(i), pname = param_unesc(pn),
                   name = nm ~= '' and param_unesc(nm) or nil, def = tonumber(df), inv = (iv == '1'),
@@ -66,6 +66,11 @@ function params_read(tr)
       elseif lm == 'm' or (lm == '' and r.lo) then r.lim = 'mm' end
       if r.lim == 'mm' and not r.lo then r.lim = nil end
       if r.lim == 'ranges' and not r.rngs then r.lim = nil end
+      -- Limit only values (a Range), Skip the gaps (several parts). A row saved before Skip the gaps
+      -- existed keeps what it did: a List of ranges without the full range turned through the gaps
+      -- (kept as noskip: a field set to false is cleared by params_update)
+      r.vonly = (vo == 'v')
+      r.noskip = (sk == 'n') or (sk == '' and r.lim == 'ranges' and not r.fit)
       rows[#rows + 1] = r
     end
   end
@@ -80,14 +85,15 @@ function params_write(tr, rows)
     local vl, rl = {}, {}
     for j, v in ipairs(r.vals or {}) do vl[j] = ('%.6f'):format(v) end
     for j, v in ipairs(r.rngs or {}) do rl[j] = ('%.6f:%.6f'):format(v[1], v[2]) end
-    t[#t + 1] = ('%s|%d|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s'):format(r.guid, r.idx, param_esc(r.pname or ''), param_esc(r.name or ''),
+    t[#t + 1] = ('%s|%d|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s'):format(r.guid, r.idx, param_esc(r.pname or ''), param_esc(r.name or ''),
                                                 r.def and ('%.6f'):format(r.def) or '', r.inv and '1' or '',
                                                 r.col and ('%06X'):format(r.col) or '',
                                                 lim and ('%.6f'):format(r.lo) or '', lim and ('%.6f'):format(r.hi) or '',
                                                 r.fit and '1' or '', table.concat(vl, ','),
                                                 (r.lim == 'mm' and 'm') or (r.lim == 'list' and 'l') or (r.lim == 'ranges' and 'r') or 'o',
                                                 (r.vshow == 'steps' and 's') or (r.vshow == 'list' and 'd') or '',
-                                                param_esc(r.curve or ''), table.concat(rl, ','), r.rinv and 'i' or '')
+                                                param_esc(r.curve or ''), table.concat(rl, ','), r.rinv and 'i' or '',
+                                                r.vonly and 'v' or '', r.noskip and 'n' or 's')
   end
   reaper.GetSetMediaTrackInfo_String(tr, EXT_PARAMS, table.concat(t, ';'), true)
   PARAM_CACHE[reaper.GetTrackGUID(tr)] = nil
@@ -299,95 +305,56 @@ end
 --   Range: from lo to hi; lo above hi is an inverted range: from 0 to hi, and from lo to 1 (two parts);
 --   List of ranges: r.rngs, { lo, hi } each, in the list's order, never overlapping; with r.rinv, the
 --   gaps between them are the parts instead (from low to high).
--- With fit (Use the full range of the control), the control's whole travel covers the parts one after
--- the other, in that order, each as long as it is (a mark shows each junction); an inverted Range has a
--- notch there: a short stretch that holds the value before it jumps, like a step. Without fit, the
--- control turns over the parameter's own travel and the value keeps to the nearest part (one part: the
--- control stops at its ends); an inverted Range holds its side until the gap is crossed (the notch).
+-- How the control turns (param_map, worked out once per row and kind): x is where the control is along
+-- its travel (0..1, before Invert), v the parameter's value.
+--   No limit: the value is the position.
+--   Range, one part (lo..hi):
+--     the control turns from lo to hi only, and the value is the position;
+--     Limit only values (r.vonly): the control turns all the way, the value stays in lo..hi (it waits at
+--     an end while the control turns on);
+--     full range (r.fit): the whole travel covers lo..hi.
+--   Several parts (a List of ranges, a Range with Max below Min): the control turns from the lowest limit
+--   to the highest one;
+--     Skip the gaps (not r.noskip): it jumps over a gap, so it never sits in one;
+--     not skipped: it turns through a gap, the value waits at the nearest allowed value;
+--     full range: the whole travel covers the lowest to the highest limit (gaps included), or, skipping
+--     the gaps, the parts one after the other, each as long as it is (a mark shows each junction).
+-- A curve (curves.lua) covers the stretch the control turns through: at position t along it (0..1), it
+-- says where along that same stretch the value goes (y), which then keeps to the limits as above.
 -- Only for the controls that turn (an encoder, a stepped encoder, a width or Q band, a pan); fit not for
 -- a stepped encoder.
 function param_limit_ok(kind) return kind ~= nil and kind ~= 'toggle' and kind ~= 'list' end
 function param_fit_ok(kind) return kind == 'knob' or kind == 'band' or kind == 'qband' or kind == 'pan' end
 
-PARAM_NOTCH = 0.08     -- the notch: this much of the control's travel
-
--- the parts a row allows, in the order the control goes through them, and whether it is an inverted Range
+-- the parts a row allows, from low to high (nil: no limit); a list's are worked out once per row (the
+-- rows are read again when they change)
 function param_segs(r, kind)
   if not param_limit_ok(kind) then return nil end
   if r.lim == 'mm' and r.lo and r.hi then
-    if r.lo < r.hi then return { { r.lo, r.hi } }, false end
-    return { { 0, r.hi }, { r.lo, 1 } }, true
+    if r.lo < r.hi then return { { r.lo, r.hi } } end
+    return { { 0, r.hi }, { r.lo, 1 } }
   elseif r.lim == 'ranges' and r.rngs and #r.rngs > 0 then
-    if not r.rinv then return r.rngs, false end
-    -- inverted: the gaps, worked out once per row (the rows are read again when they change)
-    if not r.gaps then
+    if not r.segs_ then
       local srt = {}
       for i, v in ipairs(r.rngs) do srt[i] = v end
       table.sort(srt, function(a, b) return a[1] < b[1] end)
-      local out, x = {}, 0
-      for _, v in ipairs(srt) do
-        if v[1] > x + 1e-6 then out[#out + 1] = { x, v[1] } end
-        x = math.max(x, v[2])
+      if r.rinv then                                   -- inverted: the gaps between them
+        local out, x = {}, 0
+        for _, v in ipairs(srt) do
+          if v[1] > x + 1e-6 then out[#out + 1] = { x, v[1] } end
+          x = math.max(x, v[2])
+        end
+        if x < 1 - 1e-6 then out[#out + 1] = { x, 1 } end
+        srt = out
       end
-      if x < 1 - 1e-6 then out[#out + 1] = { x, 1 } end
-      r.gaps = out
+      r.segs_ = srt
     end
-    if #r.gaps > 0 then return r.gaps, false end
+    if #r.segs_ > 0 then return r.segs_ end
   end
 end
 
--- with fit: where each part lies along the control's travel, { lo, hi, from, to } each
-function param_fit_layout(segs, notch)
-  local total = 0
-  for _, sg in ipairs(segs) do total = total + (sg[2] - sg[1]) end
-  local gap = notch and PARAM_NOTCH or 0
-  local span = 1 - gap * (#segs - 1)
-  local out, c = {}, 0
-  for i, sg in ipairs(segs) do
-    local w = total > 0 and (sg[2] - sg[1]) / total * span or span / #segs
-    out[i] = { sg[1], sg[2], c, c + w }
-    c = c + w + gap
-  end
-  return out
-end
-
--- the parameter's value -> where the control shows it (0..1), and back (invert included); cur = the
--- value it has now (for the notch of an inverted Range without fit)
-function param_to_ctl(r, kind, v)
-  local segs, inv = param_segs(r, kind)
-  if segs and r.fit and param_fit_ok(kind) then
-    local best, bd = v, math.huge
-    for _, p in ipairs(param_fit_layout(segs, inv)) do
-      local x = math.max(p[1], math.min(p[2], v))
-      local d = math.abs(x - v)
-      if d < bd - 1e-9 then
-        bd = d
-        best = (p[2] > p[1]) and p[3] + (x - p[1]) / (p[2] - p[1]) * (p[4] - p[3]) or p[3]
-      end
-    end
-    v = best
-  end
-  if r.inv then v = 1 - v end
-  return v
-end
-
-function param_from_ctl(r, kind, v, cur)
-  if r.inv then v = 1 - v end
-  local segs, inv = param_segs(r, kind)
-  if not segs then return v end
-  if r.fit and param_fit_ok(kind) then
-    local lay = param_fit_layout(segs, inv)
-    for i, p in ipairs(lay) do
-      if i > 1 and v < p[3] then                     -- in the notch before this part: the first half holds
-        local q = lay[i - 1]                         -- the end of the part before, the second this one's start
-        return (v - q[4] < p[3] - v) and q[2] or p[1]
-      end
-      if v <= p[4] or i == #lay then
-        local t = p[4] > p[3] and (v - p[3]) / (p[4] - p[3]) or 0
-        return p[1] + math.max(0, math.min(1, t)) * (p[2] - p[1])
-      end
-    end
-  end
+-- the allowed value nearest to v
+function param_seg_near(segs, v)
   local best, bd = v, math.huge
   for _, sg in ipairs(segs) do
     local x = math.max(sg[1], math.min(sg[2], v))
@@ -395,47 +362,205 @@ function param_from_ctl(r, kind, v, cur)
     if d == 0 then return v end
     if d < bd then best, bd = x, d end
   end
-  if inv and cur then                                -- in the gap: the side it comes from, until it is crossed
-    if cur <= r.hi + 1e-6 then return r.hi end
-    if cur >= r.lo - 1e-6 then return r.lo end
-  end
   return best
 end
 
--- what the control draws, in its own 0..1: the extra marks (a fader's dB marks: with fit, only those
--- inside the parts), the default mark, the parts it keeps to (without fit) as { lo, hi, parts = { { a, b } } }
--- (lo, hi: where it stops), and (with fit, several parts) the junctions
-function param_ctl_view(r, kind, marks)
-  local segs, inv = param_segs(r, kind)
-  local fit = segs and r.fit and param_fit_ok(kind)
-  local function inside(m)
-    if not fit then return true end
-    for _, sg in ipairs(segs) do if m >= sg[1] and m <= sg[2] then return true end end
+-- full range, skipping the gaps: where each part lies along the control's travel, { lo, hi, from, to }
+-- each, in the list's order
+function param_fit_layout(segs)
+  local total = 0
+  for _, sg in ipairs(segs) do total = total + (sg[2] - sg[1]) end
+  local out, c = {}, 0
+  for i, sg in ipairs(segs) do
+    local w = total > 0 and (sg[2] - sg[1]) / total or 1 / #segs
+    out[i] = { sg[1], sg[2], c, c + w }
+    c = c + w
+  end
+  return out
+end
+
+-- the way a row's control turns, for a kind of control and its curve (cv, or nil): { mode, A, B (the
+-- stretch it turns through), segs, S, E (the lowest and highest limits), skip, lay, inv, cv, dot }. mode:
+-- 'free' (no limit), 'span' (turns from the lowest to the highest limit), 'clamp' (Limit only values),
+-- 'fit' (full range, one part), 'stretch' (full range, gaps included), 'chain' (full range, gaps skipped).
+-- dot: the value and the position can differ (the control then shows a dot where it is turned to).
+function param_map(r, kind, cv)
+  local c = r.map_ and r.map_[kind]
+  if c and c.cv == cv then return c end
+  local segs = param_segs(r, kind)
+  local M = { mode = 'free', A = 0, B = 1, segs = segs, inv = r.inv, cv = cv }
+  if segs then
+    local fit = r.fit and param_fit_ok(kind)
+    M.S, M.E = segs[1][1], segs[#segs][2]
+    if #segs == 1 then
+      if fit then M.mode = 'fit'
+      elseif r.vonly then M.mode = 'clamp'
+      else M.mode, M.A, M.B = 'span', M.S, M.E end
+    else
+      M.skip = not r.noskip
+      if fit and M.skip then
+        M.mode = 'chain'
+        M.lay = param_fit_layout((r.lim == 'ranges' and not r.rinv) and r.rngs or segs)
+      elseif fit then M.mode = 'stretch'
+      else M.mode, M.A, M.B = 'span', M.S, M.E end
+    end
+  end
+  M.jumps = M.skip and M.mode == 'span' or false     -- the control itself jumps over the gaps
+  M.dot = cv ~= nil or M.mode == 'clamp' or (segs ~= nil and #segs > 1 and r.noskip == true)
+  -- the same way of turning (a row read again after a change elsewhere keeps its control where it is)
+  M.sig = ('%s|%.6f|%.6f|%s|%s|%s|%s'):format(M.mode, M.A, M.B, tostring(M.skip), tostring(r.inv), r.curve or '',
+                                            r.rraw or '')
+  r.map_ = r.map_ or {}
+  r.map_[kind] = M
+  return M
+end
+
+-- the control's own direction (Invert): x <-> the position as the control shows it (the same both ways)
+function param_map_flip(M, x) return M.inv and 1 - x or x end
+
+-- position x -> where along its stretch the value goes (w, before the limits), through the curve
+function param_map_w(M, x)
+  if not M.cv then return x end
+  local L = M.B - M.A
+  if L <= 0 then return M.A end
+  return M.A + curve_eval(M.cv, (x - M.A) / L) * L
+end
+
+-- w -> the value
+function param_map_lim(M, w)
+  local m = M.mode
+  if m == 'free' then return w end
+  if m == 'span' or m == 'clamp' then
+    if #M.segs == 1 then return math.max(M.S, math.min(M.E, w)) end
+    return param_seg_near(M.segs, w)
+  end
+  if m == 'fit' then return M.S + math.max(0, math.min(1, w)) * (M.E - M.S) end
+  if m == 'stretch' then return param_seg_near(M.segs, M.S + math.max(0, math.min(1, w)) * (M.E - M.S)) end
+  for i, p in ipairs(M.lay) do                        -- chain
+    if w <= p[4] or i == #M.lay then
+      local t = p[4] > p[3] and (w - p[3]) / (p[4] - p[3]) or 0
+      return p[1] + math.max(0, math.min(1, t)) * (p[2] - p[1])
+    end
+  end
+  return w
+end
+
+function param_map_val(M, x) return param_map_lim(M, param_map_w(M, x)) end
+
+-- the value -> where it lies along the travel, without the curve (where the hand shows it)
+function param_map_unlim(M, v)
+  local m = M.mode
+  if m == 'fit' or m == 'stretch' then
+    local L = M.E - M.S
+    return L > 0 and math.max(0, math.min(1, (v - M.S) / L)) or 0
+  elseif m == 'chain' then
+    local best, bd = v, math.huge
+    for _, p in ipairs(M.lay) do
+      local x = math.max(p[1], math.min(p[2], v))
+      local d = math.abs(x - v)
+      if d < bd - 1e-9 then
+        bd = d
+        best = (p[2] > p[1]) and p[3] + (x - p[1]) / (p[2] - p[1]) * (p[4] - p[3]) or p[3]
+      end
+    end
+    return best
+  elseif m == 'span' then
+    return math.max(M.A, math.min(M.B, v))
+  end
+  return v
+end
+
+-- the position that gives the value v (with a curve: of the places that do, the nearest to `near`)
+function param_map_pos(M, v, near)
+  local w = param_map_unlim(M, v)
+  if not M.cv then return w end
+  local L = M.B - M.A
+  if L <= 0 then return M.A end
+  return M.A + curve_inv(M.cv, (w - M.A) / L, near and (near - M.A) / L) * L
+end
+
+-- Skip the gaps: whether the control at x would give a value in a gap
+function param_map_bad(M, x)
+  if not M.jumps then return false end
+  local w = param_map_w(M, x)
+  for _, sg in ipairs(M.segs) do
+    if w >= sg[1] - 1e-9 and w <= sg[2] + 1e-9 then return false end
+  end
+  return true
+end
+
+-- Skip the gaps: the control turned to x, going up (dir 1) or down (-1): x itself, or, in a gap, the
+-- first place past it (nil: there is none that way). Without a curve, the edge of the next part; with
+-- one, found along the curve.
+function param_map_skip(M, x, dir)
+  if not param_map_bad(M, x) then return x end
+  if not M.cv then
+    if dir > 0 then
+      for _, sg in ipairs(M.segs) do if sg[1] > x then return sg[1] end end
+    else
+      for i = #M.segs, 1, -1 do if M.segs[i][2] < x then return M.segs[i][2] end end
+    end
+    return nil
+  end
+  local d = (M.B - M.A) / 1024
+  local p = x
+  for _ = 1, 1024 do
+    p = p + dir * d
+    if p < M.A - 1e-9 or p > M.B + 1e-9 then return nil end
+    if not param_map_bad(M, p) then return p end
+  end
+end
+
+-- a control: where it is turned to (0..1 as it shows it), for the value v. It remembers where it was (mm,
+-- the row's memo), so a curve that reaches a value several times, or a value that waits at a limit,
+-- doesn't make it jump; it looks again only when the value moved from elsewhere. Just after a turn
+-- (mm.ct, 0.3 s), the value read back is taken as the turn's: the FX may round it (a stepped one).
+-- A stepped encoder sits on a step.
+function param_ctl_pos(M, v, mm, steps)
+  if mm.cpos and mm.csig == M.sig then
+    if mm.cu and math.abs(mm.cu - v) < 1e-5 then return mm.cpos end
+    if mm.ct and reaper.time_precise() - mm.ct < 0.3 then mm.cu = v; return mm.cpos end
+  end
+  local near = mm.cpos and param_map_flip(M, mm.cpos)
+  local c = param_map_flip(M, param_map_pos(M, v, near))
+  if steps and steps > 1 then c = math.floor(c * (steps - 1) + 0.5) / (steps - 1) end
+  mm.cu, mm.cpos, mm.csig = v, c, M.sig
+  return c
+end
+
+-- what the control draws, in its own 0..1: the extra marks (a fader's dB marks: with the full range,
+-- only those inside the parts), the default mark, the parts it keeps to, when they are shown as arcs,
+-- as { lo, hi, parts = { { a, b } } } (lo, hi: the ends of its travel), and (full range, gaps skipped)
+-- the junctions
+function param_ctl_view(r, kind, marks, M)
+  M = M or param_map(r, kind, nil)
+  local segs, m = M.segs, M.mode
+  local full = m == 'fit' or m == 'stretch' or m == 'chain'
+  local function inside(v)
+    if not full then return true end
+    for _, sg in ipairs(segs) do if v >= sg[1] and v <= sg[2] then return true end end
     return false
   end
+  local function at(v) return param_map_flip(M, param_map_unlim(M, v)) end
   local pm
   if marks then
     pm = {}
-    for _, m in ipairs(marks) do if inside(m) then pm[#pm + 1] = param_to_ctl(r, kind, m) end end
+    for _, mk in ipairs(marks) do if inside(mk) then pm[#pm + 1] = at(mk) end end
   end
-  local pd = r.def and inside(r.def) and param_to_ctl(r, kind, r.def) or nil
+  local pd = r.def and inside(r.def) and at(r.def) or nil
   local range, joins
-  if segs and not fit then
-    local parts, lo, hi = {}, 1, 0
+  if m == 'span' or m == 'clamp' or m == 'stretch' then
+    local parts = {}
     for _, sg in ipairs(segs) do
-      local pa, pb = param_to_ctl(r, kind, sg[1]), param_to_ctl(r, kind, sg[2])
+      local pa, pb = at(sg[1]), at(sg[2])
       if pa > pb then pa, pb = pb, pa end
       parts[#parts + 1] = { pa, pb }
-      lo, hi = math.min(lo, pa), math.max(hi, pb)
     end
-    range = { lo, hi, parts = parts }
-  elseif fit and #segs > 1 then
-    local lay = param_fit_layout(segs, inv)
+    local ta, tb = param_map_flip(M, M.A), param_map_flip(M, M.B)
+    range = { math.min(ta, tb), math.max(ta, tb), parts = parts }
+  elseif m == 'chain' and #M.lay > 1 then
     joins = {}
-    for i = 1, #lay - 1 do
-      local j = (lay[i][4] + lay[i + 1][3]) / 2
-      joins[#joins + 1] = r.inv and 1 - j or j
-    end
+    for i = 1, #M.lay - 1 do joins[#joins + 1] = param_map_flip(M, M.lay[i][4]) end
   end
   return pm, pd, range, joins
 end
@@ -1123,7 +1248,7 @@ end
 -- toggle can't have a range, a drop-down can't have a curve...): it gets the control of the one copied.
 PARAM_CLIP = nil   -- { lims = {...} or nil, curve = text or false or nil, kind, from }
 
-PARAM_CLIP_FIELDS = { 'lim', 'lo', 'hi', 'fit', 'vals', 'vshow', 'rngs', 'rinv' }
+PARAM_CLIP_FIELDS = { 'lim', 'lo', 'hi', 'fit', 'vals', 'vshow', 'rngs', 'rinv', 'vonly', 'noskip' }
 
 function param_clip_copy(tr, fxi, r, what)
   local row = params_find(tr, r.guid, r.idx) or {}
@@ -1709,17 +1834,38 @@ function draw_param_control_panel(P, fxs, gm, targets)
           if not tis then return nil end
           return param_find_value(tr, fxi, ix, tonumber(tn), tu ~= '' and tu or unit)
         end
+        -- how the control turns with the limits (param_map): the full range, and Limit only values (one
+        -- range) or Skip the gaps (several)
         local function fit_box()
-          if param_fit_ok(k.kind) then
+          local sg = param_segs(row, k.kind)
+          local multi = sg and #sg > 1
+          local fit = param_fit_ok(k.kind)
+          if fit then
             local rv4, v4 = ig.Checkbox(ctx, 'Use the full range of the control', row.fit == true)
             if ig.IsItemHovered(ctx) then
-              ig.SetTooltip(ctx, 'On: the control turns all the way through the allowed values, for finer moves\n'
-                              .. '(several ranges one after the other, with a mark where they meet).\n'
-                              .. 'Off: the control turns as usual and keeps to the allowed values (an arc shows them).')
+              ig.SetTooltip(ctx, 'On: the whole travel of the control covers the allowed values, for finer moves.\n'
+                              .. 'Off: the control turns between the lowest and the highest limit (an arc shows the allowed values).')
             end
             if rv4 then params_update(tr, g, ix, { fit = v4 }) end
+          end
+          if multi then
+            local rv5, v5 = ig.Checkbox(ctx, 'Skip the gaps', not row.noskip)
+            if ig.IsItemHovered(ctx) then
+              ig.SetTooltip(ctx, 'On: the control jumps over the gaps between the allowed values (with the full range: the\n'
+                              .. 'allowed values follow one another over the whole travel, a mark where they meet).\n'
+                              .. 'Off: the control turns through a gap, the value waits at the nearest allowed value.')
+            end
+            if rv5 then params_update(tr, g, ix, { noskip = not v5 }) end
           else
-            ig.TextDisabled(ctx, 'The control keeps to the allowed values.')
+            local off = fit and row.fit
+            if off then ig.BeginDisabled(ctx) end
+            local rv5, v5 = ig.Checkbox(ctx, 'Limit only values', row.vonly == true)
+            if off then ig.EndDisabled(ctx) end
+            if ig.IsItemHovered(ctx, ig.HoveredFlags_AllowWhenDisabled()) then
+              ig.SetTooltip(ctx, 'On: the control turns all the way, the value stays between Min and Max (it waits there).\n'
+                              .. 'Off: the control itself stops at Min and Max.' .. (off and '\n(Not with the full range of the control.)' or ''))
+            end
+            if rv5 then params_update(tr, g, ix, { vonly = v5 }) end
           end
         end
         if row.lim == 'mm' and can_mm then
@@ -1897,22 +2043,25 @@ function draw_param_control_panel(P, fxs, gm, targets)
         if row.lim == 'list' then
           ig.TextDisabled(ctx, 'Not with a list of values.')
         else
-          local u = param_to_ctl(row, k.kind, reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx))
+          -- the graph's dot: where the control is turned to, along the stretch the curve covers
           local cvp = param_curve_of(row, k.kind)
-          draw_curve_section(tr, row, cvp and curve_ctl_pos(cvp, u, param_row_memo(tr, row, fxi), k.steps) or u)
-          -- a curve with limits but not the full range: it is laid over the whole travel, so the value
-          -- stops at the edges of the allowed values and jumps across what isn't allowed; say so
-          if cvp and param_segs(row, k.kind) and not (row.fit and param_fit_ok(k.kind)) then
+          local M = param_map(row, k.kind, cvp)
+          local v = reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx)
+          local x = param_map_flip(M, param_ctl_pos(M, v, param_row_memo(tr, row, fxi), k.steps))
+          local L = M.B - M.A
+          draw_curve_section(tr, row, L > 0 and (x - M.A) / L or 0)
+          local note
+          if cvp and M.mode == 'clamp' then
+            note = 'Limit only values: the curve covers the whole travel of the control; the value waits at '
+                .. 'Min or Max while the control turns on.'
+          elseif cvp and M.jumps and not curve_is_linear(cvp) then
+            note = 'Skip the gaps with a curve: the control jumps over every part of its turn where the curve '
+                .. 'gives a value in a gap, so it may jump several times.'
+          end
+          if note then
             ig.PushTextWrapPos(ctx, 0)
-            ig.TextDisabled(ctx, 'With limits, the curve covers the whole travel of the control: the value '
-                              .. 'stops at the edges of the allowed values and jumps across the rest.')
+            ig.TextColored(ctx, T.byp, note)              -- (orange, like a warning)
             ig.PopTextWrapPos(ctx)
-            if param_fit_ok(k.kind) then
-              if ig.Button(ctx, 'Use the full range of the control##crvfit') then params_update(tr, row.guid, row.idx, { fit = true }) end
-              if ig.IsItemHovered(ctx) then
-                ig.SetTooltip(ctx, 'The curve then covers only the allowed values (Limits section).')
-              end
-            end
           end
         end
         ig.Spacing(ctx)

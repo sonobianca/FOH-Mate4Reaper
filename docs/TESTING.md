@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 189).
+New items get the next free number (next: 190).
 
 ## Open
 
+- [ ] 189. (0.14.143) New limit rules, in the Inspector on an encoder (then a width band). (a) Range, full range off: the control stops at Min and Max, no dot. (b) Tick Limit only values: the control turns all the way, the value waits at Min / Max, a dot shows the control. With the full range on, Limit only values is greyed. (c) Full range on: the whole travel covers Min..Max, no dot. (d) List of ranges, Skip the gaps on, full range off: the control turns between the lowest and highest limit and jumps over each gap, no dot. (e) Skip the gaps off: it turns through a gap, the value waits at the nearest edge, a dot shows the control. (f) Full range on + Skip off: the whole travel covers lowest..highest with the gaps (value waits in them, dot); + Skip on: the ranges one after the other, marks where they meet, no dot. (g) Max below Min: the same as a list of two ranges (Skip the gaps box, no notch). (h) A curve with a Range: covers Min..Max (the graph dot follows the control); with Limit only values, the whole travel, and an orange note. A non-linear curve with Skip the gaps on (full range off): an orange warning. A curve without limits: a dot. (i) A list of ranges made before this version, full range off: still turns through the gaps (Skip the gaps off). (j) Copy / paste limits carries the two new options.
 - [ ] 188. (0.14.142) Width band and Q band with a Range (and then a List of ranges), no curve, full range off: drag and scroll all the way to both ends: the dots reach the ends while the band stays at the limits; let go: the dots stay. Coming back from past a limit, the band only moves once the dots are back inside it. Moving the parameter from the FX window: the dots follow.
 - [ ] 187. (0.14.141) A width band (and a Q band) with limits but no curve, full range off then on: the two pink dots show at the edges of the width. Drag through a gap of a List of ranges: the dots follow your hand while the band waits at the edge and jumps. An encoder with limits and no curve: still no dot.
 - [ ] 186. (0.14.140) An FX with a BW parameter (an EQ band "BW", "Band 2 BW", "BW1"): in the Performance it shows as a width band (Inspector: Show as = Width band). A parameter set by hand to another control keeps it. A name that only contains the letters (like "BWD") is unchanged.

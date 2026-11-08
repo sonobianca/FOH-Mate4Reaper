@@ -62,10 +62,6 @@ function curve_parse(spec)
   return cv
 end
 
--- a straight curve, never saved: a width / Q band with limits but no curve of its own turns with it, so
--- the control keeps where it is turned to (its dots reach both ends) while the value keeps to the limits
-CURVE_LINEAR = curve_parse('pts:0:0.000,0.000 1.000,1.000')
-
 function curve_spec(cv)
   if cv.kind ~= 'pts' then return ('%s:%.2f'):format(cv.kind, cv.k) end
   local t = {}
@@ -106,30 +102,11 @@ function param_curve_of(r, kind)
   return curve_parse(r.curve)
 end
 
--- a control with a curve: the position it shows for the value u (0..1, after invert and limits). It
--- remembers where it was (mm, the row's memo), so a curve that reaches a value several times doesn't
--- make it jump, and looks again only when the value moved. A stepped encoder sits on a step. After a
--- turn, mm.cu is the value the turn gave (draw_param_ctl), so the control stays where it was turned
--- even when the limits held the value at the edge of an allowed part.
--- Just after a turn (mm.ct, 0.3 s), the value read back is taken as the turn's: the FX may round it
--- (a stepped one, a limit's edge between two of its steps), which isn't a move from elsewhere.
-function curve_ctl_pos(cv, u, mm, steps)
-  if mm.cpos and mm.ccv == cv then
-    if mm.cu and math.abs(mm.cu - u) < 1e-5 then return mm.cpos end
-    if mm.ct and reaper.time_precise() - mm.ct < 0.3 then mm.cu = u; return mm.cpos end
-  end
-  local c = curve_inv(cv, u, mm.cpos)
-  if steps and steps > 1 then c = math.floor(c * (steps - 1) + 0.5) / (steps - 1) end
-  mm.cu, mm.cpos, mm.ccv = u, c, cv
-  return c
-end
-
--- the control was turned to c: the value u it gives (on a step of the FX for a stepped one)
-function curve_ctl_value(cv, c, mm, steps)
-  mm.cpos, mm.cu = c, nil
-  local u = curve_eval(cv, c)
-  if steps and steps > 1 then u = math.floor(u * (steps - 1) + 0.5) / (steps - 1) end
-  return u
+-- a curve that is a straight line from 0 to 1 anyway (custom points on the diagonal)
+function curve_is_linear(cv)
+  if cv.kind ~= 'pts' then return cv.k <= 1.001 end
+  for _, p in ipairs(cv.pts) do if math.abs(p.y - p.x) > 1e-3 then return false end end
+  return true
 end
 
 ---------------------------------------------------------------- saved curves
