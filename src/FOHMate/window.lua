@@ -1073,7 +1073,7 @@ function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, 
       trv[1], trv[2], mm.trv, mm.M = ta, tb, trv, M
       mm.hand_fn = mm.hand_fn or function(c)
         local m = mm.M
-        return param_map_flip(m, param_map_unlim(m, param_map_val(m, param_map_flip(m, c))))
+        return param_map_flip(m, param_map_unlim(m, param_map_val(m, param_map_flip(m, c), mm.cu)))
       end
       mm.jump_fn = mm.jump_fn or function(c, prev)
         local m = mm.M
@@ -1106,7 +1106,7 @@ function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, 
     end
     if newc then
       -- the place -> the value (on a step of the FX for a stepped one, then back inside the limits)
-      newv = param_map_val(M, param_map_flip(M, newc))
+      newv = param_map_val(M, param_map_flip(M, newc), norm)
       if kind.steps and kind.steps > 1 then
         newv = math.floor(newv * (kind.steps - 1) + 0.5) / (kind.steps - 1)
         if M.segs then newv = param_seg_near(M.segs, newv) end

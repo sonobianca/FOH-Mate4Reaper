@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- List of ranges with Skip the gaps off: new option "Snap to nearest limit" (off by default). Off, the value waits at the last allowed value while the control turns through a gap, until it reaches the next range; on, it takes the nearest allowed value (as before). Greyed out while Skip the gaps is on.
+
 - A stepped encoder's limits sit on its steps: the Range and List of ranges handles move a step at a time, limits set before move to the nearest step by themselves (the arc then starts and ends on a step mark), and the curve graph shows a dot for each step.
 
 - A List of ranges is shown from low to high, each range with only its remove button (moving them up and down did nothing useful); with the full range and the gaps skipped, the ranges follow one another from low to high.
