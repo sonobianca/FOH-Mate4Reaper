@@ -654,6 +654,13 @@ function draw_range_bar(id, lo, hi, o)
     end
     if hov then ig.SetTooltip(ctx, 'Drag a handle: Min (pointing right) or Max (pointing left)\nDrag the blue part: the whole range') end
   end
+  -- o.steps: the handles sit on the steps of a stepped encoder (never both on the same one)
+  local function on_steps()
+    if not (o.steps and o.steps > 1) or (out_lo == lo and out_hi == hi) then return end
+    out_lo, out_hi = param_on_step(out_lo, o.steps), param_on_step(out_hi, o.steps)
+    if out_lo == out_hi then out_lo, out_hi = lo, hi end
+  end
+  on_steps()
   local ink = ig.GetStyleColor(ctx, ig.Col_Text())
   ig.DrawList_AddRectFilled(dl, x1, my - th / 2, x2, my + th / 2, (T.dim & 0xFFFFFF00) | 0x70, th / 2)
   -- the covered part, in the link color: between the handles, or (inverted) up to Max and from Min. Its
@@ -675,6 +682,7 @@ function draw_range_bar(id, lo, hi, o)
   handle(X(out_lo), 1, dw == 'lo' or dw == 'both')          -- Min: pointing right, into the range
   handle(X(out_hi), -1, dw == 'hi' or dw == 'both')         -- Max: pointing left, into the range
   box('hi', nhi, uhi, ishi, barx + barw + gap)
+  on_steps()                                               -- (a number typed in a box)
   ig.PopID(ctx)
   if out_lo ~= lo or out_hi ~= hi then return out_lo, out_hi end
 end

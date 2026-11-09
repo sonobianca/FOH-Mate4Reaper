@@ -179,7 +179,7 @@ CURVE_DRAG = nil   -- the point being dragged in the graph: its number
 -- The "Curve" part of the parameter window, for a parameter in the Performance (row): the graph (and
 -- its points), then under it the saved curves, the kind of curve and its strength or smoothing.
 -- pos = where the control is now.
-function draw_curve_section(tr, row, pos)
+function draw_curve_section(tr, row, pos, stp)
   local g, ix = row.guid, row.idx
   local cv = row.curve and curve_parse(row.curve)
   local function set(spec) params_update(tr, g, ix, { curve = spec or false }) end
@@ -233,14 +233,33 @@ function draw_curve_section(tr, row, pos)
     ig.DrawList_AddLine(dl, sx(i / 4), gy, sx(i / 4), gy + H, grid, 1)
     ig.DrawList_AddLine(dl, gx, sy(i / 4), gx + W, sy(i / 4), grid, 1)
   end
+  -- stp (a stepped encoder): { n = its steps, A, B = the stretch the curve covers }: the control sits on
+  -- a step and the value lands on one, so a dot for each step, on the curve rounded to a step (the curve
+  -- itself fainter)
+  local function yat(x)
+    local y = cv and curve_eval(cv, x) or x
+    if not stp then return y end
+    local L = stp.B - stp.A
+    if L <= 0 then return y end
+    return math.max(0, math.min(1, (param_on_step(stp.A + y * L, stp.n) - stp.A) / L))
+  end
   for i = 0, 64 do
     local x = i / 64
     ig.DrawList_PathLineTo(dl, sx(x), sy(cv and curve_eval(cv, x) or x))
   end
-  ig.DrawList_PathStroke(dl, ink, 0, 2)
+  ig.DrawList_PathStroke(dl, stp and ((ink & 0xFFFFFF00) | 0x50) or ink, 0, stp and 1.5 or 2)
+  if stp and stp.B > stp.A then
+    for i = 0, stp.n - 1 do
+      local p = i / (stp.n - 1)
+      if p >= stp.A - 1e-9 and p <= stp.B + 1e-9 then
+        local x = (p - stp.A) / (stp.B - stp.A)
+        ig.DrawList_AddCircleFilled(dl, sx(x), sy(yat(x)), 2.5, ink, 0)
+      end
+    end
+  end
   -- where the control is now
   if pos then
-    ig.DrawList_AddCircleFilled(dl, sx(pos), sy(cv and curve_eval(cv, pos) or pos), 4, T.link, 0)
+    ig.DrawList_AddCircleFilled(dl, sx(pos), sy(yat(pos)), 4, T.link, 0)
   end
   if cv and cv.kind == 'pts' then
     local mx, my = ig.GetMousePos(ctx)

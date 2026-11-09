@@ -991,6 +991,7 @@ WHEEL_STEP, WHEEL_FINE = 0.006, 0.0015     -- a notch of the wheel on a smooth c
 function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, cl, wkey)
   local dl = ig.GetWindowDrawList(ctx)
   local newv
+  if kind.kind == 'steps' and r.guid then param_limits_to_steps(tr, r, kind.steps) end
   local m = kr + 6 * f
   local wv = 0
   if ig.IsWindowHovered(ctx) and mouse_in(kcx - m, kcy - m, kcx + m, kcy + m) then

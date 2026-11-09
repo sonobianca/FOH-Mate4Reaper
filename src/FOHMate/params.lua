@@ -365,6 +365,54 @@ function param_seg_near(segs, v)
   return best
 end
 
+-- a stepped control (n steps over its whole travel): v on its nearest step
+function param_on_step(v, n) return math.floor(v * (n - 1) + 0.5) / (n - 1) end
+
+-- A stepped encoder: its Range or List of ranges moved onto its steps, so the arc starts and ends on a
+-- step mark. Looked at once per row as it is read (r.onsteps_). A range that shrinks to a single step
+-- gets one step wider; ranges with no step left between them become one.
+function param_limits_to_steps(tr, r, n)
+  if not (n and n > 1) or r.onsteps_ == n or not r.guid then return end
+  r.onsteps_ = n
+  local d = 1 / (n - 1)
+  local function apart(a, b, inv)
+    if a ~= b then return a, b end
+    if inv then                                        -- Max below Min: Min goes up a step (or Max down)
+      if a + d <= 1 + 1e-9 then return a + d, b end
+      return a, b - d
+    end
+    if b + d <= 1 + 1e-9 then return a, b + d end
+    return a - d, b
+  end
+  local function moved(x, y) return math.abs(x - y) > 1e-5 end
+  local ch
+  if r.lim == 'mm' and r.lo and r.hi then
+    local lo, hi = apart(param_on_step(r.lo, n), param_on_step(r.hi, n), r.lo > r.hi)
+    if moved(lo, r.lo) or moved(hi, r.hi) then ch = { lo = lo, hi = hi } end
+  elseif r.lim == 'ranges' and r.rngs then
+    local old, srt = {}, {}
+    for i, v in ipairs(r.rngs) do
+      old[i] = v
+      local a, b = apart(param_on_step(v[1], n), param_on_step(v[2], n))
+      srt[i] = { a, b }
+    end
+    table.sort(old, function(a, b) return a[1] < b[1] end)
+    table.sort(srt, function(a, b) return a[1] < b[1] end)
+    local out = {}
+    for _, v in ipairs(srt) do
+      local last = out[#out]
+      if last and v[1] < last[2] + 2 * d - 1e-9 then last[2] = math.max(last[2], v[2])
+      else out[#out + 1] = { v[1], v[2] } end
+    end
+    local same = #out == #old
+    for i = 1, same and #out or 0 do
+      if moved(out[i][1], old[i][1]) or moved(out[i][2], old[i][2]) then same = false end
+    end
+    if not same then ch = { rngs = out } end
+  end
+  if ch then params_update(tr, r.guid, r.idx, ch) end
+end
+
 -- full range, skipping the gaps: where each part lies along the control's travel, { lo, hi, from, to }
 -- each, from low to high
 function param_fit_layout(segs)
@@ -1766,6 +1814,9 @@ function draw_param_control_panel(P, fxs, gm, targets)
       local can_mm, can_list = param_limit_ok(k.kind), param_list_ok(k.kind)
       if (can_mm or can_list) and section_header('Limit values', false) then
         local g, ix = first.guid, first.idx
+        -- a stepped encoder: the limits sit on its steps, and the range controls move a step at a time
+        local stp = k.kind == 'steps' and k.steps and k.steps > 1 and k.steps or nil
+        if stp then param_limits_to_steps(tr, row, stp) end
         -- after a change: the parameter moves into what is allowed now
         local function snap()
           local fresh = params_find(tr, g, ix)
@@ -1873,7 +1924,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
         end
         if row.lim == 'mm' and can_mm then
           -- Min and Max on one range control; Max below Min is an inverted range (two ranges)
-          local nlo, nhi = draw_range_bar('rng', row.lo, row.hi, { text = rtext, find = rfind, inv = true })
+          local nlo, nhi = draw_range_bar('rng', row.lo, row.hi, { text = rtext, find = rfind, inv = true, steps = stp })
           ig.AlignTextToFramePadding(ctx)
           ig.TextDisabled(ctx, 'Set to the value now:')
           ig.SameLine(ctx)
@@ -1908,14 +1959,16 @@ function draw_param_control_panel(P, fxs, gm, targets)
           local btns = bw
           local bx = ig.GetCursorPosX(ctx) + math.max(0, select(1, ig.GetContentRegionAvail(ctx)) - btns)
           -- the ranges never overlap: each stays the gap (Settings) away from the others
+          -- (stepped: at least two steps, so a step between them stays out)
           local gap = param_range_gap()
+          if stp then gap = math.max(gap, 2 / (stp - 1)) end
           local order = {}
           for i = 1, #rngs do order[i] = i end
           table.sort(order, function(a, b) return rngs[a][1] < rngs[b][1] end)
           for _, i in ipairs(order) do
             local v = rngs[i]
             ig.PushID(ctx, 'rg' .. i)
-            local nlo, nhi = draw_range_bar('rg' .. i, v[1], v[2], { text = rtext, find = rfind, width = bx - ig.GetCursorPosX(ctx) - sp })
+            local nlo, nhi = draw_range_bar('rg' .. i, v[1], v[2], { text = rtext, find = rfind, width = bx - ig.GetCursorPosX(ctx) - sp, steps = stp })
             ig.SameLine(ctx, bx)
             local act = draw_list_buttons(i, #rngs, bw, 'range', true)
             if act == 'x' then local nr = copy(); table.remove(nr, i); put(nr)
@@ -2055,7 +2108,8 @@ function draw_param_control_panel(P, fxs, gm, targets)
           local v = reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx)
           local x = param_map_flip(M, param_ctl_pos(M, v, param_row_memo(tr, row, fxi), k.steps))
           local L = M.B - M.A
-          draw_curve_section(tr, row, L > 0 and (x - M.A) / L or 0)
+          draw_curve_section(tr, row, L > 0 and (x - M.A) / L or 0,
+                             k.kind == 'steps' and k.steps and k.steps > 1 and { n = k.steps, A = M.A, B = M.B } or nil)
           local note
           if cvp and M.mode == 'clamp' then
             note = 'Limit only values: the curve covers the whole travel of the control; the value waits at '
