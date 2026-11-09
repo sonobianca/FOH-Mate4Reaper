@@ -536,6 +536,58 @@ function param_map_unlim(M, v)
   return v
 end
 
+-- where the hand shows the value v: as param_map_unlim, but a value outside the stretch the control turns
+-- through (set from elsewhere: the FX's own window, automation) is shown where it really is, past the arc
+function param_map_hand(M, v)
+  if M.mode == 'span' then return v end
+  return param_map_unlim(M, v)
+end
+
+-- whether v is outside what the limits allow (set from elsewhere)
+function param_map_out(M, v)
+  return M.segs ~= nil and math.abs(param_seg_near(M.segs, v) - v) > 1e-4
+end
+
+-- Changes from outside FOH-Mate (the FX's own window, MIDI learn, another script): a parameter of the
+-- Performance with a Range or a List of ranges that stays outside them for half a second is put on the
+-- nearest allowed value. Every rack, shown or not, ten times a second; only the rows with those limits
+-- are read. Not when the parameter has an automation envelope (it would fight the envelope, or be
+-- written into it). Once per value: an FX that keeps it outside (it rounds the value) is left alone.
+PARAM_EXT, PARAM_EXT_T = {}, 0   -- guid:idx -> { v = the value last seen, t = when it last moved, done }
+function param_ext_snap(now)
+  if now - PARAM_EXT_T < 0.1 then return end
+  PARAM_EXT_T = now
+  for _, tr in ipairs(racks or {}) do
+    if valid(tr) then
+      local gm
+      for _, r in ipairs(params_read(tr)) do
+        if r.lim == 'mm' or r.lim == 'ranges' then
+          gm = gm or fx_guid_map(tr)
+          local fxi = gm[r.guid]
+          if fxi and r.idx < reaper.TrackFX_GetNumParams(tr, fxi) then
+            local segs = param_segs(r, param_kind(tr, fxi, r).kind)
+            if segs then
+              local v = reaper.TrackFX_GetParamNormalized(tr, fxi, r.idx)
+              local key = r.guid .. ':' .. r.idx
+              local s = PARAM_EXT[key]
+              if not s then s = { v = v, t = now }; PARAM_EXT[key] = s end
+              if math.abs(v - s.v) > 1e-7 then
+                s.v, s.t, s.done = v, now, nil
+              elseif not s.done and now - s.t >= 0.5 then
+                s.done = true
+                local near = param_seg_near(segs, v)
+                if math.abs(near - v) > 1e-4 and not reaper.GetFXEnvelope(tr, fxi, r.idx, false) then
+                  reaper.TrackFX_SetParamNormalized(tr, fxi, r.idx, near)
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
 -- the position that gives the value v (with a curve: of the places that do, the nearest to `near`)
 function param_map_pos(M, v, near)
   local w = param_map_unlim(M, v)

@@ -1057,7 +1057,10 @@ function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, 
     -- and a dot shows that place when the two can differ
     local cv = param_curve_of(r, ekind)
     local M = param_map(r, ekind, cv)
-    local shown = param_map_flip(M, param_map_unlim(M, norm))
+    -- (a value set from elsewhere, outside the limits: the hand shows where it really is, and the dot
+    -- where the control is, at the nearest end, until it is put back inside: param_ext_snap)
+    local shown = param_map_flip(M, param_map_hand(M, norm))
+    local outside = param_map_out(M, norm)
     local cpos = param_ctl_pos(M, norm, mm, kind.steps)
     local newc
     if kind.kind == 'toggle' then
@@ -1087,7 +1090,7 @@ function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, 
       newc = draw_encoder(id, kcx, kcy, kr, shown, { body = cl.body, col = cl.col, ptr = cl.ptr, s = f,
                           style = ekind == 'pan' and 'pan' or (ekind == 'band' or ekind == 'qband') and 'band' or 'line', narrow = ekind == 'qband', steps = kind.steps, marks = marks,
                           def = def, range = range, joins = joins, pos = cpos, def_pos = def_pos, travel = trv,
-                          hand = mm.hand_fn, jump = M.jumps and mm.jump_fn or nil, dot = M.dot, show = mm })
+                          hand = mm.hand_fn, jump = M.jumps and mm.jump_fn or nil, dot = M.dot or outside, show = mm })
       if not newc and wv ~= 0 then
         -- the wheel: along the control, from where it is turned to, a step at a time when stepped
         local c1

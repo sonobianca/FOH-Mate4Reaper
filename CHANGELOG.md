@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Changes from outside FOH-Mate (the FX's own window, MIDI learn): a parameter with a Range or a List of ranges that stays outside them for half a second goes back to the nearest allowed value, on every rack, shown or not (not while the Racks window is closed, and not when the parameter has an automation envelope). Until then the hand shows the real value, past the arc, and the dot where the control is.
+
 - List of ranges with Skip the gaps off: new option "Snap to nearest limit" (off by default). Off, the value waits at the last allowed value while the control turns through a gap, until it reaches the next range; on, it takes the nearest allowed value (as before). Greyed out while Skip the gaps is on.
 
 - A stepped encoder's limits sit on its steps: the Range and List of ranges handles move a step at a time, limits set before move to the nearest step by themselves (the arc then starts and ends on a step mark), and the curve graph shows a dot for each step.
