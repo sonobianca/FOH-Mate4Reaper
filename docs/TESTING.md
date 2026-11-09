@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 195).
+New items get the next free number (next: 196).
 
 ## Open
 
+- [ ] 195. (0.14.149) Daylight: the dot on an encoder with a curve or limits is now a darker pink with a thin dark outline. Is it easy to see now? The normal theme is unchanged.
 - [ ] 194. (0.14.148) List of values, change from outside: in the FX's own window, set a parameter that has a List of values to a value not in the list and let go. Half a second later it goes to the nearest value of the list. With an automation envelope on it: no snap.
 - [ ] 193. (0.14.147) Changes from outside: in the FX's own window, move a parameter that has a Range outside it and let go. The encoder's hand shows the real value past the arc, the dot sits at the nearest end; half a second after the move stops, the value goes back to the nearest limit. Same with a List of ranges (a value in a gap goes to the nearest edge), and with the rack folded or scrolled out of view. With an automation envelope on that parameter: no snap (the hand and dot still show it).
 - [ ] 192. (0.14.146) List of ranges (or a Range with Max below Min), Skip the gaps off: "Snap to nearest limit" sits under Skip the gaps, greyed out while Skip the gaps is on. Off (the default, also for lists set up before): turning up through a gap, the value stays at the top of the range below until the control reaches the next range; turning back down, it stays at the bottom of the range above. On: the value jumps to whichever edge is nearer. Also with the full range on.

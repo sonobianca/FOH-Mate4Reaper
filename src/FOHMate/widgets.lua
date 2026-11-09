@@ -518,6 +518,7 @@ end
 ENC = {}                    -- per encoder: what the current drag started from
 ENC_DEFAULT_COL = 0xFFD21EFF   -- the default value's mark: yellow
 ENC_POS_COL = 0xFF3D9EFF       -- with a curve and limits, the dot on the ring where the control is turned to: pink
+ENC_POS_COL_DAY, ENC_POS_EDGE_DAY = 0xD6006EFF, 0x3A0A24FF   -- the same dot in Daylight: darker, with an outline
 ENC_A0, ENC_A1 = math.rad(135), math.rad(405)   -- screen angles of 7:30 and 4:30 (y points down)
 
 -- a tiny arrow just outside the circle, pointing at it (perpendicular to the circumference)
@@ -856,7 +857,16 @@ function draw_encoder(id, cx, cy, r, norm, o)
   -- edge of the width it is turned to)
   if o.dot and cpos then
     local dr = 2.2 * s
-    local function dot(a) ig.DrawList_AddCircleFilled(dl, cx + math.cos(a) * r, cy + math.sin(a) * r, dr, ENC_POS_COL, 0) end
+    -- Daylight: a darker, more saturated pink with a thin dark outline, to stand out on the light ring
+    local function dot(a)
+      local px, py = cx + math.cos(a) * r, cy + math.sin(a) * r
+      if S.daylight then
+        ig.DrawList_AddCircleFilled(dl, px, py, dr, ENC_POS_COL_DAY, 0)
+        ig.DrawList_AddCircle(dl, px, py, dr, ENC_POS_EDGE_DAY, 0, 1)
+      else
+        ig.DrawList_AddCircleFilled(dl, px, py, dr, ENC_POS_COL, 0)
+      end
+    end
     if o.style == 'band' then
       local mid, half = (ENC_A0 + ENC_A1) / 2, band_half(o.narrow and 1 - cpos or cpos)
       dot(mid - half); dot(mid + half)

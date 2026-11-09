@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- In Daylight, the dot on the ring (where the control is turned to) is a darker, more saturated pink with a thin dark outline, so it shows on the light background.
+
 - Changes from outside FOH-Mate also go back to the nearest value of a List of values, half a second after they stop.
 
 - Changes from outside FOH-Mate (the FX's own window, MIDI learn): a parameter with a Range or a List of ranges that stays outside them for half a second goes back to the nearest allowed value, on every rack, shown or not (not while the Racks window is closed, and not when the parameter has an automation envelope). Until then the hand shows the real value, past the arc, and the dot where the control is.
