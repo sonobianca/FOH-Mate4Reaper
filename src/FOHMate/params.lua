@@ -549,8 +549,8 @@ function param_map_out(M, v)
 end
 
 -- Changes from outside FOH-Mate (the FX's own window, MIDI learn, another script): a parameter of the
--- Performance with a Range or a List of ranges that stays outside them for half a second is put on the
--- nearest allowed value. Every rack, shown or not, ten times a second; only the rows with those limits
+-- Performance with a Range, a List of ranges or a List of values that stays outside them for half a
+-- second is put on the nearest allowed value. Every rack, shown or not, ten times a second; only the rows with those limits
 -- are read. Not when the parameter has an automation envelope (it would fight the envelope, or be
 -- written into it). Once per value: an FX that keeps it outside (it rounds the value) is left alone.
 PARAM_EXT, PARAM_EXT_T = {}, 0   -- guid:idx -> { v = the value last seen, t = when it last moved, done }
@@ -561,11 +561,23 @@ function param_ext_snap(now)
     if valid(tr) then
       local gm
       for _, r in ipairs(params_read(tr)) do
-        if r.lim == 'mm' or r.lim == 'ranges' then
+        if r.lim == 'mm' or r.lim == 'ranges' or (r.lim == 'list' and r.vals and #r.vals > 0) then
           gm = gm or fx_guid_map(tr)
           local fxi = gm[r.guid]
           if fxi and r.idx < reaper.TrackFX_GetNumParams(tr, fxi) then
-            local segs = param_segs(r, param_kind(tr, fxi, r).kind)
+            local kind = param_kind(tr, fxi, r).kind
+            local segs
+            if r.lim == 'list' then                    -- a list of values: each one a part of its own
+              if param_list_ok(kind) then
+                if not r.lsegs_ then
+                  r.lsegs_ = {}
+                  for i, x in ipairs(r.vals) do r.lsegs_[i] = { x, x } end
+                end
+                segs = r.lsegs_
+              end
+            else
+              segs = param_segs(r, kind)
+            end
             if segs then
               local v = reaper.TrackFX_GetParamNormalized(tr, fxi, r.idx)
               local key = r.guid .. ':' .. r.idx
