@@ -700,13 +700,22 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         end
         -- the parameter window's selection glows like the pointed row (the white glow)
         local picked = PARAM_PICK and PARAM_PICK.hl and PARAM_PICK.hl[r.guid .. ':' .. r.idx]
+        -- brought back inside its limits when moved from outside: a red glow, always (the pointer's glow over it)
+        local snapout = param_snapout_on(r)
+        if snapout then
+          local base = PARAM_SNAPOUT_COL & 0xFFFFFF00
+          for i = 1, 3 do
+            local a = math.floor(200 * (1 - (i - 1) / 3) ^ 1.5)
+            ig.DrawList_AddRect(dl, rx - i, ry - i, rx + rw2 + i, ry + rh + i, base | a, ROUNDING + i, 0, i == 1 and 2 or 1.5)
+          end
+        end
         if over or (picked and not row_drag) then
           local base = T.glow & 0xFFFFFF00
           for i = 1, 3 do
             local a = math.floor(170 * (1 - (i - 1) / 3) ^ 2)
             ig.DrawList_AddRect(dl, rx - i, ry - i, rx + rw2 + i, ry + rh + i, base | a, ROUNDING + i, 0, 1)
           end
-        elseif hot then                                      -- its FX is pointed at: it glows in the FX's color
+        elseif hot and not snapout then                      -- its FX is pointed at: it glows in the FX's color
           draw_link_glow(dl, rx, ry, rx + rw2, ry + rh, fx_color(tr, r.guid, rack_col), ROUNDING)
         end
         -- the row's colors: its own (Recolor parameters), or the rack's, shifted a little for a group of
@@ -721,15 +730,18 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         -- the name: bold, up to two lines
         local pb = push_bold(name_font, NAME_FONT_SIZE * f)
         -- the two lines and their widths are kept until the name, the box or the size change
-        local wkey = rname .. '|' .. box_w .. '|' .. f
+        -- (with the lock, the text keeps clear of it on both sides, so it stays centered)
+        local lockw = snapout and 14 * f or 0
+        local tw_max = box_w - 8 - 2 * lockw
+        local wkey = rname .. '|' .. box_w .. '|' .. f .. '|' .. lockw
         if mm.wkey ~= wkey then
           local l1, l2 = rname, nil
-          if ig.CalcTextSize(ctx, l1) > box_w - 8 then
+          if ig.CalcTextSize(ctx, l1) > tw_max then
             local cut = l1
-            while #cut > 1 and ig.CalcTextSize(ctx, cut) > box_w - 8 do
+            while #cut > 1 and ig.CalcTextSize(ctx, cut) > tw_max do
               cut = cut:match('^(.*)%s+%S*$') or cut:sub(1, #cut - 1)
             end
-            l2 = fit_text((l1:sub(#cut + 1):gsub('^%s+', '')), box_w - 8)
+            l2 = fit_text((l1:sub(#cut + 1):gsub('^%s+', '')), tw_max)
             l1 = cut
           end
           mm.wkey, mm.l1, mm.l2 = wkey, l1, l2
@@ -737,12 +749,11 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         end
         local l1, l2 = mm.l1, mm.l2
         local ty = ry + (rh - blh * (l2 and 2 or 1)) / 2
-        if r.snapout and r.lim then                          -- brought back inside its limits: highlighted
-          local hw = math.max(mm.w1, mm.w2 or 0)
-          local hx = bx + (box_w - hw) / 2
-          local hy2 = ty + blh * (l2 and 2 or 1)
-          ig.DrawList_AddRectFilled(dl, hx - 4, ty - 1, hx + hw + 4, hy2 + 1, param_name_hl(), 4)
-          if mouse_in(hx - 4, ty - 1, hx + hw + 4, hy2 + 1) and ig.IsWindowHovered(ctx, ig.HoveredFlags_ChildWindows()) then
+        if snapout then                                      -- the lock: at the end of the name box away from the control
+          local lx = left and (bx + 4 + lockw / 2) or (bx + box_w - 4 - lockw / 2)
+          draw_lock(dl, lx, ry + rh / 2, 11 * f, PARAM_SNAPOUT_COL)
+          if mouse_in(lx - lockw / 2, ry + rh / 2 - 8 * f, lx + lockw / 2, ry + rh / 2 + 8 * f)
+             and ig.IsWindowHovered(ctx, ig.HoveredFlags_ChildWindows()) then
             ig.SetTooltip(ctx, PARAM_SNAPOUT_TIP)
           end
         end
@@ -899,6 +910,11 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         end
         if mfx and ig.MenuItem(ctx, 'Inspect parameter...') then
           param_picker_open(tr, 'p:' .. mr.guid .. ':' .. mr.idx, 'insp')
+        end
+        if mfx and mr.lim then                              -- (only with limits)
+          if ig.MenuItem(ctx, 'Bring it back inside the limits when moved from outside', nil, mr.snapout == true) then
+            params_update(tr, mr.guid, mr.idx, { snapout = not mr.snapout })
+          end
         end
         if mfx then                                         -- copy / paste its limits and curve (params.lua)
           ig.Separator(ctx)

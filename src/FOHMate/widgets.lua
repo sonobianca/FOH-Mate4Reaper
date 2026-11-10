@@ -688,6 +688,19 @@ function draw_range_bar(id, lo, hi, o)
   if out_lo ~= lo or out_hi ~= hi then return out_lo, out_hi end
 end
 
+-- a small padlock, h tall, centered on cx, cy: a body and its shackle
+function draw_lock(dl, cx, cy, h, col)
+  local bw, bh = h * 0.72, h * 0.5
+  local by = cy + h / 2 - bh                       -- the top of the body
+  ig.DrawList_AddRectFilled(dl, cx - bw / 2, by, cx + bw / 2, cy + h / 2, col, h * 0.1)
+  -- the shackle: up the left side, over the top, down the right side
+  local sr, top = bw * 0.32, cy - h / 2 + bw * 0.32
+  ig.DrawList_PathLineTo(dl, cx - sr, by + 0.5)
+  ig.DrawList_PathArcTo(dl, cx, top, sr, math.pi, 2 * math.pi)
+  ig.DrawList_PathLineTo(dl, cx + sr, by + 0.5)
+  ig.DrawList_PathStroke(dl, col, 0, math.max(1.2, h * 0.12))
+end
+
 -- a push pin (a thumb tack seen from the side, 15 px tall) centered on cx, cy
 function draw_pin(dl, cx, cy, col)
   ig.DrawList_AddRectFilled(dl, cx - 4.5, cy - 7.5, cx + 4.5, cy - 5, col, 1.5)                                   -- the head

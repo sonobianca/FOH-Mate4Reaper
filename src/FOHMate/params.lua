@@ -544,10 +544,11 @@ function param_map_hand(M, v)
   return param_map_unlim(M, v)
 end
 
--- "Bring it back inside the limits when moved from outside" (r.snapout) is on: the name and nickname of
--- the parameter are drawn on this soft accent background (the quick access panel, the Inspector)
-PARAM_SNAPOUT_TIP = 'Brought back inside its limits when moved from outside (Inspector > Limit values).'
-function param_name_hl() return (T.link & 0xFFFFFF00) | 0x55 end
+-- "Bring it back inside the limits when moved from outside" (r.snapout) is on: a small lock by the name
+-- (draw_lock, widgets.lua) and, in the quick access panel, a red glow around the row
+PARAM_SNAPOUT_TIP = 'Brought back inside its limits when moved from outside FOH-Mate\n(Inspector > Limit values, or right-click the row).'
+PARAM_SNAPOUT_COL = 0xE5484DFF
+function param_snapout_on(r) return r and r.snapout and r.lim ~= nil end
 
 -- whether v is outside what the limits allow (set from elsewhere)
 function param_map_out(M, v)
@@ -1816,16 +1817,16 @@ function draw_param_control_panel(P, fxs, gm, targets)
   local row = #targets == 1 and params_find(tr, first.guid, first.idx)
   local pushed = push_bold(head_font, HEAD_FONT_SIZE)
   local title = #targets == 1 and first.name or ('%d parameters selected'):format(#targets)
-  local hl = row and row.snapout and row.lim
-  if hl then                                       -- brought back inside its limits: highlighted (param_name_hl)
+  if param_snapout_on(row) then                    -- brought back inside its limits: a lock before the title
     local x, y = ig.GetCursorScreenPos(ctx)
-    local avail = ig.GetContentRegionAvail(ctx)          -- (its width only: the text wraps there)
-    local tw, th = ig.CalcTextSize(ctx, title, nil, nil, false, avail)
-    ig.DrawList_AddRectFilled(ig.GetWindowDrawList(ctx), x - 3, y - 1, x + tw + 3, y + th + 1, param_name_hl(), 4)
+    local lh = ig.GetTextLineHeight(ctx)
+    ig.Dummy(ctx, lh * 0.8, lh)
+    draw_lock(ig.GetWindowDrawList(ctx), x + lh * 0.4, y + lh / 2, lh * 0.75, PARAM_SNAPOUT_COL)
+    if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, PARAM_SNAPOUT_TIP) end
+    ig.SameLine(ctx)
   end
   ig.TextWrapped(ctx, title)
   if pushed then ig.PopFont(ctx) end
-  if hl and ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, PARAM_SNAPOUT_TIP) end
   if #targets == 1 then
     -- the nickname is kept with the row (a parameter in the Performance); it is set when the box is left,
     -- also by picking another parameter while typing
@@ -1839,11 +1840,9 @@ function draw_param_control_panel(P, fxs, gm, targets)
     end
     ig.SetNextItemWidth(ctx, -1)
     if not row then ig.BeginDisabled(ctx) end
-    if hl then ig.PushStyleColor(ctx, ig.Col_FrameBg(), param_name_hl()) end
     local rv, nv = ig.InputTextWithHint(ctx, '##nick' .. nkey, row and 'Nickname (empty: its own name)'
                                         or 'Nickname: add it to the quick access panel first', P.nick)
     if rv then P.nick = nv end
-    if hl then ig.PopStyleColor(ctx) end
     P.nick_edit = ig.IsItemActive(ctx)
     if row and ig.IsItemDeactivatedAfterEdit(ctx) then param_set_nick(tr, row, P.nick) end
     if not row then ig.EndDisabled(ctx) end
