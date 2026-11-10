@@ -101,7 +101,7 @@ function draw_range_bar(id, lo, hi, o)
   ig.InvisibleButton(ctx, '##bar', barw, fh + z.pad_top + z.pad_bottom)
   local dl = ig.GetWindowDrawList(ctx)
   local th = 4                                             -- the bar's thickness
-  local my = math.floor(sy + fh / 2) + 0.5
+  local my = math.floor(sy + fh / 2)                       -- (on a pixel edge: the bar's edges are crisp)
   -- the ends of the travel: room on each side for an arrow and its handle
   local m = z.tw + z.hr + 1
   local x1, x2 = sx + m, sx + barw - m
@@ -188,17 +188,24 @@ function draw_range_bar(id, lo, hi, o)
   local lo_on, hi_on, both_on = lit == 'lo', lit == 'hi', lit == 'both'
   -- on whole pixels, mirrored for Min and Max: the tips (xl, xh) and the arrows' bases (bl, bh) on pixel
   -- edges, each 1 px line in the pixel column just inside its arrow (lx_*), so both ends look alike
+  -- Every thin line is a 1 px filled strip, not AddLine (which shifts lines half a pixel while circles
+  -- and filled shapes are not), so a line and its handle share the same center. Each strip lies in the
+  -- pixel column just inside its arrow, mirrored for Min and Max; the handles are centered on them.
   local xl, xh = math.floor(X(out_lo) + 0.5), math.floor(X(out_hi) + 0.5)
   local bl, bh = xl - z.tw, xh + z.tw                      -- the arrows' bases
-  local lx_lo, lx_hi = bl + 0.5, bh - 0.5                  -- the handles' lines and handles
+  local lx_lo, lx_hi = bl + 0.5, bh - 0.5                  -- the handles' lines and handles (column centers)
   local vx_lo, vx_hi = xl + 0.5, xh - 0.5                  -- the value lines
   local rx = math.floor((xl + xh) / 2) + 0.5
   local show_range = out_lo <= out_hi
+  local function vline(x, ya, yb, col)                     -- a 1 px vertical strip centered on x
+    ig.DrawList_AddRectFilled(dl, x - 0.5, math.min(ya, yb), x + 0.5, math.max(ya, yb), col, 0)
+  end
+  local function dot(x, y, col) ig.DrawList_AddCircleFilled(dl, x, y, z.hr, col, 16) end
   -- (a handle's line has its handle's color)
-  ig.DrawList_AddLine(dl, lx_lo, my, lx_lo, my + z.y_lo, lit_col(ink, lo_on), 1)
-  ig.DrawList_AddLine(dl, lx_hi, my, lx_hi, my + z.y_hi, lit_col(ink, hi_on), 1)
+  vline(lx_lo, my, my + z.y_lo, lit_col(ink, lo_on))
+  vline(lx_hi, my, my + z.y_hi, lit_col(ink, hi_on))
   local cov = lit_col(T.link, both_on)
-  if show_range then ig.DrawList_AddLine(dl, rx, my + z.y_range, rx, my, cov, 1) end
+  if show_range then vline(rx, my + z.y_range, my, cov) end
   ig.DrawList_AddRectFilled(dl, x1, my - th / 2, x2, my + th / 2, (T.dim & 0xFFFFFF00) | 0x70, th / 2)
   if out_lo <= out_hi then
     ig.DrawList_AddRectFilled(dl, xl, my - th / 2, xh, my + th / 2, cov, 0)
@@ -206,17 +213,17 @@ function draw_range_bar(id, lo, hi, o)
     ig.DrawList_AddRectFilled(dl, x1, my - th / 2, xh, my + th / 2, cov, th / 2)
     ig.DrawList_AddRectFilled(dl, xl, my - th / 2, x2, my + th / 2, cov, th / 2)
   end
-  ig.DrawList_AddLine(dl, vx_lo, my - z.hh, vx_lo, my + z.hh, lit_col(ink, lo_on), 1)
-  ig.DrawList_AddLine(dl, vx_hi, my - z.hh, vx_hi, my + z.hh, lit_col(ink, hi_on), 1)
+  vline(vx_lo, my - z.hh, my + z.hh, lit_col(ink, lo_on))
+  vline(vx_hi, my - z.hh, my + z.hh, lit_col(ink, hi_on))
   -- an arrow: its tip on the value, pointing at it (both listed the same way round, so they look alike)
   local function arrow(x, dir, col)
     ig.DrawList_AddTriangleFilled(dl, x, my, x - dir * z.tw, my - z.hh, x - dir * z.tw, my + z.hh, col)
   end
   arrow(xl, 1, lit_col(ink, lo_on))
   arrow(xh, -1, lit_col(ink, hi_on))
-  ig.DrawList_AddCircleFilled(dl, lx_lo, my + z.y_lo, z.hr, lit_col(ink, lo_on), 0)
-  ig.DrawList_AddCircleFilled(dl, lx_hi, my + z.y_hi, z.hr, lit_col(ink, hi_on), 0)
-  if show_range then ig.DrawList_AddCircleFilled(dl, rx, my + z.y_range, z.hr, cov, 0) end
+  dot(lx_lo, my + z.y_lo, lit_col(ink, lo_on))
+  dot(lx_hi, my + z.y_hi, lit_col(ink, hi_on))
+  if show_range then dot(rx, my + z.y_range, cov) end
 
   ig.SetCursorScreenPos(ctx, after_x, after_y)
   ig.PopID(ctx)
