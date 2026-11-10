@@ -87,22 +87,22 @@ SCHEMA = {
   { group = 'Layout', key = 'clip_h', label = 'Clip marker height', kind = 'i', min = 2, max = 12, def = 6, fmt = '%d px',
     tip = 'Height of the clip markers above the meters.' },
 
-  { group = 'Performance mode', key = 'perf_fold_auto', label = 'Fold the FX and parameter sections by themselves', kind = 'bool', min = 0, max = 1, def = 1,
-    tip = 'On: an open FX section (Show mode) and a widened parameter section fold back after the time below\nwithout you using FOH-Mate. Off: they stay open until you fold them.' },
+  { group = 'Performance mode', key = 'perf_fold_auto', label = 'Fold the FX sections and quick access panels by themselves', kind = 'bool', min = 0, max = 1, def = 1,
+    tip = 'On: an open FX section (Show mode) and a widened quick access panel fold back after the time below\nwithout you using FOH-Mate. Off: they stay open until you fold them.' },
   { group = 'Performance mode', key = 'perf_fold_edit', label = 'Also fold them by themselves in Edit mode', kind = 'bool', min = 0, max = 1, def = 0,
-    tip = 'Off (default): in Edit mode, the configuration mode, a widened parameter section stays open until you\nfold it. On: it folds back by itself after the time below, like in Show mode. A section pinned open\n(right-click its handle) never folds by itself.' },
+    tip = 'Off (default): in Edit mode, the configuration mode, a widened quick access panel stays open until you\nfold it. On: it folds back by itself after the time below, like in Show mode. A section pinned open\n(right-click its handle) never folds by itself.' },
   { group = 'Performance mode', key = 'perf_fold_after', label = 'Fold them after', kind = 'i', min = 0, max = 120, def = 15, fmt = '%d s',
-    tip = 'An open FX section (Show mode) and a widened parameter column fold back after this long\nwithout activity in the Racks window (the mouse moving over it, a click, a drag, scrolling\nor a key). Nothing outside the window counts. Only when the option above is on.' },
+    tip = 'An open FX section (Show mode) and a widened quick access panel fold back after this long\nwithout activity in the Racks window (the mouse moving over it, a click, a drag, scrolling\nor a key). Nothing outside the window counts. Only when the option above is on.' },
   { group = 'Performance mode', key = 'range_gap', label = 'Gap between ranges in a list', kind = 'd', min = 0, max = 10, def = 2, fmt = '%.1f %%',
     tip = 'Limit values > List of ranges: the smallest gap between two ranges of a list, in % of the\nparameter\'s travel. Ranges never overlap.' },
   { group = 'Performance mode', key = 'reopen_windows', label = 'Reopen the Parameters and Inspector windows', kind = 'bool', min = 0, max = 1, def = 1,
     tip = 'On: the Parameters and Inspector windows that were open when FOH-Mate closed open again when it\nstarts (in Edit mode), where they were. Off: they stay closed until you open them.' },
   { group = 'Performance mode', key = 'remember_nicks', label = 'Remember parameters nicknames', kind = 'bool', min = 0, max = 1, def = 1,
-    tip = 'On: a nickname given to a parameter (right-click it > Nickname parameter) is remembered for that\nFX, and the parameter gets it again whenever it is added to the Performance, on any rack or\nproject. Off: a nickname stays on that one parameter only.' },
+    tip = 'On: a nickname given to a parameter (right-click it > Nickname parameter) is remembered for that\nFX, and the parameter gets it again whenever it is added to the quick access panel, on any rack or\nproject. Off: a nickname stays on that one parameter only.' },
 
   { group = 'Controls', key = 'enc_mode', label = 'Rotary encoder: drag', kind = 'choice', def = 'vertical',
     options = { { 'vertical', 'up and down' }, { 'circle', 'around the encoder' } },
-    tip = 'How a rotary encoder is turned with the mouse (the parameters of Performance mode, and any\nother FOH-Mate module that uses encoders).\nUp and down: drag vertically; the farther the pointer is to the side of the encoder, the finer it is.\nAround the encoder: drag the pointer in a circle around it. Shift = finer in both.' },
+    tip = 'How a rotary encoder is turned with the mouse (the quick access panel, and any\nother FOH-Mate module that uses encoders).\nUp and down: drag vertically; the farther the pointer is to the side of the encoder, the finer it is.\nAround the encoder: drag the pointer in a circle around it. Shift = finer in both.' },
 }
 
 CFG = {}

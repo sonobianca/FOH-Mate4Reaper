@@ -7,6 +7,9 @@ the idea is in `docs/ROADMAP.md`; this file is the detail. Built in the 0.14 ver
 
 An optional view, switched on and off with a toggle. Edit and Show keep working inside it.
 
+The column of parameters under each rack is its **quick access panel**: the critical parameters, at hand. Its
+limits and curves belong to it (another module that reuses the controls gives them its own).
+
 ```
  ┌ top bar (as today) ──────────────────────────────────────────────────────────┐
  │ RACK 1 (full, or slim)   │ RACK 2                   │ RACK 3        │ ... →   │   one row,
@@ -37,7 +40,7 @@ An optional view, switched on and off with a toggle. Edit and Show keep working 
   width; one mark per value when there are only a few), a toggle (a plain circle) and a drop-down (a
   circle with an arrow, the values in a menu). How the encoder turns is a global setting (Settings >
   Controls): vertical drag, finer the farther the pointer is to the side, or dragging around it.
-  The default mark is the value the parameter had when it was added to the Performance.
+  The default mark is the value the parameter had when it was added to the quick access panel.
 - **Name** defaults to what the FX reports and can be renamed. **Color** is the rack's, changeable
   per row from a drop-down.
 - **Row look:** the name in bold in its own box (two lines allowed), the control outside the box,

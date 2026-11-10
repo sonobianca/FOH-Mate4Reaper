@@ -282,7 +282,7 @@ function params_move(tr, from, to)
   if not rows[from] or from == to then return end
   local r = table.remove(rows, from)
   table.insert(rows, math.min(to, #rows + 1), r)
-  with_undo('Reorder Performance parameters', function() params_write(tr, rows) end)
+  with_undo('Reorder quick access parameters', function() params_write(tr, rows) end)
 end
 
 -- the rows whose parameter is gone (its FX removed, or the FX changed), as { guid, idx, name }
@@ -1778,7 +1778,7 @@ function params_apply(tr, targets, adding)
     end
     rows = kept
   end
-  with_undo(adding and 'Add parameters to Performance' or 'Remove parameters from Performance',
+  with_undo(adding and 'Add parameters to the quick access panel' or 'Remove parameters from the quick access panel',
             function() params_write(tr, rows) end)
 end
 
@@ -1840,7 +1840,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
     if not row then ig.BeginDisabled(ctx) end
     if hl then ig.PushStyleColor(ctx, ig.Col_FrameBg(), param_name_hl()) end
     local rv, nv = ig.InputTextWithHint(ctx, '##nick' .. nkey, row and 'Nickname (empty: its own name)'
-                                        or 'Nickname: put it in the Performance first', P.nick)
+                                        or 'Nickname: add it to the quick access panel first', P.nick)
     if rv then P.nick = nv end
     if hl then ig.PopStyleColor(ctx) end
     P.nick_edit = ig.IsItemActive(ctx)
@@ -1883,7 +1883,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
 
     -- how this row behaves (saved with the project: only for a parameter that is in the Performance)
     if not row then
-      ig.TextDisabled(ctx, 'Put the parameter in the Performance\nto set the rest.')
+      ig.TextDisabled(ctx, 'Add the parameter to the quick access\npanel to set the rest.')
     else
       if section_header('Direction and default', false) then
         local inv = row.inv == true
@@ -1953,7 +1953,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
         end
         local rv3, v3 = ig.Checkbox(ctx, 'Use limits', row.lim ~= nil)
         if ig.IsItemHovered(ctx) then
-          ig.SetTooltip(ctx, 'When it is moved from the Performance, the parameter only takes the values of a\nrange, of a list of values, or of a list of ranges.')
+          ig.SetTooltip(ctx, 'When it is moved from the quick access panel, the parameter only takes the values of a\nrange, of a list of values, or of a list of ranges.')
         end
         if rv3 then
           if not v3 then params_update(tr, g, ix, { lim = false })
@@ -2568,7 +2568,7 @@ function draw_param_tree(P, D)
         draw_row({ id = gkey, sel = gkey, depth = depth, h = h_grp, font = sect_font, size = SECT_FONT_SIZE,
           col = param_name_color(param_row_color(rack_col, { pname = nd.label }), dark),
           arrow = true, open = opened, check = true, on = g_have == #nd.ps, part = g_have > 0, name = nd.label,
-          count = ('%d of %d in the Performance'):format(g_have, #nd.ps),
+          count = ('%d of %d in the quick access panel'):format(g_have, #nd.ps),
           on_toggle = function() P.open[gkey] = not opened end,
           -- the check box: every parameter of the branch in or out
           on_check = function() params_apply(fx.tr, targets_of(fx, nd.ps), g_have < #nd.ps) end })
@@ -2616,7 +2616,7 @@ function draw_param_tree(P, D)
               col = param_name_color(fcol, dark),
               menu = function() if ig.MenuItem(ctx, 'Color...') then fx_open_picker(fx.tr, fx.guid, fx.name) end end,
               arrow = true, open = opened, check = true, on = n_have == fx.nvis and n_have > 0, part = n_have > 0,
-              name = pname, type = ptype, count = ('%d of %d in the Performance'):format(n_have, fx.nvis),
+              name = pname, type = ptype, count = ('%d of %d in the quick access panel'):format(n_have, fx.nvis),
               on_toggle = function() P.open[fkey] = not opened end,
               -- the check box: every parameter of the FX in or out
               on_check = function()
@@ -2640,9 +2640,15 @@ function draw_param_tree(P, D)
 
     local any = next(P.sel) ~= nil
     if not any and ig.BeginDisabled then ig.BeginDisabled(ctx, true) end
-    if ig.Button(ctx, 'Add to Performance') then param_pick_apply(P, fxs, true) end
+    if ig.Button(ctx, 'Add to the quick access panel') then param_pick_apply(P, fxs, true) end
+    if ig.IsItemHovered(ctx, ig.HoveredFlags_AllowWhenDisabled()) then
+      ig.SetTooltip(ctx, 'The selected parameters go to the quick access panel of their rack\n(the column of controls under it, in Performance mode).')
+    end
     ig.SameLine(ctx)
-    if ig.Button(ctx, 'Remove from Performance') then param_pick_apply(P, fxs, false) end
+    if ig.Button(ctx, 'Remove from the quick access panel') then param_pick_apply(P, fxs, false) end
+    if ig.IsItemHovered(ctx, ig.HoveredFlags_AllowWhenDisabled()) then
+      ig.SetTooltip(ctx, 'The selected parameters leave the quick access panel of their rack\n(their limits, curve and other settings go with them; Ctrl+Z brings them back).')
+    end
     if not any and ig.EndDisabled then ig.EndDisabled(ctx) end
     ig.SameLine(ctx)
     ig.TextDisabled(ctx, ('%d selected'):format((function() local c = 0 for _ in pairs(P.sel) do c = c + 1 end return c end)()))

@@ -392,7 +392,7 @@ track channels, so outputs, sends and meters always agree.
 Use **Display > Dock** to put the window in one of REAPER's dockers, or back to floating. You can also
 drag the window onto a docker. The window remembers its dock.
 
-In Performance mode (Edit mode), the **Parameters** window (the tree of the racks' parameters) and the
+In Performance mode (Edit mode), the **Parameters** window (the tree of the racks' parameters, to add them to each rack's quick access panel) and the
 **Inspector** (the settings of the selected parameter) are windows of their own: **Display > Windows**
 shows or hides each one. Each floats or docks on its own, with its own tab in a docker ("Racks",
 "Parameters", "Inspector"), and comes back where you left it. Dropped on a docker that already holds

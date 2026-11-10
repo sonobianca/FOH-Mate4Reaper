@@ -708,7 +708,7 @@ function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
         -- the rows too, or keep them for a matching FX to take back
         local nrows = params_count_fx(tr, { [fx_guid] = true })
         if nrows > 0 then
-          request_confirm(('Delete "%s" from this rack?\nIt has %d parameter%s in the Performance.\n'
+          request_confirm(('Delete "%s" from this rack?\nIt has %d parameter%s in the quick access panel.\n'
                            .. 'Kept parameters stay greyed out, and come back to life when a matching FX\nis put on this rack again.\n(Ctrl+Z brings everything back.)')
                           :format(clean_fx_name(it.name), nrows, nrows == 1 and '' or 's'),
             function() delete_fx(tr, fx_guid) end, 'Delete FX and parameters', nil,

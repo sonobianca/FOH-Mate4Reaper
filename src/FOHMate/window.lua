@@ -256,7 +256,7 @@ function draw_status_bar(dl, x, y, w, h, M, nracks, nfx, nparams)
     local bw = ig.CalcTextSize(ctx, '00.0') + 16
     local tip = ('Debug timer (not in public versions)\n' ..
                  'Time FOH-Mate takes per frame: %.2f ms on average\n' ..
-                 'of which the racks area (Performance parameters included): %.2f ms\n' ..
+                 'of which the racks area (quick access panels included): %.2f ms\n' ..
                  'Slowest frame of the last 2 seconds: %.2f ms'):format(
                  TIMER.avg * 1000, TIMER.area_avg * 1000, TIMER.peak_shown * 1000)
     label('Script')
@@ -973,10 +973,10 @@ function draw_param_menu(tr)
   if ig.MenuItem(ctx, label, nil, false, nu > 0) then params_apply(tr, PARAM_UNLINKED, false) end
   ig.Separator(ctx)
   if ig.MenuItem(ctx, 'Clear all', nil, false, n > 0) then
-    request_confirm(('Remove all %d parameter%s of this rack from the Performance?\n(Ctrl+Z brings them back.)')
+    request_confirm(('Remove all %d parameter%s of this rack from the quick access panel?\n(Ctrl+Z brings them back.)')
                     :format(n, n == 1 and '' or 's'),
       function()
-        if valid(tr) then with_undo('Clear Performance parameters', function() params_drop_fx(tr, nil) end) end
+        if valid(tr) then with_undo('Clear the quick access panel', function() params_drop_fx(tr, nil) end) end
       end, 'Clear all')
   end
 end
