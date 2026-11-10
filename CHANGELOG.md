@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Code: the curve editor is a widget in its own file (curve_graph.lua), usable by other modules: it is given a curve and hands back the changed one; the quick access panel saves it. Nothing changes on screen.
+
 - Code: how limits and a curve turn a control is in its own file (limit_map.lua), usable by other modules; nothing changes on screen.
 
 - Range selector: the handle over the blue part now shows on a single Range too; smaller round handles, bigger arrows, the handles' lines in their handle's color, and less room taken by the handles' tracks.

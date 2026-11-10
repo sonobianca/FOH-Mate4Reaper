@@ -1931,8 +1931,9 @@ function draw_param_control_panel(P, fxs, gm, targets)
           local v = reaper.TrackFX_GetParamNormalized(tr, fxi, first.idx)
           local x = param_map_flip(M, param_ctl_pos(M, v, param_row_memo(tr, row, fxi), k.steps))
           local L = M.B - M.A
-          draw_curve_section(tr, row, L > 0 and (x - M.A) / L or 0,
+          local nspec = draw_curve_graph('crv', row.curve, L > 0 and (x - M.A) / L or 0,
                              k.kind == 'steps' and k.steps and k.steps > 1 and { n = k.steps, A = M.A, B = M.B } or nil)
+          if nspec ~= nil then params_update(tr, row.guid, row.idx, { curve = nspec }) end
           local note
           if cvp and M.mode == 'clamp' then
             note = 'Limit only values: the curve covers the whole travel of the control; the value waits at '

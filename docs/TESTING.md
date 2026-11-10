@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 203).
+New items get the next free number (next: 204).
 
 ## Open
 
+- [ ] 203. (0.14.157) Code move (curve_graph.lua), nothing should change: Inspector > Curve: pick each kind of curve and a saved curve, change the strength, add / drag / remove custom points, Smooth, reset (right-click), save a curve and delete one; the dot follows the control; a stepped encoder shows its step dots.
 - [ ] 202. (0.14.156) Code move (limit_map.lua), nothing should change: encoders, width/Q bands and pans with a Range, a List of ranges, a curve, the full range, Skip the gaps, Snap to nearest limit and Limit only values all turn as before; FOH-Mate starts without an error.
 - [ ] 201. (0.14.155) Range selector, second look: the round handle over the blue part shows on a single Range (it was missing) and on a List of ranges; the round handles are smaller and the arrows bigger; each handle's line has the handle's color; the room for the tracks above and below is smaller.
 - [ ] 200. (0.14.154) Range selector (Inspector > Limit values, Range then List of ranges): arrows outside the range, tips on the values, a thin line across the bar at each value; a round handle under each arrow (Min's track, Max's a little lower) and one over the blue part. Make a very short range: each end can still be grabbed by its handle, the range by the top handle or the blue part; where the arrows overlap the nearer one wins, the range when both are as near. Pointing at something lights up what would be grabbed. Clicking elsewhere on the bar brings the nearest end there. The value boxes are the same height as before; the list's lines are further apart. Typing a value, stepped encoders (a step at a time), Max below Min, and the red X still work. Found (Bianca): typing, steps, Max below Min and the X work (C61); the top handle was missing on a single Range, the handles too big and the tracks too roomy (C59, C60): changed in 201.
