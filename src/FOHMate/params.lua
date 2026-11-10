@@ -1254,6 +1254,7 @@ function param_picker_open(tr, sel_key, which)
   local P = PARAM_PICK
   if not P then P = { filter = '', sel = {}, order = {} }; PARAM_PICK = P end
   P.tr = tr
+  P.cache = nil                                            -- the FX's parameters read again (param_tree.lua)
   P.open = P.open or {}
   P.open['R:' .. reaper.GetTrackGUID(tr)] = true
   if which ~= 'insp' then P.tree_open = true end
@@ -1289,6 +1290,7 @@ function param_pick_select(tr, r)
   local P = PARAM_PICK
   if not P or not (P.tree_open or P.insp_open) then return end
   P.no_focus = true                                         -- it was clicked in the rack: no need to scroll there
+  P.cache = nil                                            -- the FX's parameters read again (param_tree.lua)
   local key = 'p:' .. r.guid .. ':' .. r.idx
   P.sel, P.anchor = { [key] = true }, key
   P.open = P.open or {}
@@ -1302,6 +1304,7 @@ function param_pick_rack(tr, unfold)
   local P = PARAM_PICK
   if not P or not (P.tree_open or P.insp_open) then return end
   P.no_focus = true
+  P.cache = nil                                            -- the FX's parameters read again (param_tree.lua)
   local key = 'R:' .. reaper.GetTrackGUID(tr)
   P.sel, P.anchor, P.scroll_key, P.filter = { [key] = true }, key, key, ''
   P.open = P.open or {}

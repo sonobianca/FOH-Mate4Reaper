@@ -200,9 +200,18 @@ end
 function draw_tree(P, D, o)
   local racks, fxs, gm = D.racks, D.fxs, D.gm
   do
-    ig.SetNextItemWidth(ctx, -ig.CalcTextSize(ctx, 'Show hidden') - ig.GetFrameHeight(ctx) - 16)
+    local spx = select(1, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
+    local refw = ig.CalcTextSize(ctx, 'Refresh') + 2 * select(1, ig.GetStyleVar(ctx, ig.StyleVar_FramePadding()))
+    ig.SetNextItemWidth(ctx, -ig.CalcTextSize(ctx, 'Show hidden') - ig.GetFrameHeight(ctx) - 16 - refw - spx)
     local rv, ftxt = ig.InputTextWithHint(ctx, '##pf', 'Search parameters', P.filter)
     if rv then P.filter = ftxt end
+    -- the names of the parameters are read once per FX: Refresh reads them again (an FX may rename its
+    -- parameters, ReaEQ when a band changes type); also done when a rack puts something in focus here
+    ig.SameLine(ctx)
+    if ig.Button(ctx, 'Refresh') then P.cache = nil end
+    if ig.IsItemHovered(ctx) then
+      ig.SetTooltip(ctx, 'Read the FX\'s parameters again (an FX may change them: ReaEQ when a band changes type).')
+    end
     ig.SameLine(ctx)
     local rvh, vh = ig.Checkbox(ctx, 'Show hidden', P.show_hidden == true)
     if rvh then P.show_hidden, P.cache = vh, nil end
