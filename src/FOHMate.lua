@@ -27,7 +27,7 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.14.160'   -- major.minor.revision, shown in the window's title bar
+VERSION         = '0.14.161'   -- major.minor.revision, shown in the window's title bar
 DEBUG_TIMER     = true      -- status bar shows how long the script takes per frame; must be false in a
                             -- public version (tools/make_reapack_index.sh refuses to build otherwise)
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
@@ -95,7 +95,7 @@ math.randomseed(math.floor(reaper.time_precise() * 1000))
 MODULES = {
   'settings', 'context', 'jsfx', 'state', 'helpers', 'modes', 'colors', 'chain', 'tracks',
   'sidechain', 'stereo', 'latency', 'fx_list', 'scan', 'fx_list_ui', 'add_fx_menu', 'setup',
-  'widgets', 'controls', 'range_bar', 'limit_map', 'sidechain_ui', 'curves', 'curve_graph', 'params', 'racks', 'top_bar', 'window'
+  'widgets', 'controls', 'range_bar', 'limit_map', 'sidechain_ui', 'curves', 'curve_graph', 'param_tree', 'params', 'racks', 'top_bar', 'window'
 }
 
 MODULE_DIR = (debug.getinfo(1, 'S').source:match('^@?(.*[/\\])') or '') .. 'FOHMate/'

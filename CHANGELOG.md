@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Code: the parameter tree (racks, FX, groups, parameters, search, selection, tick boxes) is in its own file (param_tree.lua), usable by other modules: the module says what is in its list, what the buttons do and how they read; the Parameters window plugs in the quick access panel. Nothing changes on screen.
+
 - Range selector: the thin lines are drawn as exact 1 px strips (ImGui shifts its lines half a pixel, circles not), so each handle sits centered on its line and the value lines line up with the blue part; the handles are evenly round.
 
 - Code: the controls (encoder, width / Q band, pan, stepped encoder, drop-down, toggle) and the logic that turns them through limits, a list of values and a curve are in their own file (controls.lua), usable by other modules; the quick access panel only adds its own parts (Ctrl+wheel on a range, saving). Nothing changes on screen.
