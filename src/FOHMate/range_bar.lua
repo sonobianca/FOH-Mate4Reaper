@@ -186,13 +186,17 @@ function draw_range_bar(id, lo, hi, o)
   local ink = ig.GetStyleColor(ctx, ig.Col_Text())
   local function lit_col(c, on) return on and mix(c, WHITE, 0.35) or c end
   local lo_on, hi_on, both_on = lit == 'lo', lit == 'hi', lit == 'both'
-  local xl, xh = X(out_lo), X(out_hi)
+  -- on whole pixels, mirrored for Min and Max: the tips (xl, xh) and the arrows' bases (bl, bh) on pixel
+  -- edges, each 1 px line in the pixel column just inside its arrow (lx_*), so both ends look alike
+  local xl, xh = math.floor(X(out_lo) + 0.5), math.floor(X(out_hi) + 0.5)
   local bl, bh = xl - z.tw, xh + z.tw                      -- the arrows' bases
-  local rx = (xl + xh) / 2
+  local lx_lo, lx_hi = bl + 0.5, bh - 0.5                  -- the handles' lines and handles
+  local vx_lo, vx_hi = xl + 0.5, xh - 0.5                  -- the value lines
+  local rx = math.floor((xl + xh) / 2) + 0.5
   local show_range = out_lo <= out_hi
   -- (a handle's line has its handle's color)
-  ig.DrawList_AddLine(dl, bl, my, bl, my + z.y_lo, lit_col(ink, lo_on), 1)
-  ig.DrawList_AddLine(dl, bh, my, bh, my + z.y_hi, lit_col(ink, hi_on), 1)
+  ig.DrawList_AddLine(dl, lx_lo, my, lx_lo, my + z.y_lo, lit_col(ink, lo_on), 1)
+  ig.DrawList_AddLine(dl, lx_hi, my, lx_hi, my + z.y_hi, lit_col(ink, hi_on), 1)
   local cov = lit_col(T.link, both_on)
   if show_range then ig.DrawList_AddLine(dl, rx, my + z.y_range, rx, my, cov, 1) end
   ig.DrawList_AddRectFilled(dl, x1, my - th / 2, x2, my + th / 2, (T.dim & 0xFFFFFF00) | 0x70, th / 2)
@@ -202,16 +206,16 @@ function draw_range_bar(id, lo, hi, o)
     ig.DrawList_AddRectFilled(dl, x1, my - th / 2, xh, my + th / 2, cov, th / 2)
     ig.DrawList_AddRectFilled(dl, xl, my - th / 2, x2, my + th / 2, cov, th / 2)
   end
-  ig.DrawList_AddLine(dl, xl, my - z.hh, xl, my + z.hh, lit_col(ink, lo_on), 1)
-  ig.DrawList_AddLine(dl, xh, my - z.hh, xh, my + z.hh, lit_col(ink, hi_on), 1)
+  ig.DrawList_AddLine(dl, vx_lo, my - z.hh, vx_lo, my + z.hh, lit_col(ink, lo_on), 1)
+  ig.DrawList_AddLine(dl, vx_hi, my - z.hh, vx_hi, my + z.hh, lit_col(ink, hi_on), 1)
   -- an arrow: its tip on the value, pointing at it (both listed the same way round, so they look alike)
   local function arrow(x, dir, col)
     ig.DrawList_AddTriangleFilled(dl, x, my, x - dir * z.tw, my - z.hh, x - dir * z.tw, my + z.hh, col)
   end
   arrow(xl, 1, lit_col(ink, lo_on))
   arrow(xh, -1, lit_col(ink, hi_on))
-  ig.DrawList_AddCircleFilled(dl, bl, my + z.y_lo, z.hr, lit_col(ink, lo_on), 0)
-  ig.DrawList_AddCircleFilled(dl, bh, my + z.y_hi, z.hr, lit_col(ink, hi_on), 0)
+  ig.DrawList_AddCircleFilled(dl, lx_lo, my + z.y_lo, z.hr, lit_col(ink, lo_on), 0)
+  ig.DrawList_AddCircleFilled(dl, lx_hi, my + z.y_hi, z.hr, lit_col(ink, hi_on), 0)
   if show_range then ig.DrawList_AddCircleFilled(dl, rx, my + z.y_range, z.hr, cov, 0) end
 
   ig.SetCursorScreenPos(ctx, after_x, after_y)

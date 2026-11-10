@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Range selector: the arrows, value lines and handles' lines sit on whole pixels, mirrored for Min and Max (Max's handle line looked a pixel off).
+
 - Code: the curve editor is a widget in its own file (curve_graph.lua), usable by other modules: it is given a curve and hands back the changed one; the quick access panel saves it. Nothing changes on screen.
 
 - Code: how limits and a curve turn a control is in its own file (limit_map.lua), usable by other modules; nothing changes on screen.
