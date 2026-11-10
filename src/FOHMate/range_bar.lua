@@ -24,7 +24,7 @@
 --
 -- o: text(v) -> number, unit, is_number (what a box shows); find(typed, unit) -> v or nil (a number typed
 -- in a box); inv (Min may go above Max: the covered part is then outside the arrows, up to Max and from
--- Min; no range handle then); steps (n: the ends move a step at a time, n steps over 0..1, never both on
+-- Min; no range handle while it is so); steps (n: the ends move a step at a time, n steps over 0..1, never both on
 -- the same one); width (instead of the room left on the line); right = { x = cursor x, fn = function } (drawn
 -- at x on the same line, e.g. a remove button; what fn returns is returned third).
 
@@ -36,11 +36,11 @@ RANGE_HOT = {}    -- id -> what the pointer would grab (drawn lit), from the fra
 -- offsets from the bar's middle (range above; Min, then Max below), and the room they take above and below
 function range_bar_sizes(fh)
   local z = {}
-  z.tw, z.hh = math.floor(fh * 0.35), math.floor(fh * 0.3)
-  z.hr = 3.5
-  z.y_range = -(z.hh + 7)
-  z.y_lo = z.hh + 6
-  z.y_hi = z.hh + 15
+  z.tw, z.hh = math.floor(fh * 0.45), math.floor(fh * 0.38)
+  z.hr = 2.5
+  z.y_range = -(z.hh + 3.5)
+  z.y_lo = z.hh + 3.5
+  z.y_hi = z.y_lo + 6
   z.pad_top = math.max(0, math.ceil(z.hr - z.y_range - fh / 2) + 1)
   z.pad_bottom = math.max(0, math.ceil(z.y_hi + z.hr - fh / 2) + 1)
   return z
@@ -118,7 +118,7 @@ function draw_range_bar(id, lo, hi, o)
         local xb = xv - dir * z.tw                         -- the arrow's base, where its handle hangs
         local ax1, ax2 = math.min(xv, xb), math.max(xv, xb)
         local hy = my + (what == 'lo' and z.y_lo or z.y_hi)
-        if near(xb, hy, z.hr + 3) then found[#found + 1] = { what, 0 }; return end
+        if near(xb, hy, z.hr + 4) then found[#found + 1] = { what, 0 }; return end
         local in_arrow = mx >= ax1 - 2 and mx <= ax2 + 2 and py >= my - z.hh - 2 and py <= my + z.hh + 2
         local on_line = math.abs(mx - xb) <= 3 and py >= my and py <= hy
         if in_arrow or on_line then found[#found + 1] = { what, math.abs(mx - (ax1 + ax2) / 2) } end
@@ -127,7 +127,7 @@ function draw_range_bar(id, lo, hi, o)
       try('hi', hi, -1)
       return found
     end
-    if not o.inv and lo <= hi and near((X(lo) + X(hi)) / 2, my + z.y_range, z.hr + 3) then return 'both' end
+    if lo <= hi and near((X(lo) + X(hi)) / 2, my + z.y_range, z.hr + 4) then return 'both' end
     local f = ends()
     if #f == 1 then return f[1][1] end
     if #f == 2 then                                        -- the arrows overlap: the nearer; as near: the range
@@ -184,18 +184,18 @@ function draw_range_bar(id, lo, hi, o)
   -- drawing, from the bottom up: the handles' lines, the bar and its covered part, the value lines,
   -- the arrows, the handles
   local ink = ig.GetStyleColor(ctx, ig.Col_Text())
-  local thin = (T.dim & 0xFFFFFF00) | 0xA0
   local function lit_col(c, on) return on and mix(c, WHITE, 0.35) or c end
   local lo_on, hi_on, both_on = lit == 'lo', lit == 'hi', lit == 'both'
   local xl, xh = X(out_lo), X(out_hi)
   local bl, bh = xl - z.tw, xh + z.tw                      -- the arrows' bases
   local rx = (xl + xh) / 2
-  local show_range = not o.inv and out_lo <= out_hi
-  ig.DrawList_AddLine(dl, bl, my, bl, my + z.y_lo, lit_col(thin, lo_on), 1)
-  ig.DrawList_AddLine(dl, bh, my, bh, my + z.y_hi, lit_col(thin, hi_on), 1)
-  if show_range then ig.DrawList_AddLine(dl, rx, my + z.y_range, rx, my, lit_col(thin, both_on), 1) end
-  ig.DrawList_AddRectFilled(dl, x1, my - th / 2, x2, my + th / 2, (T.dim & 0xFFFFFF00) | 0x70, th / 2)
+  local show_range = out_lo <= out_hi
+  -- (a handle's line has its handle's color)
+  ig.DrawList_AddLine(dl, bl, my, bl, my + z.y_lo, lit_col(ink, lo_on), 1)
+  ig.DrawList_AddLine(dl, bh, my, bh, my + z.y_hi, lit_col(ink, hi_on), 1)
   local cov = lit_col(T.link, both_on)
+  if show_range then ig.DrawList_AddLine(dl, rx, my + z.y_range, rx, my, cov, 1) end
+  ig.DrawList_AddRectFilled(dl, x1, my - th / 2, x2, my + th / 2, (T.dim & 0xFFFFFF00) | 0x70, th / 2)
   if out_lo <= out_hi then
     ig.DrawList_AddRectFilled(dl, xl, my - th / 2, xh, my + th / 2, cov, 0)
   else
