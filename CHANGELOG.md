@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Code: the controls (encoder, width / Q band, pan, stepped encoder, drop-down, toggle) and the logic that turns them through limits, a list of values and a curve are in their own file (controls.lua), usable by other modules; the quick access panel only adds its own parts (Ctrl+wheel on a range, saving). Nothing changes on screen.
+
 - Range selector: the arrows, value lines and handles' lines sit on whole pixels, mirrored for Min and Max (Max's handle line looked a pixel off).
 
 - Code: the curve editor is a widget in its own file (curve_graph.lua), usable by other modules: it is given a curve and hands back the changed one; the quick access panel saves it. Nothing changes on screen.

@@ -99,18 +99,6 @@ function push_lit(col)
   ig.PushStyleColor(ctx, ig.Col_ButtonActive(), mix(col, BLACK, 0.2))
 end
 
--- a round "radio" checkbox: ring with a dot inside when on
-function circle_check(dl, id, x, y, d, checked)
-  ig.SetCursorScreenPos(ctx, x, y)
-  local clicked = ig.InvisibleButton(ctx, id, d, d)
-  local hovered = ig.IsItemHovered(ctx)
-  local cx, cy, r = x + d / 2, y + d / 2, d / 2 - 2
-  ig.DrawList_AddCircleFilled(dl, cx, cy, r, T.chk_bg, 0)
-  ig.DrawList_AddCircle(dl, cx, cy, r, hovered and 0x6FB4FFFF or T.chk_ring, 0, 2)
-  if checked then ig.DrawList_AddCircleFilled(dl, cx, cy, r - 4, T.chk_dot, 0) end
-  return clicked
-end
-
 -- a drop target that appends to the FX of a rack
 function drop_zone(id, x, y, w, h, tr, append_idx)
   ig.SetCursorScreenPos(ctx, x, y)

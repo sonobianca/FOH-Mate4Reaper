@@ -997,152 +997,27 @@ function draw_param_menu(tr)
   end
 end
 
--- The control of a parameter (a row of a rack's column, and the Inspector's preview, which can be turned
--- too): an encoder, a width / Q band, a pan, a stepped encoder, a drop-down or a toggle, as its kind says,
--- through the row's limits, list of values and curve. id: the control's id; r: the row ({ guid, idx,
--- pname } for a parameter that is not in the Performance); ekind: the kind it is drawn as (a Pan/Width
--- follows its stereo placement); mm: the row's memo (param_row_memo); kcx, kcy, kr: where, how big; f:
--- the scale; cl: { body, col, ptr }. Returns the new value (0..1, as REAPER counts it) when it was changed.
---
--- The mouse wheel (or two fingers on a trackpad) over a control changes its value: a step at a time for a
--- stepped encoder, a list or a drop-down, on / off for a toggle. With Ctrl (Cmd on a Mac), it changes the
--- current range (the one the value is in: Range, List of ranges): up / down moves it (it stops when an end
--- reaches the value, or the gap before another range), sideways makes it wider or narrower.
--- wkey: the window it is in, which then doesn't scroll (CTL_HOVER).
-CTL_HOVER_NOW, CTL_HOVER_PREV = {}, {}
-WHEEL_STEPPED = 0.4                         -- a stepped encoder: 2.5 notches of the wheel per step (lists and drop-downs: 1)
-WHEEL_STEP, WHEEL_FINE = 0.006, 0.0015     -- a notch of the wheel on a smooth control (Shift: finer), of its travel
-
+-- The control of a parameter of the quick access panel (a row of a rack's column, and the Inspector's
+-- preview, which can be turned too): draw_control (controls.lua) given the row's limits, list of values
+-- and curve. id: the control's id; r: the row ({ guid, idx, pname } for a parameter that is not in the
+-- quick access panel); ekind: the kind it is drawn as (a Pan/Width follows its stereo placement); mm: the
+-- row's memo (param_row_memo); kcx, kcy, kr: where, how big; f: the scale; cl: { body, col, ptr }; wkey:
+-- the window it is in (it doesn't scroll under the control). Returns the new value when it was changed.
+-- Here, Ctrl (Cmd on a Mac) + the wheel changes the current range (the one the value is in: Range, List
+-- of ranges): up / down moves it (it stops when an end reaches the value, or the gap before another
+-- range), sideways makes it wider or narrower.
 function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, cl, wkey)
-  local dl = ig.GetWindowDrawList(ctx)
-  local newv
   if kind.kind == 'steps' and r.guid then param_limits_to_steps(tr, r, kind.steps) end
-  local m = kr + 6 * f
-  local wv = 0
-  if ig.IsWindowHovered(ctx) and mouse_in(kcx - m, kcy - m, kcx + m, kcy + m) then
-    if wkey then CTL_HOVER_NOW[wkey] = true end
-    local wh
-    wv, wh = ig.GetMouseWheel(ctx)
-    local ranged = r.guid and param_wheel_range_ok(r, kind.kind)
+  local ranged = r.guid and param_wheel_range_ok(r, kind.kind)
+  if ranged and not PARAM_CTRL_HINT then
     local cm = mod_label('ctrl')
-    HINT = 'Scroll: change the value' .. (ranged and ('  \194\183  ' .. cm .. '+scroll up / down: move the current range (the one the value is in; it stops at the value or before another range)'
-                                                    .. '  \194\183  ' .. cm .. '+scroll sideways: make the current range wider or narrower') or '')
-    if (wv ~= 0 or wh ~= 0) and mod_down('ctrl') then
-      if ranged then param_wheel_range(tr, fxi, r, kind.kind, wv, wh, norm) end
-      wv = 0
-    elseif wv == 0 and wh ~= 0 and mod_down('shift') then
-      wv = wh                                     -- (a Mac turns Shift+wheel sideways: still the finer turn)
-    end
+    PARAM_CTRL_HINT = '  \194\183  ' .. cm .. '+scroll up / down: move the current range (the one the value is in; it stops at the value or before another range)'
+                   .. '  \194\183  ' .. cm .. '+scroll sideways: make the current range wider or narrower'
   end
-  -- whole steps from the wheel (a trackpad gives small amounts: they add up), one step at a time at
-  -- most, so a fast swipe doesn't skip values and every step is felt
-  local function wheel_steps(scale)
-    mm.wacc = (mm.wacc or 0) + wv * (scale or 1)
-    local n = mm.wacc >= 0 and math.floor(mm.wacc) or -math.floor(-mm.wacc)
-    mm.wacc = mm.wacc - n
-    if n > 1 or n < -1 then n, mm.wacc = (n > 0 and 1 or -1), 0 end
-    return n
-  end
-  local function step_item(items, pos, scale)
-    local n = wheel_steps(scale)
-    if n == 0 then return nil end
-    return items[math.max(1, math.min(#items, pos + n))].norm
-  end
-  -- Limit values, list: a stepped encoder or a drop-down of the listed values (param_list_view); two
-  -- values only: a toggle, the lower one off
-  local lv = param_list_view(tr, fxi, r, kind.kind, mm, norm, kind)
-  if lv and #lv.items == 2 then
-    local a, b = lv.items[1].norm, lv.items[2].norm
-    local low, high = math.min(a, b), math.max(a, b)
-    local on = math.abs(norm - high) < math.abs(norm - low)
-    local d = 2 * (kr + 3 * f)
-    if circle_check(dl, id, kcx - d / 2, kcy - d / 2, d, on) then newv = on and low or high end
-    if not newv and wv ~= 0 then newv = wv > 0 and high or low end
-  elseif lv and lv.show == 'list' then
-    newv = draw_dropdown(id, kcx, kcy, kr, lv.items[lv.pos].norm, lv.items, { body = cl.body, col = cl.col, ptr = cl.ptr, s = f })
-    if not newv and wv ~= 0 then newv = step_item(lv.items, lv.pos) end
-  elseif lv then
-    local n_ = #lv.items
-    local c_ = draw_encoder(id, kcx, kcy, kr, (lv.pos - 1) / (n_ - 1), { body = cl.body, col = cl.col, ptr = cl.ptr, s = f,
-                            style = 'line', steps = n_, def = lv.def })
-    if c_ then newv = lv.items[math.floor(c_ * (n_ - 1) + 0.5) + 1].norm end
-    if not newv and wv ~= 0 then newv = step_item(lv.items, lv.pos, WHEEL_STEPPED) end
-  elseif kind.kind == 'list' then
-    newv = draw_dropdown(id, kcx, kcy, kr, norm, kind.items, { body = cl.body, col = cl.col, ptr = cl.ptr, s = f })
-    if not newv and wv ~= 0 and kind.items and #kind.items > 0 then
-      local pos, bd = 1, math.huge
-      for i, it in ipairs(kind.items) do
-        if math.abs(it.norm - norm) < bd then pos, bd = i, math.abs(it.norm - norm) end
-      end
-      newv = step_item(kind.items, pos)
-    end
-  else
-    -- the control turns through the row's invert, limits and curve (param_map, params.lua): the hand
-    -- shows the value (where it lies along the travel), the control keeps where it is turned to (cpos),
-    -- and a dot shows that place when the two can differ
-    local cv = param_curve_of(r, ekind)
-    local M = param_map(r, ekind, cv)
-    -- (a value set from elsewhere, outside the limits: the hand shows where it really is, and the dot
-    -- where the control is, at the nearest end, until it is put back inside: param_ext_snap)
-    local shown = param_map_flip(M, param_map_hand(M, norm))
-    local outside = param_map_out(M, norm)
-    local cpos = param_ctl_pos(M, norm, mm, kind.steps)
-    local newc
-    if kind.kind == 'toggle' then
-      local d = 2 * (kr + 3 * f)
-      if circle_check(dl, id, kcx - d / 2, kcy - d / 2, d, shown > 0.5) then newc = shown > 0.5 and 0 or 1 end
-      if not newc and wv ~= 0 then newc = wv > 0 and 1 or 0 end
-    else
-      local marks, def, range, joins = param_ctl_view(r, ekind, kind.marks, M)
-      -- the ends of the travel, and (made once per row) the hand for a place and the jump over a gap
-      local ta, tb = param_map_flip(M, M.A), param_map_flip(M, M.B)
-      if ta > tb then ta, tb = tb, ta end
-      local trv = mm.trv or {}
-      trv[1], trv[2], mm.trv, mm.M = ta, tb, trv, M
-      mm.hand_fn = mm.hand_fn or function(c)
-        local m = mm.M
-        return param_map_flip(m, param_map_unlim(m, param_map_val(m, param_map_flip(m, c), mm.cu)))
-      end
-      mm.jump_fn = mm.jump_fn or function(c, prev)
-        local m = mm.M
-        local dir = (c >= prev) and 1 or -1
-        if m.inv then dir = -dir end
-        local x = param_map_skip(m, param_map_flip(m, c), dir)
-        return x and param_map_flip(m, x) or prev
-      end
-      local def_pos = def
-      if def and M.dot then def_pos = param_map_flip(M, param_map_pos(M, r.def, param_map_flip(M, cpos))) end
-      newc = draw_encoder(id, kcx, kcy, kr, shown, { body = cl.body, col = cl.col, ptr = cl.ptr, s = f,
-                          style = ekind == 'pan' and 'pan' or (ekind == 'band' or ekind == 'qband') and 'band' or 'line', narrow = ekind == 'qband', steps = kind.steps, marks = marks,
-                          def = def, range = range, joins = joins, pos = cpos, def_pos = def_pos, travel = trv,
-                          hand = mm.hand_fn, jump = M.jumps and mm.jump_fn or nil, dot = M.dot or outside, show = mm })
-      if not newc and wv ~= 0 then
-        -- the wheel: along the control, from where it is turned to, a step at a time when stepped
-        local c1
-        if kind.steps and kind.steps > 1 then
-          local n = wheel_steps(WHEEL_STEPPED)
-          if n ~= 0 then c1 = cpos + n / (kind.steps - 1) end
-        else
-          c1 = cpos + wv * (mod_down('shift') and WHEEL_FINE or WHEEL_STEP)
-        end
-        if c1 then
-          c1 = math.max(ta, math.min(tb, c1))
-          if M.jumps then c1 = mm.jump_fn(c1, cpos) end
-          if c1 ~= cpos then newc = c1 end
-        end
-      end
-    end
-    if newc then
-      -- the place -> the value (on a step of the FX for a stepped one, then back inside the limits)
-      newv = param_map_val(M, param_map_flip(M, newc), norm)
-      if kind.steps and kind.steps > 1 then
-        newv = math.floor(newv * (kind.steps - 1) + 0.5) / (kind.steps - 1)
-        if M.segs then newv = param_seg_near(M.segs, newv) end
-      end
-      mm.cpos, mm.cu, mm.csig, mm.ct = newc, newv, M.sig, reaper.time_precise()
-    end
-  end
-  return newv
+  return draw_control(id, norm, { limits = r, kind = kind, ekind = ekind, memo = mm, cx = kcx, cy = kcy, r = kr, s = f,
+    colors = cl, wkey = wkey, list = param_list_view(tr, fxi, r, kind.kind, mm, norm, kind),
+    ctrl_wheel = ranged and function(wv, wh) param_wheel_range(tr, fxi, r, kind.kind, wv, wh, norm) end or nil,
+    ctrl_hint = ranged and PARAM_CTRL_HINT or nil })
 end
 
 -- Performance mode, Show mode: each rack folds its FX section under the name. The state per
