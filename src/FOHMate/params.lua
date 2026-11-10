@@ -1819,7 +1819,8 @@ function draw_param_control_panel(P, fxs, gm, targets)
   local hl = row and row.snapout and row.lim
   if hl then                                       -- brought back inside its limits: highlighted (param_name_hl)
     local x, y = ig.GetCursorScreenPos(ctx)
-    local tw, th = ig.CalcTextSize(ctx, title, nil, nil, false, select(1, ig.GetContentRegionAvail(ctx)))
+    local avail = ig.GetContentRegionAvail(ctx)          -- (its width only: the text wraps there)
+    local tw, th = ig.CalcTextSize(ctx, title, nil, nil, false, avail)
     ig.DrawList_AddRectFilled(ig.GetWindowDrawList(ctx), x - 3, y - 1, x + tw + 3, y + th + 1, param_name_hl(), 4)
   end
   ig.TextWrapped(ctx, title)

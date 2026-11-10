@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Fixed: turning on "Bring it back inside the limits when moved from outside" stopped FOH-Mate with an error (the Inspector's title highlight).
+
 - The column of parameters under each rack is now called its quick access panel, everywhere it shows: the Parameters window's buttons ("Add to the quick access panel", with a tooltip), the counts in the tree, the Inspector, confirmations, undo names, Settings and the docs. Performance mode keeps its name.
 
 - Bringing a parameter back inside its limits after a move from outside is now an option per parameter, off by default (Inspector > Limit values: "Bring it back inside the limits when moved from outside"). While it is on, the parameter's name and nickname are highlighted, in its row and in the Inspector.

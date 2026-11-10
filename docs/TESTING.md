@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 198).
+New items get the next free number (next: 199).
 
 ## Open
 
+- [ ] 198. (0.14.152) Inspector: turn on "Bring it back inside the limits when moved from outside": no error, the title gets its highlight.
 - [ ] 197. (0.14.151) Wording: the Parameters window's buttons say "Add to the quick access panel" / "Remove from the quick access panel" (tooltips say where they go), the tree's counts say "3 of 12 in the quick access panel", the Inspector says "Add the parameter to the quick access panel to set the rest", and Settings > Performance mode talks about quick access panels. No "in the Performance" left anywhere.
 - [ ] 196. (0.14.150) Inspector > Limit values: "Bring it back inside the limits when moved from outside" is off for every parameter, including ones set up before. Off: moving a parameter outside its limits from the FX's own window leaves it there (hand and dot show where it is). On: it comes back after half a second, and the name in its row and the Inspector title and nickname box get a soft blue background with a tooltip. Copy and paste of limits takes the option along.
 - [ ] 195. (0.14.149) Daylight: the dot on an encoder with a curve or limits is now a darker pink with a thin dark outline. Is it easy to see now? The normal theme is unchanged.
