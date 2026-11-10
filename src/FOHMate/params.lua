@@ -36,8 +36,8 @@ function params_read(tr)
   if c and c.raw == s then c.frame = FRAME; return c.rows end
   local rows = {}
   for rec in s:gmatch('[^;]+') do
-    local g, i, pn, nm, df, iv, cl, lo, hi, ft, vl, lm, vs, cu, rg, nt, vo, sk, sn =
-      rec:match('^([^|]*)|(%d+)|([^|]*)|([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)$')
+    local g, i, pn, nm, df, iv, cl, lo, hi, ft, vl, lm, vs, cu, rg, nt, vo, sk, sn, so =
+      rec:match('^([^|]*)|(%d+)|([^|]*)|([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)|?([^|]*)$')
     if g then
       local r = { guid = g, idx = tonumber(i), pname = param_unesc(pn),
                   name = nm ~= '' and param_unesc(nm) or nil, def = tonumber(df), inv = (iv == '1'),
@@ -72,6 +72,7 @@ function params_read(tr)
       r.vonly = (vo == 'v')
       r.noskip = (sk == 'n') or (sk == '' and r.lim == 'ranges' and not r.fit)
       r.snapnear = (sn == 'e')                      -- Snap to nearest limit (off: the value waits)
+      r.snapout = (so == 'o')                       -- brought back inside the limits when moved from outside
       rows[#rows + 1] = r
     end
   end
@@ -86,7 +87,7 @@ function params_write(tr, rows)
     local vl, rl = {}, {}
     for j, v in ipairs(r.vals or {}) do vl[j] = ('%.6f'):format(v) end
     for j, v in ipairs(r.rngs or {}) do rl[j] = ('%.6f:%.6f'):format(v[1], v[2]) end
-    t[#t + 1] = ('%s|%d|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s'):format(r.guid, r.idx, param_esc(r.pname or ''), param_esc(r.name or ''),
+    t[#t + 1] = ('%s|%d|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s'):format(r.guid, r.idx, param_esc(r.pname or ''), param_esc(r.name or ''),
                                                 r.def and ('%.6f'):format(r.def) or '', r.inv and '1' or '',
                                                 r.col and ('%06X'):format(r.col) or '',
                                                 lim and ('%.6f'):format(r.lo) or '', lim and ('%.6f'):format(r.hi) or '',
@@ -94,7 +95,7 @@ function params_write(tr, rows)
                                                 (r.lim == 'mm' and 'm') or (r.lim == 'list' and 'l') or (r.lim == 'ranges' and 'r') or 'o',
                                                 (r.vshow == 'steps' and 's') or (r.vshow == 'list' and 'd') or '',
                                                 param_esc(r.curve or ''), table.concat(rl, ','), r.rinv and 'i' or '',
-                                                r.vonly and 'v' or '', r.noskip and 'n' or 's', r.snapnear and 'e' or '')
+                                                r.vonly and 'v' or '', r.noskip and 'n' or 's', r.snapnear and 'e' or '', r.snapout and 'o' or '')
   end
   reaper.GetSetMediaTrackInfo_String(tr, EXT_PARAMS, table.concat(t, ';'), true)
   PARAM_CACHE[reaper.GetTrackGUID(tr)] = nil
@@ -543,13 +544,18 @@ function param_map_hand(M, v)
   return param_map_unlim(M, v)
 end
 
+-- "Bring it back inside the limits when moved from outside" (r.snapout) is on: the name and nickname of
+-- the parameter are drawn on this soft accent background (the quick access panel, the Inspector)
+PARAM_SNAPOUT_TIP = 'Brought back inside its limits when moved from outside (Inspector > Limit values).'
+function param_name_hl() return (T.link & 0xFFFFFF00) | 0x55 end
+
 -- whether v is outside what the limits allow (set from elsewhere)
 function param_map_out(M, v)
   return M.segs ~= nil and math.abs(param_seg_near(M.segs, v) - v) > 1e-4
 end
 
 -- Changes from outside FOH-Mate (the FX's own window, MIDI learn, another script): a parameter of the
--- Performance with a Range, a List of ranges or a List of values that stays outside them for half a
+-- quick access panel set to (r.snapout, off by default) with a Range, a List of ranges or a List of values that stays outside them for half a
 -- second is put on the nearest allowed value. Every rack, shown or not, ten times a second; only the rows with those limits
 -- are read. Not when the parameter has an automation envelope (it would fight the envelope, or be
 -- written into it). Once per value: an FX that keeps it outside (it rounds the value) is left alone.
@@ -561,7 +567,7 @@ function param_ext_snap(now)
     if valid(tr) then
       local gm
       for _, r in ipairs(params_read(tr)) do
-        if r.lim == 'mm' or r.lim == 'ranges' or (r.lim == 'list' and r.vals and #r.vals > 0) then
+        if r.snapout and (r.lim == 'mm' or r.lim == 'ranges' or (r.lim == 'list' and r.vals and #r.vals > 0)) then
           gm = gm or fx_guid_map(tr)
           local fxi = gm[r.guid]
           if fxi and r.idx < reaper.TrackFX_GetNumParams(tr, fxi) then
@@ -1381,7 +1387,7 @@ end
 -- toggle can't have a range, a drop-down can't have a curve...): it gets the control of the one copied.
 PARAM_CLIP = nil   -- { lims = {...} or nil, curve = text or false or nil, kind, from }
 
-PARAM_CLIP_FIELDS = { 'lim', 'lo', 'hi', 'fit', 'vals', 'vshow', 'rngs', 'rinv', 'vonly', 'noskip', 'snapnear' }
+PARAM_CLIP_FIELDS = { 'lim', 'lo', 'hi', 'fit', 'vals', 'vshow', 'rngs', 'rinv', 'vonly', 'noskip', 'snapnear', 'snapout' }
 
 function param_clip_copy(tr, fxi, r, what)
   local row = params_find(tr, r.guid, r.idx) or {}
@@ -1809,8 +1815,16 @@ function draw_param_control_panel(P, fxs, gm, targets)
   -- the title: the parameter's name, big and bold, its nickname right under it, then its FX
   local row = #targets == 1 and params_find(tr, first.guid, first.idx)
   local pushed = push_bold(head_font, HEAD_FONT_SIZE)
-  ig.TextWrapped(ctx, #targets == 1 and first.name or ('%d parameters selected'):format(#targets))
+  local title = #targets == 1 and first.name or ('%d parameters selected'):format(#targets)
+  local hl = row and row.snapout and row.lim
+  if hl then                                       -- brought back inside its limits: highlighted (param_name_hl)
+    local x, y = ig.GetCursorScreenPos(ctx)
+    local tw, th = ig.CalcTextSize(ctx, title, nil, nil, false, select(1, ig.GetContentRegionAvail(ctx)))
+    ig.DrawList_AddRectFilled(ig.GetWindowDrawList(ctx), x - 3, y - 1, x + tw + 3, y + th + 1, param_name_hl(), 4)
+  end
+  ig.TextWrapped(ctx, title)
   if pushed then ig.PopFont(ctx) end
+  if hl and ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, PARAM_SNAPOUT_TIP) end
   if #targets == 1 then
     -- the nickname is kept with the row (a parameter in the Performance); it is set when the box is left,
     -- also by picking another parameter while typing
@@ -1824,9 +1838,11 @@ function draw_param_control_panel(P, fxs, gm, targets)
     end
     ig.SetNextItemWidth(ctx, -1)
     if not row then ig.BeginDisabled(ctx) end
+    if hl then ig.PushStyleColor(ctx, ig.Col_FrameBg(), param_name_hl()) end
     local rv, nv = ig.InputTextWithHint(ctx, '##nick' .. nkey, row and 'Nickname (empty: its own name)'
                                         or 'Nickname: put it in the Performance first', P.nick)
     if rv then P.nick = nv end
+    if hl then ig.PopStyleColor(ctx) end
     P.nick_edit = ig.IsItemActive(ctx)
     if row and ig.IsItemDeactivatedAfterEdit(ctx) then param_set_nick(tr, row, P.nick) end
     if not row then ig.EndDisabled(ctx) end
@@ -1962,7 +1978,16 @@ function draw_param_control_panel(P, fxs, gm, targets)
             ig.EndCombo(ctx)
           end
         end
-        if row.lim then ig.Spacing(ctx) end
+        if row.lim then
+          local rv8, v8 = ig.Checkbox(ctx, 'Bring it back inside the limits when moved from outside', row.snapout == true)
+          if ig.IsItemHovered(ctx) then
+            ig.SetTooltip(ctx, 'On: when the parameter is moved from outside FOH-Mate (the FX\'s own window, MIDI learn)\n'
+                            .. 'and stays outside the limits for half a second, it goes back to the nearest allowed value.\n'
+                            .. 'Not when the parameter has an automation envelope. Its name is highlighted while this is on.')
+          end
+          if rv8 then params_update(tr, g, ix, { snapout = v8 }) end
+          ig.Spacing(ctx)
+        end
         -- the plug-in's number and unit for a position, and the position of a typed number (range controls)
         local function rtext(v) return param_text_split(param_text_at(tr, fxi, ix, v)) end
         local function rfind(typed, unit)

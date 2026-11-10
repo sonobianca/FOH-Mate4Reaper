@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Bringing a parameter back inside its limits after a move from outside is now an option per parameter, off by default (Inspector > Limit values: "Bring it back inside the limits when moved from outside"). While it is on, the parameter's name and nickname are highlighted, in its row and in the Inspector.
+
 - In Daylight, the dot on the ring (where the control is turned to) is a darker, more saturated pink with a thin dark outline, so it shows on the light background.
 
 - Changes from outside FOH-Mate also go back to the nearest value of a List of values, half a second after they stop.

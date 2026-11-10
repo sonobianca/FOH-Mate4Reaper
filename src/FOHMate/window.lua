@@ -737,6 +737,15 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         end
         local l1, l2 = mm.l1, mm.l2
         local ty = ry + (rh - blh * (l2 and 2 or 1)) / 2
+        if r.snapout and r.lim then                          -- brought back inside its limits: highlighted
+          local hw = math.max(mm.w1, mm.w2 or 0)
+          local hx = bx + (box_w - hw) / 2
+          local hy2 = ty + blh * (l2 and 2 or 1)
+          ig.DrawList_AddRectFilled(dl, hx - 4, ty - 1, hx + hw + 4, hy2 + 1, param_name_hl(), 4)
+          if mouse_in(hx - 4, ty - 1, hx + hw + 4, hy2 + 1) and ig.IsWindowHovered(ctx, ig.HoveredFlags_ChildWindows()) then
+            ig.SetTooltip(ctx, PARAM_SNAPOUT_TIP)
+          end
+        end
         ig.DrawList_AddText(dl, bx + (box_w - mm.w1) / 2, ty, rc.name_txt, l1)
         if l2 then ig.DrawList_AddText(dl, bx + (box_w - mm.w2) / 2, ty + blh, rc.name_txt, l2) end
         if pb then ig.PopFont(ctx) end
