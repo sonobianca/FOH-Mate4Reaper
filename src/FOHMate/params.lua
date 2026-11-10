@@ -2086,9 +2086,8 @@ function draw_param_control_panel(P, fxs, gm, targets)
           for _, i in ipairs(order) do
             local v = rngs[i]
             ig.PushID(ctx, 'rg' .. i)
-            local nlo, nhi = draw_range_bar('rg' .. i, v[1], v[2], { text = rtext, find = rfind, width = bx - ig.GetCursorPosX(ctx) - sp, steps = stp })
-            ig.SameLine(ctx, bx)
-            local act = draw_list_buttons(i, #rngs, bw, 'range', true)
+            local nlo, nhi, act = draw_range_bar('rg' .. i, v[1], v[2], { text = rtext, find = rfind, width = bx - ig.GetCursorPosX(ctx) - sp,
+              steps = stp, right = { x = bx, fn = function() return draw_list_buttons(i, #rngs, bw, 'range', true) end } })
             if act == 'x' then local nr = copy(); table.remove(nr, i); put(nr)
             elseif nlo then
               local L, R = param_range_room(rngs, i, gap)

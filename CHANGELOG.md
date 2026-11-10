@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- New range selector (its own file, range_bar.lua, reusable by other modules): the arrows sit outside the range with their tips on the values, a thin line marks each value, and round handles make short ranges easy to grab: under each arrow on its own track (Min, then Max lower) and one over the blue part for the whole range. What the pointer would grab lights up. The lines of a List of ranges are spaced further apart for the handles; the boxes keep their height.
+
 - "Bring it back inside the limits when moved from outside" shows as a small red lock in the name box (at the end away from the control, with a tooltip) and a red glow around the row, instead of the blue background; the Inspector shows the lock before the title. The row's right-click menu can switch it (only when the parameter has limits).
 
 - Fixed: turning on "Bring it back inside the limits when moved from outside" stopped FOH-Mate with an error (the Inspector's title highlight).
