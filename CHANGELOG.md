@@ -4,6 +4,8 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.14
 
+- Code: how limits and a curve turn a control is in its own file (limit_map.lua), usable by other modules; nothing changes on screen.
+
 - Range selector: the handle over the blue part now shows on a single Range too; smaller round handles, bigger arrows, the handles' lines in their handle's color, and less room taken by the handles' tracks.
 
 - New range selector (its own file, range_bar.lua, reusable by other modules): the arrows sit outside the range with their tips on the values, a thin line marks each value, and round handles make short ranges easy to grab: under each arrow on its own track (Min, then Max lower) and one over the blue part for the whole range. What the pointer would grab lights up. The lines of a List of ranges are spaced further apart for the handles; the boxes keep their height.
