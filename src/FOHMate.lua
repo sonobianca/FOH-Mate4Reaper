@@ -1,17 +1,13 @@
 -- FOHMate.lua
--- FOH-Mate: live sound tools for REAPER. Its first module, Plugins Host, is a rack-based
+-- FOH-Mate: live sound tools for REAPER. Its first module, Racks, is a rack-based
 -- FX panel built with ReaImGui.
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
--- SPDX-License-Identifier: GPL-3.0-or-later
+-- SPDX-License-Identifier: MIT
 --
--- This program is free software: you can redistribute it and/or modify it under
--- the terms of the GNU General Public License as published by the Free Software
--- Foundation, either version 3 of the License, or (at your option) any later version.
--- It is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
--- without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
--- PURPOSE. See the GNU General Public License for more details, in the LICENSE file
--- or at <https://www.gnu.org/licenses/>.
+-- Free software under the MIT License: you may use, copy, modify and share it, as
+-- long as the copyright and license notice stay with it. It comes with no warranty.
+-- The full text is in the LICENSE file.
 --
 -- Every track whose name starts with PREFIX is a "rack". On detection the
 -- script hides it from the TCP and the mixer and adds two small meter JSFX
@@ -27,16 +23,18 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.13.3'   -- major.minor.revision, shown in the window's title bar
+VERSION         = '0.14.167'   -- major.minor.revision, shown in the window's title bar
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
 GLOW_M          = 6         -- room left around the racks for the selection glow
 NAME_FONT_SIZE  = 16        -- rack name font (bold)
-TITLE_FONT_SIZE = 24        -- "Plugins Host" title font (bold)
+TITLE_FONT_SIZE = 24        -- "Racks" title font (bold)
+HEAD_FONT_SIZE  = 19        -- the parameter's name at the top of the parameter window (bold)
+SECT_FONT_SIZE  = 15        -- section titles of the parameter window (bold)
 
 LEVEL_MIN, LEVEL_MAX = -60.0, 12.0   -- dB range of the level box
 
 EXT_SECTION     = 'FOHMate'           -- where settings are saved (REAPER ExtState)
-OLD_EXT_SECTION = 'LiveRack'          -- the same, before the app was renamed (copied once)
+OLD_EXT_SECTION = 'LiveRack'          -- the same, before FOH-Mate was renamed (copied once)
 METER_NAME      = 'FOHMate Meter'
 METER_PATH      = 'FOHMate/FOHMate_Meter'
 GMEM            = 'FOHMateMeters'
@@ -55,6 +53,8 @@ EXT_LATOK       = 'P_EXT:FOHMate_latok' -- guids of FX allowed to add latency
 ALERT_RED       = 0xE02828FF
 EXT_SHOWOFF     = 'P_EXT:FOHMate_showoff' -- guids of FX taken offline by Show mode
 EXT_SPLIT       = 'P_EXT:FOHMate_split' -- guid of the FX picked as the stereo point
+EXT_PARAMS      = 'P_EXT:FOHMate_params' -- Performance mode: the parameter rows of a rack
+EXT_FXCOL       = 'P_EXT:FOHMate_fxcolors' -- Performance mode: the colors given to FX of a rack (FX guid=RRGGBB;...)
 COPY_BADGE      = 0x2EB84EFF            -- the green "+" that follows the pointer when a drag copies
 
 -- Buttons that open a native REAPER window (FX windows, routing) use this
@@ -88,8 +88,8 @@ math.randomseed(math.floor(reaper.time_precise() * 1000))
 -- is shared exactly as if it were all one file.
 MODULES = {
   'settings', 'context', 'jsfx', 'state', 'helpers', 'modes', 'colors', 'chain', 'tracks',
-  'sidechain', 'stereo', 'latency', 'fx_list', 'scan', 'plugin_list', 'add_fx_menu', 'setup',
-  'widgets', 'sidechain_ui', 'racks', 'top_bar', 'window'
+  'sidechain', 'stereo', 'latency', 'fx_list', 'scan', 'fx_list_ui', 'add_fx_menu', 'setup',
+  'widgets', 'controls', 'range_bar', 'limit_map', 'sidechain_ui', 'curves', 'curve_graph', 'param_tree', 'params', 'racks', 'top_bar', 'window'
 }
 
 MODULE_DIR = (debug.getinfo(1, 'S').source:match('^@?(.*[/\\])') or '') .. 'FOHMate/'
@@ -113,17 +113,19 @@ function push_theme()
   ig.PushStyleVar(ctx, ig.StyleVar_PopupRounding(), ROUNDING)
   local nc = 0
   if S.daylight then
+    -- a thin outline on frames: an empty check box or radio button stays visible on the light background
+    ig.PushStyleVar(ctx, ig.StyleVar_FrameBorderSize(), 1)
     for _, e in ipairs(LIGHT_COLORS) do
       ig.PushStyleColor(ctx, ig['Col_' .. e[1]](), e[2])
       nc = nc + 1
     end
   end
-  return nc
+  return nc, S.daylight and 3 or 2                    -- what pop_theme takes back: colors, style vars
 end
 
-function pop_theme(nc)
+function pop_theme(nc, nv)
   if nc > 0 then ig.PopStyleColor(ctx, nc) end
-  ig.PopStyleVar(ctx, 2)
+  ig.PopStyleVar(ctx, nv)
 end
 
 function loop()
@@ -139,6 +141,7 @@ function loop()
   latdb_tick(now)
   announce_crash()
   check_new_fx(now)
+  param_ext_snap(now)
 
   if now - last_scan > SCAN_EVERY then
     scan()
@@ -164,12 +167,13 @@ function loop()
     end
   end
 
-  local nc = push_theme()
+  local nc, nv = push_theme()
   local flags = ig.WindowFlags_NoScrollbar() | ig.WindowFlags_NoScrollWithMouse()
-  local visible, open = ig.Begin(ctx, 'Plugins Host v' .. VERSION .. '###Plugins Host', true, flags)
+  local visible, open = ig.Begin(ctx, 'Racks v' .. VERSION .. '###Plugins Host', true, flags)
   if visible then
     -- remember size (and detect the "minimized" shrink)
     local docked = ig.IsWindowDocked(ctx)
+    MAIN_X, MAIN_Y = ig.GetWindowPos(ctx)
     if not docked then
       local w, h = ig.GetWindowSize(ctx)
       local shrunk = prev_w and (w <= MIN_W + 1 and h <= MIN_H + 1)
@@ -193,9 +197,12 @@ function loop()
     ig.End(ctx)
   end
   draw_settings()
-  draw_plugin_list()
+  draw_param_picker()
+  draw_fx_list()
   draw_scan_window()
-  pop_theme(nc)
+  pass_undo_keys()
+  pop_theme(nc, nv)
+  undo_commit()
   was_visible = visible
 
   -- things that open a native dialog run here, after the frame is complete
@@ -227,6 +234,10 @@ end
 load_cfg()
 migrate_cfg()
 apply_settings()
+if CFG.reopen_windows ~= 0 then                  -- the parameter windows left open last time
+  local w = reaper.GetExtState(EXT_SECTION, 'param_windows')
+  if w ~= '' then PARAM_WIN_RESTORE = w end
+end
 init_stats()
 
 if not install_jsfx() then

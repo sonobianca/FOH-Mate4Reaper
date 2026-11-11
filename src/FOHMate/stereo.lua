@@ -2,7 +2,7 @@
 -- Part of FOH-Mate, loaded by FOHMate.lua (see the note there).
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
--- SPDX-License-Identifier: GPL-3.0-or-later
+-- SPDX-License-Identifier: MIT
 
 ---------------------------------------------------------------- mono / stereo
 --
@@ -16,7 +16,7 @@
 --                      or else the first FX that comes in a mono-to-stereo
 --                      version; without either the whole chain stays mono and
 --                      the output carries it on both sides.
--- Each FX gets the matching version: REAPER's channel request when the plug-in
+-- Each FX gets the matching version: REAPER's channel request when the FX
 -- supports it (VST3: "Request VST3 bus channel count", settings are kept), or
 -- else its Mono / Stereo / Mono-Stereo sibling when one is installed (Waves-style
 -- names), with every parameter copied over by name. The single output of a mono
@@ -69,7 +69,7 @@ end
 ---------------------------------------- FX versions (Mono / Stereo / Mono-Stereo siblings)
 
 -- "VST3: C6 Mono/Stereo (Waves)" -> width 3, key "vst3: c6 (waves)". The width
--- word has to end the plug-in's name (before the developer), so names like
+-- word has to end the FX's name (before the developer), so names like
 -- "Stereo Width" are left alone.
 WIDTH_END = {
   { '[%s%-_]*%(?mono%s*[/%->_]+%s*stereo%)?$', W_MS }, { '[%s%-_]+%(?m%s*>%s*s%)?$', W_MS },
@@ -220,8 +220,8 @@ function fx_widths(tr, list)
 end
 
 -- Background upkeep (run by scan) asks REAPER for the same change only once per
--- FX: if a plug-in does not take it, it is not asked again and again (each
--- request can make REAPER re-initialise the plug-in). A routing change, the
+-- FX: if an FX does not take it, it is not asked again and again (each
+-- request can make REAPER re-initialise the FX). A routing change, the
 -- stereo point, or an explicit action start over (WRITES = {}).
 WRITES = {}
 
@@ -256,8 +256,8 @@ function fit_fx(tr, fx, w, swap)
     local _, item = find_variant(tr, fx, w)
     if item then fx = swap_version(tr, fx, item) end
   end
-  -- the plug-in's bus size (REAPER's pin connector "Plug-in bus size"): 1 on the mono part of a
-  -- rack, 2 on the stereo part. Asked whenever the FX has the setting: some plug-ins take it
+  -- the FX's bus size (REAPER's pin connector "Plug-in bus size"): 1 on the mono part of a
+  -- rack, 2 on the stereo part. Asked whenever the FX has the setting: some FX take it
   -- without listing it among what they support.
   local count = fx_channel_config(tr, fx)
   if count then
@@ -348,4 +348,3 @@ function sc_copy_keys(src, new)
   end
   sc_write(new, out)
 end
-

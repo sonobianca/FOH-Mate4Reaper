@@ -2,7 +2,7 @@
 -- Part of FOH-Mate, loaded by FOHMate.lua (see the note there).
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
--- SPDX-License-Identifier: GPL-3.0-or-later
+-- SPDX-License-Identifier: MIT
 
 ---------------------------------------------------------------- theme
 
@@ -27,7 +27,7 @@ function theme()
       meter_bg = 0xC8C8C8FF, hold = 0x000000FF, clip_off = 0xC9A9A9FF,
       bar_border = 0x707070FF, title = 0x1B3A5BFF, gauge_text = 0x141414FF,
       chk_bg = 0xFFFFFFFF, chk_ring = 0x333333FF, chk_dot = 0x1E6FD9FF,
-      glow = 0x1E6FD9FF, cue_edit = 0x2E9E4FFF, cue_show = 0xD23C3CFF,
+      glow = 0x1E6FD9FF, link = 0xE07B00FF, cue_edit = 0x2E9E4FFF, cue_show = 0xD23C3CFF,
       sc_on = 0x9B6FE0FF, sc_ink = 0x202020FF, sc_ink_on = 0xFFFFFFFF, dots = 0x202020FF,
     }
   end
@@ -36,7 +36,7 @@ function theme()
     meter_bg = 0x181818FF, hold = 0xFFFFFFFF, clip_off = 0x3A2020FF,
     bar_border = 0x707070FF, title = 0xFFD27AFF, gauge_text = 0xFFFFFFFF,
     chk_bg = 0x1A1A1AFF, chk_ring = 0xCCCCCCFF, chk_dot = 0x6FB4FFFF,
-    glow = 0xFFFFFFFF, cue_edit = 0x2E9E4FFF, cue_show = 0xD23C3CFF,
+    glow = 0xFFFFFFFF, link = 0x4FC3F7FF, cue_edit = 0x2E9E4FFF, cue_show = 0xD23C3CFF,
     sc_on = 0x7A4FC4FF, sc_ink = 0xD8D8D8FF, sc_ink_on = 0xFFFFFFFF, dots = 0xEDEDEDFF,
   }
 end
@@ -65,6 +65,7 @@ function rack_colors(col, bypassed)
     c.line = 0x00000040
   end
   c.name_txt = contrast_text(c.name_bg, col)
+  c.ink = contrast_text(c.bg, col)          -- drawn straight on the rack's background (handles, the + of a column)
   return c
 end
 
@@ -72,6 +73,23 @@ function push_native()
   ig.PushStyleColor(ctx, ig.Col_Button(),        T.native[1])
   ig.PushStyleColor(ctx, ig.Col_ButtonHovered(), T.native[2])
   ig.PushStyleColor(ctx, ig.Col_ButtonActive(),  T.native[3])
+end
+
+-- A glow around a box (x1, y1, x2, y2) in a color that stays visible whatever the color: it is made
+-- vivid (lighter on a dark window, darker on a light one), the rings are strong, and they pulse a
+-- little. col: 0xRRGGBBAA, or nothing for the link color.
+function draw_link_glow(dl, x1, y1, x2, y2, col, rounding)
+  col = col or T.link
+  local h, s, l = rgb_to_hsl((col >> 24) & 255, (col >> 16) & 255, (col >> 8) & 255)
+  l = S.daylight and math.min(math.max(l, 0.36), 0.5) or math.min(math.max(l, 0.58), 0.7)
+  if s >= 0.12 then s = math.max(s, 0.9) end                -- (a grey stays grey, but light or dark enough)
+  local r, g, b = hsl_to_rgb(h, s, l)
+  local base = (r << 24) | (g << 16) | (b << 8)
+  local pulse = 0.8 + 0.2 * math.sin(reaper.time_precise() * 9)
+  for i = 1, 3 do
+    local a = math.floor(255 * pulse * (1 - (i - 1) / 3) ^ 1.5)
+    ig.DrawList_AddRect(dl, x1 - i, y1 - i, x2 + i, y2 + i, base | a, rounding + i, 0, i == 1 and 2 or 1.5)
+  end
 end
 
 function pop_native()

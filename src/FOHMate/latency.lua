@@ -2,7 +2,7 @@
 -- Part of FOH-Mate, loaded by FOHMate.lua (see the note there).
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
--- SPDX-License-Identifier: GPL-3.0-or-later
+-- SPDX-License-Identifier: MIT
 
 ---------------------------------------------------------------- latency watchdog
 --
@@ -12,7 +12,7 @@
 -- FX marked "Allow latency" (right-click) are left out of the count.
 -- Alerts can be silenced for a while or switched off in the Options menu.
 -- With Latency > Count every format at its highest latency, an FX counts with
--- the highest figure of its formats (see fx_list.lua, "one plugin in several formats").
+-- the highest figure of its formats (see fx_list.lua, "one FX in several formats").
 
 LAT = {}            -- [rack guid] = { t, total, counted, fx = { [fx guid] = samples }, over }
 
@@ -161,4 +161,3 @@ function latok_copy(src, new)
   end
   latok_write(new, out)
 end
-

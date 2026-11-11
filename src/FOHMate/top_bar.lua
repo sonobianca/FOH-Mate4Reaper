@@ -2,7 +2,7 @@
 -- Part of FOH-Mate, loaded by FOHMate.lua (see the note there).
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
--- SPDX-License-Identifier: GPL-3.0-or-later
+-- SPDX-License-Identifier: MIT
 
 ---------------------------------------------------------------- top bar menus
 
@@ -16,30 +16,85 @@ function toggle_setting(label, field, key, tip, enabled)
   return clicked
 end
 
+-- Display > Windows > Dock Parameters / Dock Inspector: floating, or one of REAPER's dockers (the
+-- window opens if it is closed; begin_window applies the request)
+DOCK_REQ = {}   -- window id -> the dock asked for (0 = floating, -n = docker n)
+
+function draw_win_dock_menu(label, id, which, enabled)
+  if not ig.BeginMenu(ctx, label, enabled) then return end
+  local st = WINSZ[id]
+  local cur = st and st.dock
+  local function go(d)
+    DOCK_REQ[id] = d
+    local P = PARAM_PICK
+    if not (P and P[which == 'tree' and 'tree_open' or 'insp_open']) then param_pick_toggle(which) end
+  end
+  if ig.MenuItem(ctx, 'Floating', nil, cur == 0) then go(0) end
+  ig.Separator(ctx)
+  for n = 1, 16 do
+    if ig.MenuItem(ctx, 'Docker ' .. n, nil, cur == -n) then go(-n) end
+  end
+  ig.EndMenu(ctx)
+end
+
 function open_settings_at(group)
+  S.set_find = ''
   S.show_settings = true
   S.settings_focus = group
 end
 
+-- three groups between lines: the look (Daylight, Colors), Performance mode, the layout (latency
+-- box, Dock); more than three items of a kind go in a submenu
 function draw_display_menu()
   toggle_setting('Daylight mode', 'daylight', 'daylight')
-  ig.TextDisabled(ctx, 'Rack latency box')
-  for _, o in ipairs({ { 'off', 'Off' }, { 'always', 'Always' }, { 'auto', 'Only when a rack has latency' } }) do
-    if ig.MenuItem(ctx, '   ' .. o[2] .. '##latbox', nil, S.lat_box == o[1]) then
-      S.lat_box = o[1]
-      save_setting('latbox', o[1])
+  if ig.BeginMenu(ctx, 'Colors') then
+    if ig.MenuItem(ctx, 'Recolor every rack', nil, false, not is_locked()) then recolor_every_rack() end
+    if ig.MenuItem(ctx, 'Choose default color...') then open_picker('default') end
+    ig.Separator(ctx)
+    if ig.MenuItem(ctx, 'New racks use automatic color', nil, S.color_mode == 'auto') then
+      S.color_mode = 'auto'; save_setting('colormode', 'auto')
     end
+    if ig.MenuItem(ctx, 'New racks use default color', nil, S.color_mode == 'default') then
+      S.color_mode = 'default'; save_setting('colormode', 'default')
+    end
+    ig.EndMenu(ctx)
   end
   ig.Separator(ctx)
-  if ig.MenuItem(ctx, 'Recolor every rack', nil, false, not is_locked()) then recolor_every_rack() end
-  if ig.MenuItem(ctx, 'Choose default color...') then open_picker('default') end
-  if ig.MenuItem(ctx, 'New racks use automatic color', nil, S.color_mode == 'auto') then
-    S.color_mode = 'auto'; save_setting('colormode', 'auto')
+  toggle_setting('Performance mode', 'perf', 'perfmode',
+    'One row of racks that scrolls sideways, with a column of parameters under each rack.\nShow mode: each rack is just its name until you open its FX section with the handle.\nEdit mode: full racks.')
+  if ig.MenuItem(ctx, 'Fold automatically', nil, CFG.perf_fold_auto ~= 0) then
+    CFG.perf_fold_auto = CFG.perf_fold_auto ~= 0 and 0 or 1
+    save_cfg_value({ key = 'perf_fold_auto' })
   end
-  if ig.MenuItem(ctx, 'New racks use default color', nil, S.color_mode == 'default') then
-    S.color_mode = 'default'; save_setting('colormode', 'default')
+  if ig.IsItemHovered(ctx) then
+    ig.SetTooltip(ctx, 'Performance mode, Show mode: an open FX section and a widened quick access panel fold back by\n'
+                    .. 'themselves after a while without activity (the time is in Settings > Performance mode).\n'
+                    .. 'Right-click its handle to pin a section open with a push pin. Edit mode: not by default\n'
+                    .. '(Settings > Performance mode).')
   end
+  toggle_setting('Hide disabled parameters', 'hide_dead', 'hidedead',
+    'Performance mode: the parameters whose FX was deleted (or changed) are left out of the quick access panels.\nThey are kept: a matching FX on the rack takes them back.')
   ig.Separator(ctx)
+  if ig.BeginMenu(ctx, 'Rack latency box') then
+    for _, o in ipairs({ { 'off', 'Off' }, { 'always', 'Always' }, { 'auto', 'Only when a rack has latency' } }) do
+      if ig.MenuItem(ctx, o[2] .. '##latbox', nil, S.lat_box == o[1]) then
+        S.lat_box = o[1]
+        save_setting('latbox', o[1])
+      end
+    end
+    ig.EndMenu(ctx)
+  end
+  if ig.BeginMenu(ctx, 'Windows') then
+    local P = PARAM_PICK
+    local can = not is_locked()                          -- (the parameter windows are for Edit mode)
+    if ig.MenuItem(ctx, 'Show parameter treeview', nil, P ~= nil and P.tree_open == true, can) then param_pick_toggle('tree') end
+    if ig.MenuItem(ctx, 'Show parameters inspector', nil, P ~= nil and P.insp_open == true, can) then param_pick_toggle('insp') end
+    ig.Separator(ctx)
+    -- REAPER's dockers: several dockers on the same side of REAPER's window sit side by side
+    draw_win_dock_menu('Dock Parameters', 'parampick', 'tree', can)
+    draw_win_dock_menu('Dock Inspector', 'paraminsp', 'insp', can)
+    ig.EndMenu(ctx)
+  end
   if ig.BeginMenu(ctx, 'Dock') then
     if ig.MenuItem(ctx, 'Floating') then dock_request = 0 end
     ig.Separator(ctx)
@@ -77,7 +132,7 @@ function draw_fx_menu()
   end
   if ig.MenuItem(ctx, 'FX type colors...') then open_settings_at('FX type colors') end
   ig.Separator(ctx)
-  if ig.MenuItem(ctx, 'Plugin list...') then LATWIN.open = true end
+  if ig.MenuItem(ctx, 'FX list...') then LATWIN.open = true end
   if ig.IsItemHovered(ctx) then
     ig.SetTooltip(ctx, 'Every installed FX: favorites, type, latency, scan status.\nRescan one FX or a selection.')
   end
@@ -102,9 +157,9 @@ function draw_latency_menu()
     open_settings_at('Latency')
   end
   if toggle_setting('Count every format at its highest latency', 'lat_formats', 'latformats',
-       'A plugin installed in several formats (AU, VST3, VST...) counts with the highest\n'
+       'An FX installed in several formats (AU, VST3, VST...) counts with the highest\n'
        .. 'latency any of its formats reports: some formats (often AU) report 0 where\n'
-       .. 'another reports the real figure. Estimated figures are marked * in the Plugin list.\n'
+       .. 'another reports the real figure. Estimated figures are marked * in the FX list.\n'
        .. 'Only alerts, limits and figures use it: REAPER\'s compensation is not changed.') then
     LAT = {}                          -- every rack is counted again right away
     recheck_show_offline()
@@ -186,7 +241,9 @@ end
 WINSZ = {}
 FRAME = 0
 
-function begin_window(id, title, def_w, def_h, p_open, flags)
+-- dock: a window of its own context that docks (Parameters, Inspector): it comes back where it was,
+-- floating (where it was left) or in its docker
+function begin_window(id, title, def_w, def_h, p_open, flags, dock)
   local st = WINSZ[id]
   if not st then
     local w, h = reaper.GetExtState(EXT_SECTION, 'win_' .. id):match('^(%d+)x(%d+)$')
@@ -194,10 +251,32 @@ function begin_window(id, title, def_w, def_h, p_open, flags)
     WINSZ[id] = st
   end
   local back = st.last ~= FRAME - 1          -- not shown last frame: coming back
-  if back then ig.SetNextWindowSize(ctx, st.w, st.h, ig.Cond_Always()) end
-  local vis, open = ig.Begin(ctx, title, p_open, flags)
+  if back then
+    ig.SetNextWindowSize(ctx, st.w, st.h, ig.Cond_Always())
+    if dock then
+      -- the first time ever next to the Racks window; afterwards where it was left (its context remembers)
+      if MAIN_X then ig.SetNextWindowPos(ctx, MAIN_X + 40, MAIN_Y + 70, ig.Cond_FirstUseEver()) end
+      st.dock = tonumber(reaper.GetExtState(EXT_SECTION, 'dock_' .. id)) or 0
+      if st.dock ~= 0 and ig.SetNextWindowDockID then ig.SetNextWindowDockID(ctx, st.dock, ig.Cond_Always()) end
+    elseif MAIN_X then
+      -- opens next to the Racks window, so it can't come up off the screen (a remembered position can)
+      ig.SetNextWindowPos(ctx, MAIN_X + 40, MAIN_Y + 70, ig.Cond_Always())
+    end
+  end
+  if dock and DOCK_REQ[id] ~= nil and ig.SetNextWindowDockID then   -- asked from Display > Windows
+    ig.SetNextWindowDockID(ctx, DOCK_REQ[id], ig.Cond_Always())
+    DOCK_REQ[id] = nil
+  end
+  local vis, open = ig.Begin(ctx, title, p_open, (flags or 0) | ig.WindowFlags_NoCollapse())
   if vis then
     st.last = FRAME
+    if dock and ig.GetWindowDockID then                -- where it is docked (0: floating), kept for next time
+      local did = ig.GetWindowDockID(ctx) or 0
+      if did ~= st.dock then
+        st.dock = did
+        reaper.SetExtState(EXT_SECTION, 'dock_' .. id, tostring(did), true)
+      end
+    end
     if ig.IsWindowFocused(ctx, ig.FocusedFlags_RootAndChildWindows()) then st.focused = FRAME end
     if not back and not ig.IsWindowDocked(ctx) then
       local w, h = ig.GetWindowSize(ctx)
@@ -310,4 +389,3 @@ function draw_fx_search(on_pick)
   end
   return true
 end
-

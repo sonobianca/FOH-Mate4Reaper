@@ -1,8 +1,8 @@
--- FOHMate/window.lua: the Plugins Host window and Settings window.
+-- FOHMate/window.lua: the Racks window and Settings window.
 -- Part of FOH-Mate, loaded by FOHMate.lua (see the note there).
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
--- SPDX-License-Identifier: GPL-3.0-or-later
+-- SPDX-License-Identifier: MIT
 
 ---------------------------------------------------------------- window
 
@@ -35,7 +35,10 @@ function apply_pending()
             landed = reaper.TrackFX_GetFXGUID(op.dst_tr, op.dst)
           end
           -- the FX takes the width of its new place (mono/stereo version)
-          if landed then fit_new_fx(op.dst_tr, landed) end
+          if landed then
+            fit_new_fx(op.dst_tr, landed)
+            params_relink(op.dst_tr, landed)   -- a new instance takes back the rows of a deleted one
+          end
         end
       end
     end)
@@ -70,6 +73,8 @@ function draw_dialogs()
   if ig.BeginPopup(ctx, 'Color##picker') then
     if picker.kind == 'default' then
       ig.Text(ctx, 'Default rack color')
+    elseif picker.kind == 'param' or picker.kind == 'fx' then
+      ig.Text(ctx, picker.title or 'Parameter color')
     elseif picker.trs and #picker.trs > 1 then
       ig.Text(ctx, ('Color for the %d selected racks'):format(#picker.trs))
     else
@@ -83,10 +88,26 @@ function draw_dialogs()
         for _, t in ipairs(picker.trs or {}) do
           if valid(t) then set_track_rgb(t, r, g, b) end
         end
+      elseif picker.kind == 'param' then
+        if valid(picker.tr) then params_set_color(picker.tr, picker.rows, new) end
+      elseif picker.kind == 'fx' then
+        if valid(picker.tr) then fxcol_set(picker.tr, picker.guid, new) end
       else
         S.default_rgb = new
         save_setting('defcolor', new)
       end
+    end
+    if picker.kind == 'param' then                       -- back to the FX's color (shifted for a group)
+      if ig.Button(ctx, 'Automatic', 80, 0) and valid(picker.tr) then params_set_color(picker.tr, picker.rows, nil) end
+      hint_hovered('The FX\'s color again (a group of parameters, like an EQ band, gets it slightly shifted)')
+      ig.SameLine(ctx)
+    elseif picker.kind == 'fx' then                      -- back to the rack's color
+      if ig.Button(ctx, 'Automatic', 80, 0) and valid(picker.tr) then
+        fxcol_set(picker.tr, picker.guid, nil)
+        picker.rgb = track_color(picker.tr) >> 8
+      end
+      hint_hovered('The rack\'s color again')
+      ig.SameLine(ctx)
     end
     if ig.Button(ctx, 'Close', 80, 0) then ig.CloseCurrentPopup(ctx) end
     ig.EndPopup(ctx)
@@ -128,11 +149,17 @@ function draw_confirm(host)
         end
       end
       ig.Separator(ctx)
-      local yes = ig.Button(ctx, confirm.label, 110, 0)
+      local bw = confirm.alt and 150 or 110
+      local yes = ig.Button(ctx, confirm.label, bw, 0)
+      local alt = false
+      if confirm.alt then
+        ig.SameLine(ctx)
+        alt = ig.Button(ctx, confirm.alt.label, bw, 0)
+      end
       ig.SameLine(ctx)
-      local no = ig.Button(ctx, 'Cancel', 110, 0)
-      if yes then
-        local f = confirm.yes
+      local no = ig.Button(ctx, 'Cancel', bw, 0)
+      if yes or alt then
+        local f = alt and confirm.alt.fn or confirm.yes
         if confirm.dont_show then hide_popup(confirm.id) end
         confirm = nil
         ig.CloseCurrentPopup(ctx)
@@ -165,7 +192,7 @@ function draw_gauge(dl, id, x, y, w, h, frac, label, tip)
 end
 
 -- status bar: same size, border and color as the top bar
-function draw_status_bar(dl, x, y, w, h, M, nracks, nfx)
+function draw_status_bar(dl, x, y, w, h, M, nracks, nfx, nparams)
   ig.DrawList_AddRect(dl, x, y, x + w, y + h, T.bar_border, ROUNDING, 0, 1)
   local gw = 140
   local gy = y + (h - M.fh) / 2
@@ -205,6 +232,7 @@ function draw_status_bar(dl, x, y, w, h, M, nracks, nfx)
   else
     label('Latency: n/a')
   end
+
 
   -- latency watchdog
   gx = gx + 10
@@ -247,6 +275,7 @@ function draw_status_bar(dl, x, y, w, h, M, nracks, nfx)
 
   -- rack and FX counts, bottom right
   local counts = ('%d rack(s)  |  %d FX'):format(nracks or 0, nfx or 0)
+  if nparams then counts = counts .. '  |  ' .. nparams end
   local cw = ig.CalcTextSize(ctx, counts)
   local cx = x + w - cw - 10
   if cx > gx + 12 then
@@ -260,6 +289,23 @@ end
 -- edge, so its top half sits in the gap above) plus Settings > Space between racks.
 function rack_gap()
   return RACK_SPACE + math.max(GLOW_M, math.ceil((ig.GetTextLineHeight(ctx) + 2) / 2) + 1)
+end
+
+-- empty space: a click deselects the racks, a double-click offers a new rack
+function empty_space_click(rects, limit)
+  if ig.IsWindowHovered(ctx) then
+    local mx, my = ig.GetMousePos(ctx)
+    local over_rack = false
+    for _, r in ipairs(rects) do
+      if mx >= r[1] and mx <= r[3] and my >= r[2] and my <= r[4] then over_rack = true; break end
+    end
+    if not over_rack and mx < limit then
+      if ig.IsMouseClicked(ctx, 0) then deselect_racks() end
+      if ig.IsMouseDoubleClicked(ctx, 0) and not is_locked() then
+        request_confirm('Create a new rack?', create_rack, 'Create', 'new_rack')
+      end
+    end
+  end
 end
 
 -- the scrolling part: every rack, tiled
@@ -305,20 +351,7 @@ function draw_rack_area(infos, M, dt, now, avail)
     y = y - gap
   end
 
-  -- empty space: a click deselects the racks, a double-click offers a new rack
-  if ig.IsWindowHovered(ctx) then
-    local mx, my = ig.GetMousePos(ctx)
-    local over_rack = false
-    for _, r in ipairs(rects) do
-      if mx >= r[1] and mx <= r[3] and my >= r[2] and my <= r[4] then over_rack = true; break end
-    end
-    if not over_rack and mx < limit then
-      if ig.IsMouseClicked(ctx, 0) then deselect_racks() end
-      if ig.IsMouseDoubleClicked(ctx, 0) and not is_locked() then
-        request_confirm('Create a new rack?', create_rack, 'Create', 'new_rack')
-      end
-    end
-  end
+  empty_space_click(rects, limit)
 
   -- a rack dropped in the empty space around or below the racks goes to the last position
   if drag_prev_rack and not is_locked() and #infos > 0 then
@@ -356,10 +389,764 @@ function draw_rack_area(infos, M, dt, now, avail)
   ig.Dummy(ctx, 1, GLOW_M + 2)
 end
 
+-- Performance mode: a column under a rack, scrolling on its own. The rows will be the
+-- rack's parameters; for now it holds the "+" row and, for testing, placeholder rows.
+-- Where you are in the column shows twice: the rows fade out at an edge while there is
+-- more beyond it, and a slim bar marks the position.
+-- The band at the top widens the column over its neighbours (e = how far, 0 .. 1): the rows
+-- then flow in several columns, top to bottom, that scroll sideways. Folded again, it is one
+-- column that scrolls up and down, showing the row that was touched last.
+function draw_perf_column(inf, x, y, w, h, M, ps, e)
+  local tr = inf.tr
+  local guid = reaper.GetTrackGUID(tr)
+  -- the parameter window (inspector) just selected a parameter: when it is a row of this rack and the
+  -- rack is out of view, the window scrolls sideways to bring the rack into view (once)
+  local focus = PARAM_PICK and PARAM_PICK.focus
+  local focus_k
+  if focus then
+    for k, r in ipairs(params_read(tr)) do
+      if r.guid == focus.guid and r.idx == focus.idx then focus_k = k; break end
+    end
+    if focus_k and not focus.hdone then
+      focus.hdone = true
+      local wxp = ig.GetWindowPos(ctx)
+      local wwp = ig.GetWindowSize(ctx)
+      if x < wxp or x + w > wxp + wwp then ig.SetScrollX(ctx, ig.GetScrollX(ctx) + (x - wxp) - (wwp - w) / 2) end
+    end
+  end
+  local c = rack_colors(track_color(tr), inf.bypassed)
+  -- a widened column sits over its neighbours, so it is drawn inside a window of its own with an
+  -- opaque background: drawn straight on the area it would lie underneath their windows
+  local outer = false
+  if e > 0 then
+    ig.SetCursorScreenPos(ctx, x, y)
+    ig.PushStyleColor(ctx, ig.Col_ChildBg(), c.bg)
+    ig.PushStyleVar(ctx, ig.StyleVar_ChildRounding(), ROUNDING + 2)
+    outer = true
+    begin_child('wide' .. guid, w, h, ig.WindowFlags_NoScrollbar() | ig.WindowFlags_NoScrollWithMouse())
+    ig.PopStyleVar(ctx)
+    ig.PopStyleColor(ctx)
+  end
+  local pdl = ig.GetWindowDrawList(ctx)
+  local ins = outer and 1 or 0                             -- the border stays inside that window
+  ig.DrawList_AddRectFilled(pdl, x, y, x + w, y + h, c.bg, ROUNDING + 2)
+  ig.DrawList_AddRect(pdl, x + ins, y + ins, x + w - ins, y + h - ins, c.border, ROUNDING + 2, 0, 2)
+
+  -- the band at the top, like the handle under the FX section: two small triangles, back to
+  -- back to widen, face to face to fold back. The whole width is the button.
+  local bh = HANDLE_H + PAD
+  ig.PushID(ctx, guid)
+  local menu_w = is_locked() and 0 or 18                 -- Edit mode: the "..." menu takes the right corner
+  ig.SetCursorScreenPos(ctx, x + 2, y + 2)
+  if not ps.open then ps.pin = false end                 -- a pin only holds a widened section
+  if ig.InvisibleButton(ctx, 'widen', w - 4 - menu_w, bh - 2) then
+    ps.open = not ps.open
+    ps.pin = false                                       -- clicked: the pin is gone
+    PERF_ACT = reaper.time_precise()
+    if ps.open then
+      for g, o in pairs(PERF_PARAMS) do if g ~= guid then o.open = false end end   -- one at a time
+      for _, f in pairs(PERF_FOLD) do f.open = false end                            -- FX sections fold first
+    end
+  end
+  local pinned = ps.open and ps.pin
+  if ig.IsItemClicked(ctx, 1) then                       -- right-click: pin it widened, or take the pin off
+    PERF_ACT = reaper.time_precise()
+    if pinned then
+      ps.pin = false
+    else
+      if not ps.open then
+        ps.open = true
+        for g, o in pairs(PERF_PARAMS) do if g ~= guid then o.open = false end end
+        for _, f in pairs(PERF_FOLD) do f.open = false end
+      end
+      ps.pin = true
+    end
+  end
+  pinned = ps.open and ps.pin
+  local band_hov = ig.IsItemHovered(ctx)
+  if band_hov then
+    ig.SetTooltip(ctx, pinned and 'Pinned open: click to fold it back' or (ps.open and 'Fold the parameters back' or 'Widen the parameters'))
+  end
+  -- whether an unpinned section folds by itself here, said as it is in this mode
+  local auto
+  if CFG.perf_fold_auto == 0 then
+    auto = 'they do not fold back by themselves: Display > Fold automatically is off'
+  elseif not is_locked() and CFG.perf_fold_edit == 0 then
+    auto = 'in Edit mode they do not fold back by themselves (Settings > Performance mode > Also fold them by themselves in Edit mode)'
+  else
+    auto = ('they fold back by themselves after %d s without activity'):format(CFG.perf_fold_after)
+  end
+  hint_hovered(pinned
+    and 'Pinned open: it stays widened until you click the band (which folds it)  \194\183  right-click: take the pin off (' .. auto .. ')'
+    or (ps.open
+      and 'Click: fold the parameters back  \194\183  right-click: pin them widened (a push pin: they stay until you click the band)  \194\183  ' .. auto
+      or 'Click: widen the parameters over the other columns  \194\183  right-click: widen them pinned  \194\183  ' .. auto))
+  -- the "..." in the right corner, above the position bar (Edit mode): clean up the parameters
+  if menu_w > 0 then
+    ig.SetCursorScreenPos(ctx, x + w - 2 - menu_w, y + 2)
+    if ig.InvisibleButton(ctx, 'pmenu', menu_w, bh - 2) then
+      PARAM_UNLINKED = params_unlinked(tr)                 -- found once, when the menu opens
+      ig.OpenPopup(ctx, 'plus_menu')
+    end
+    local mhov = ig.IsItemHovered(ctx)
+    if mhov then ig.SetTooltip(ctx, 'Parameter menu') end
+    hint_hovered('Click: remove the parameters not linked any more, or all of them')
+    local dcol = (c.ink & 0xFFFFFF00) | (mhov and 0xFF or 0xA0)
+    local rx, dy = x + w - PAD - 1, math.floor(y + bh / 2) + 1   -- the dots end where the position bar ends
+    for i = 0, 2 do ig.DrawList_AddCircleFilled(pdl, rx - 1.5 - i * 4, dy, 1.5, dcol) end
+    if ig.BeginPopup(ctx, 'plus_menu') then draw_param_menu(tr); ig.EndPopup(ctx) end
+  end
+  ig.PopID(ctx)
+  do
+    local bx, by = math.floor(x + w / 2), math.floor(y + bh / 2) + 1
+    local bcol = (c.ink & 0xFFFFFF00) | (band_hov and 0xFF or 0xA0)
+    local tw, th, tg = 7, 4.5, 2.5
+    -- both triangles are listed the same way round (tip, then the base from the same side), so they
+    -- are filled and smoothed alike
+    local function tri(base, tip)
+      local flip = tip < base and -1 or 1
+      ig.DrawList_AddTriangleFilled(pdl, tip, by, base, by + th * flip, base, by - th * flip, bcol)
+    end
+    if pinned then        -- a push pin in a contrasting color
+      draw_pin(pdl, bx, by, contrast_glow(tr))
+    elseif ps.open then   -- face to face: tips toward the middle
+      tri(bx - tg - tw, bx - tg)
+      tri(bx + tg + tw, bx + tg)
+    else                  -- back to back: tips away from the middle
+      tri(bx - tg, bx - tg - tw)
+      tri(bx + tg, bx + tg + tw)
+    end
+  end
+
+  ig.SetCursorScreenPos(ctx, x + PAD, y + bh)
+  local no_bar = ig.WindowFlags_NoScrollbar()
+  -- the wheel over a control turns it: the column doesn't scroll then (CTL_HOVER, from the frame before)
+  local wheel_ctl = CTL_HOVER_PREV['col' .. guid]
+  if begin_child('col' .. guid, w - 2 * PAD, h - bh - PAD, no_bar | (wheel_ctl and ig.WindowFlags_NoScrollWithMouse() or 0)) then
+    local dl = ig.GetWindowDrawList(ctx)
+    local cx, cy = ig.GetWindowPos(ctx)
+    local cw, ch = ig.GetWindowSize(ctx)
+    local grid = e > 0                                     -- widened (or moving): rows flow in columns
+    -- width of a column of rows: the column as wide as the rack (also when widened: the rows then just
+    -- grow), less the position bar (4 px, 1 px from the edge) and a 2 px gap when the rows don't all fit
+    -- (the rows' height doesn't depend on it, so it can't flicker)
+    local col0 = RACK_W - 2 * PAD
+    local colw = (grid or ig.GetScrollMaxY(ctx) > 1) and (col0 - 7) or col0
+    local f = 1 + 0.5 * e                                  -- widened, every row is 1.5 times as wide and tall, with bigger text and controls
+    local pad = 12 * e                                     -- and room around each row, to let it breathe
+    local rw = colw * f
+    local pushed = push_bold(name_font, NAME_FONT_SIZE)
+    local blh0 = ig.GetTextLineHeight(ctx)                 -- bold line height: a name may take two lines
+    if pushed then ig.PopFont(ctx) end
+    local blh = blh0 * f
+    local rh0 = math.floor(2 * blh0 + 12)
+    local rh = math.floor(rh0 * f)
+    local gy = select(2, ig.GetStyleVar(ctx, ig.StyleVar_ItemSpacing()))
+    local pitch = rh + gy + pad                                  -- from one row to the next (the gap is the same stacked or in columns)
+    -- the rows are the rack's saved parameter rows (picked in the "+" window, Edit mode)
+    local now_t = reaper.time_precise()
+    local rows = params_read(tr)
+    local gmap = fx_guid_map(tr)
+    local rack_col = track_color(tr)
+    local n = #rows
+    -- the rows shown, by their place in the list (Display > Hide disabled parameters leaves out
+    -- the rows not linked any more); the layout counts only those
+    local vis = {}
+    for k, r in ipairs(rows) do
+      if not (S.hide_dead and param_row_memo(tr, r, gmap[r.guid]).missing) then vis[#vis + 1] = k end
+    end
+    local nv = #vis
+    local show_plus = not is_locked()                      -- the + row is only there in Edit mode
+    local slots = nv + (show_plus and 1 or 0)
+    local mx_in = ig.IsWindowHovered(ctx)
+    -- a row of this column being dragged (Edit mode): where it comes from, and where it is dropped
+    local row_drag = not is_locked() and drag_prev_row ~= nil and drag_prev_row:match('^(.-)|') == guid
+    local row_from = row_drag and tonumber(drag_prev_row:match('|(%d+)$'))
+    local in_col = row_drag and mouse_in(cx, cy, cx + cw, cy + ch)
+    local row_drop
+    ig.Dummy(ctx, 1, 3)                                    -- room for the glow of the first row
+    local ox, oy = ig.GetCursorScreenPos(ctx)
+    local step_x = rw + 4 + 2 * pad                                -- widened: from one column of rows to the next
+    local rpc = math.max(1, math.floor((ch - 3 - 8 - 12) / (math.floor(rh0 * 1.5) + gy + 12))) -- rows per column when widened, as it fits at full size (rows 1.5 times as tall, 12 px of room) (8: the sideways bar)
+    if grid then
+      if ig.GetScrollY(ctx) ~= 0 then ig.SetScrollY(ctx, 0) end
+      if mx_in and not wheel_ctl then                      -- the wheel moves sideways here too
+        local wv, wh = ig.GetMouseWheel(ctx)
+        if wv ~= 0 and wh == 0 then ig.SetScrollX(ctx, ig.GetScrollX(ctx) - wv * 60) end
+      end
+    else
+      if ig.GetScrollX(ctx) ~= 0 then ig.SetScrollX(ctx, 0) end
+      if ps.reveal > 0 then                                -- just folded back: show the row touched last
+        local j = ps.last
+        if j and nv < n then for i, k in ipairs(vis) do if k <= ps.last then j = i end end end
+        if j then ig.SetScrollY(ctx, math.max(0, 3 + (j - 1) * pitch - (ch - rh) / 2)) end
+        ps.reveal = ps.reveal - 1
+      end
+    end
+    if focus_k then                                        -- ... and the column scrolls to the row, when it is out of view
+      for jf, kf in ipairs(vis) do
+        if kf == focus_k then
+          if grid then
+            local cxr = pad + math.floor((jf - 1) / rpc) * step_x
+            local sx = ig.GetScrollX(ctx)
+            if cxr < sx or cxr + rw > sx + cw then ig.SetScrollX(ctx, math.max(0, cxr - (cw - rw) / 2)) end
+          else
+            local top, sy = 3 + (jf - 1) * pitch, ig.GetScrollY(ctx)
+            if top < sy or top + rh > sy + ch then ig.SetScrollY(ctx, math.max(0, top - (ch - rh) / 2)) end
+          end
+          PARAM_PICK.focus = nil
+          break
+        end
+      end
+    end
+    for j = 1, nv do
+      local k = vis[j]                                     -- j: its place in the column, k: in the rack's list
+      local rx, ry
+      if grid then
+        rx, ry = ox + pad + math.floor((j - 1) / rpc) * step_x, oy + pad + ((j - 1) % rpc) * pitch
+      else
+        rx, ry = ig.GetCursorScreenPos(ctx)
+      end
+      if rx + rw > cx and rx < cx + cw and ry + rh > cy - 4 and ry < cy + ch + 4 then   -- rows outside the column's view aren't drawn (or asked about)
+        local rx0 = rx
+        rx = rx + 3; local rw2 = rw - 6                      -- a little room for the hover glow
+        -- what this row shows: the real parameter (fxi = where its FX is now)
+        local r = rows[k]
+        local rname, vtxt, norm, fxi, missing, kind = r.name or r.pname, '?', 0, gmap[r.guid], false, nil
+        -- what the FX said is kept per row (ROW_MEMO): the name check is done again every 30
+        -- frames (half a second) or when the FX moved, the value's text when the value moved or every
+        -- 30 frames (an FX may print it differently after another parameter changed)
+        local mm = param_row_memo(tr, r, fxi)
+        missing = mm.missing
+        if not missing then
+          norm = reaper.TrackFX_GetParamNormalized(tr, fxi, r.idx)
+          if norm ~= mm.norm or FRAME - (mm.f_txt or -99) >= 30 then
+            local _, txt = reaper.TrackFX_GetFormattedParamValue(tr, fxi, r.idx)
+            mm.vtxt, mm.norm, mm.f_txt = param_vtext(txt, norm, r.pname, tr, fxi), norm, FRAME
+          end
+          vtxt = mm.vtxt
+          kind = param_kind(tr, fxi, r)
+        end
+        local cd = rh - 8 * f                                    -- the control, outside the name box
+        local kw = cd + 9 * f                                    -- its area: a little wider, for the arc of its limits
+        -- the value box between control and name, a little closer to the name (gap vn) than to the control (vc)
+        local vw, vn, vc = 22 * f, 2.5 * f, 5.5 * f
+        local box_w = rw2 - kw - vw - vn - vc
+        local left = (j % 2 == 1)                            -- odd rows: name left; even rows: name right
+        local bx = left and rx or (rx + rw2 - box_w)
+        local kx = left and (rx + rw2 - kw) or rx
+        local vx = left and (bx + box_w + vn) or (kx + kw + vc)
+        -- hover: the whole row (name box and control) glows; the rows of an FX whose name is
+        -- pointed at in the rack glow in another color
+        local over = mx_in and mouse_in(rx, ry, rx + rw2, ry + rh)
+        local hot = hot_prev_fx ~= nil and hot_prev_fx == r.guid
+        -- a row being dragged over this column: the row under the pointer shows the place it would take
+        -- (the window doesn't count as hovered while the drag is on, so the pointer is checked directly)
+        local row_key = guid .. '|' .. k
+        local drop_here = row_drag and in_col and mouse_in(rx, ry, rx + rw2, ry + rh) and drag_prev_row ~= row_key
+        if row_drag then
+          if drop_here and ig.IsMouseReleased(ctx, 0) then row_drop = k end
+          over, hot = false, false
+        end
+        if over then row_hot_now = r.guid end                -- its FX glows in the rack
+        if over and ig.IsMouseClicked(ctx, 0) then
+          ps.last = k                                        -- the row touched last
+          if fxi then param_pick_select(tr, r) end          -- the parameter window, if open, selects it
+        end
+        -- double-click its name or value box (not the control: there it goes back to the default mark):
+        -- the parameter window opens on it (Edit mode; it is the same window as the + opens)
+        if fxi and over and not is_locked() and ig.IsMouseDoubleClicked(ctx, 0)
+           and mouse_in(left and bx or vx, ry, left and (vx + vw) or (bx + box_w), ry + rh) then
+          param_picker_open(tr, nil, 'insp')
+          param_pick_select(tr, r)
+        end
+        if over and ig.IsMouseClicked(ctx, 1) and not is_locked() then      -- Edit mode: the row's menu
+          PARAM_MENU_ROW = k
+          ig.OpenPopup(ctx, 'prm_menu')
+        end
+        -- the parameter window's selection glows like the pointed row (the white glow)
+        local picked = PARAM_PICK and PARAM_PICK.hl and PARAM_PICK.hl[r.guid .. ':' .. r.idx]
+        -- brought back inside its limits when moved from outside: a red glow, always (the pointer's glow over it)
+        local snapout = param_snapout_on(r)
+        if snapout then
+          local base = PARAM_SNAPOUT_COL & 0xFFFFFF00
+          for i = 1, 3 do
+            local a = math.floor(200 * (1 - (i - 1) / 3) ^ 1.5)
+            ig.DrawList_AddRect(dl, rx - i, ry - i, rx + rw2 + i, ry + rh + i, base | a, ROUNDING + i, 0, i == 1 and 2 or 1.5)
+          end
+        end
+        if over or (picked and not row_drag) then
+          local base = T.glow & 0xFFFFFF00
+          for i = 1, 3 do
+            local a = math.floor(170 * (1 - (i - 1) / 3) ^ 2)
+            ig.DrawList_AddRect(dl, rx - i, ry - i, rx + rw2 + i, ry + rh + i, base | a, ROUNDING + i, 0, 1)
+          end
+        elseif hot and not snapout then                      -- its FX is pointed at: it glows in the FX's color
+          draw_link_glow(dl, rx, ry, rx + rw2, ry + rh, fx_color(tr, r.guid, rack_col), ROUNDING)
+        end
+        -- the row's colors: its own (Recolor parameters), or the rack's, shifted a little for a group of
+        -- parameters such as an EQ band (param_row_color); worked out again only when one of them changes
+        local rcol = param_row_color(fx_color(tr, r.guid, rack_col), r)
+        if over then row_hot_col_now = rcol end              -- its FX glows in this color
+        local ckey = rcol .. '|' .. tostring(inf.bypassed) .. '|' .. tostring(S.daylight)
+        if mm.ckey ~= ckey then mm.ckey, mm.rc = ckey, rack_colors(rcol, inf.bypassed) end
+        local rc = mm.rc
+        ig.DrawList_AddRectFilled(dl, bx, ry, bx + box_w, ry + rh, rc.name_bg, ROUNDING)
+        ig.DrawList_AddRect(dl, bx, ry, bx + box_w, ry + rh, rc.sec_bd, ROUNDING, 0, 1)
+        -- the name: bold, up to two lines
+        local pb = push_bold(name_font, NAME_FONT_SIZE * f)
+        -- the two lines and their widths are kept until the name, the box or the size change
+        -- (with the lock, the text keeps clear of it on both sides, so it stays centered)
+        local lockw = snapout and 14 * f or 0
+        local tw_max = box_w - 8 - 2 * lockw
+        local wkey = rname .. '|' .. box_w .. '|' .. f .. '|' .. lockw
+        if mm.wkey ~= wkey then
+          local l1, l2 = rname, nil
+          if ig.CalcTextSize(ctx, l1) > tw_max then
+            local cut = l1
+            while #cut > 1 and ig.CalcTextSize(ctx, cut) > tw_max do
+              cut = cut:match('^(.*)%s+%S*$') or cut:sub(1, #cut - 1)
+            end
+            l2 = fit_text((l1:sub(#cut + 1):gsub('^%s+', '')), tw_max)
+            l1 = cut
+          end
+          mm.wkey, mm.l1, mm.l2 = wkey, l1, l2
+          mm.w1, mm.w2 = ig.CalcTextSize(ctx, l1), l2 and ig.CalcTextSize(ctx, l2)
+        end
+        local l1, l2 = mm.l1, mm.l2
+        local ty = ry + (rh - blh * (l2 and 2 or 1)) / 2
+        if snapout then                                      -- the lock: at the end of the name box away from the control
+          local lx = left and (bx + 4 + lockw / 2) or (bx + box_w - 4 - lockw / 2)
+          draw_lock(dl, lx, ry + rh / 2, 11 * f, PARAM_SNAPOUT_COL)
+          if mouse_in(lx - lockw / 2, ry + rh / 2 - 8 * f, lx + lockw / 2, ry + rh / 2 + 8 * f)
+             and ig.IsWindowHovered(ctx, ig.HoveredFlags_ChildWindows()) then
+            ig.SetTooltip(ctx, PARAM_SNAPOUT_TIP)
+          end
+        end
+        ig.DrawList_AddText(dl, bx + (box_w - mm.w1) / 2, ty, rc.name_txt, l1)
+        if l2 then ig.DrawList_AddText(dl, bx + (box_w - mm.w2) / 2, ty + blh, rc.name_txt, l2) end
+        if pb then ig.PopFont(ctx) end
+        -- Edit mode: the name box is the handle to drag the row to another place in its column
+        if not is_locked() then
+          ig.SetCursorScreenPos(ctx, bx, ry)
+          ig.InvisibleButton(ctx, '##prow' .. k, box_w, rh)
+          hint_hovered('Drag: reorder  \194\183  right-click: control for this parameter, remove it')
+          if ig.BeginDragDropSource(ctx) then
+            ig.SetDragDropPayload(ctx, 'PERFROW', row_key)
+            drag_now_row = row_key
+            draw_fx_ghost(rname, '', box_w, M.fh)
+            ig.EndDragDropSource(ctx)
+          end
+        end
+        -- every control (encoder, band, pan, drop-down, toggle) in the middle of its area, which is wide
+        -- enough for its marks and the arc of its limits to stay inside the row (and its glow)
+        local kcx = kx + kw / 2
+        local kcy, kr = ry + rh / 2, cd / 2 - 6 * f
+        local dead = missing or not fxi
+        local newv
+        -- a Pan/Width that follows a stereo placement: a pan, a width, or switched off, as it says now
+        local ekind, off = kind and kind.kind, false
+        if kind and kind.dual and not dead then
+          if FRAME - (mm.f_mode or -99) >= 15 then             -- asked again every quarter second
+            mm.mode, mm.f_mode = param_dual_mode(tr, fxi, kind), FRAME
+          end
+          local m = mm.mode
+          if m == 'off' then off = true elseif m then ekind = m end
+          -- some FX keep printing L / R in MS: there it reads M / S
+          -- ("100L", "L100", "-50 L", "Left 30"...: an L or R on its own, or the words Left / Right)
+          if m == 'band' then
+            vtxt = vtxt:gsub('%f[%a][Ll][Ee][Ff][Tt]%f[%A]', 'M'):gsub('%f[%a][Rr][Ii][Gg][Hh][Tt]%f[%A]', 'S')
+                       :gsub('%f[%a][Ll]%f[%A]', 'M'):gsub('%f[%a][Rr]%f[%A]', 'S')
+          end
+        end
+        -- the value, a quarter turn: counterclockwise when the control is on the left, clockwise on the right
+        if ry + rh > cy and ry < cy + ch then
+          ig.DrawList_AddRectFilled(dl, vx, ry, vx + vw, ry + rh, rc.sec_bg, ROUNDING)
+          ig.DrawList_AddRect(dl, vx, ry, vx + vw, ry + rh, rc.sec_bd, ROUNDING, 0, 1)
+          draw_vtext(dl, vtxt, vx, ry, vw, rh, contrast_text(rc.sec_bg, rcol), not left, f, mm)
+        end
+        if off then
+          draw_encoder('k' .. k, kcx, kcy, kr, norm, { body = rc.sec_bg, col = rc.border, ptr = T.dim, s = f, static = true,
+                       style = 'pan' })
+          if over then ig.SetTooltip(ctx, 'Not used with this stereo placement') end
+        elseif dead then
+          draw_encoder('k' .. k, kcx, kcy, kr, 0, { body = rc.sec_bg, col = rc.border, ptr = T.dim, s = f, static = true })
+          ig.DrawList_AddRectFilled(dl, rx, ry, rx + rw2, ry + rh, (c.bg & 0xFFFFFF00) | 0xB0, ROUNDING)
+          if over then ig.SetTooltip(ctx, 'This parameter is not there any more (the FX was removed or changed).') end
+        else
+          newv = draw_param_ctl('k' .. k, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f,
+                                { body = rc.sec_bg, col = rc.border, ptr = T.dots }, 'col' .. guid)
+        end
+        if drag_prev_row == row_key then
+          -- the row being dragged stays behind, faded
+          ig.DrawList_AddRectFilled(dl, rx, ry, rx + rw2, ry + rh, S.daylight and 0xFFFFFF99 or 0x00000099, ROUNDING)
+        elseif drop_here then
+          -- the place the dragged row would take
+          ig.DrawList_AddRect(dl, rx - 1, ry - 1, rx + rw2 + 1, ry + rh + 1, T.glow, ROUNDING, 0, 2)
+        end
+        if newv then
+          reaper.TrackFX_SetParamNormalized(tr, fxi, r.idx, newv)
+          ps.last = k
+          PERF_ACT = now_t
+        end
+        ig.SetCursorScreenPos(ctx, rx0, ry)
+      end
+      if not grid then ig.Dummy(ctx, rw, rh) end
+    end
+    -- widened: a divider between the columns of rows, fading in with the widening
+    if grid then
+      local dcol = (c.border & 0xFFFFFF00) | math.floor(0x90 * e)
+      for col = 0, math.ceil(slots / rpc) - 2 do
+        local dx = ox + pad + col * step_x + rw + 2 + pad
+        if dx > cx - 2 and dx < cx + cw + 2 then
+          ig.DrawList_AddLine(dl, dx, oy + pad, dx, oy + pad + rpc * pitch - gy, dcol, 2)
+        end
+      end
+    end
+    -- the empty row at the end, Edit mode only: a "+" in a circle as tall as a row, in a color that
+    -- stands out from the column (dark in Daylight mode). It opens the parameter window. Only the circle and the + light up.
+    if show_plus then
+      local px, py
+      if grid then
+        px, py = ox + pad + math.floor(nv / rpc) * step_x, oy + pad + (nv % rpc) * pitch
+      else
+        px, py = ig.GetCursorScreenPos(ctx)
+      end
+      ig.SetCursorScreenPos(ctx, px + (rw - rh) / 2, py)
+      if ig.InvisibleButton(ctx, '##addparam', rh, rh) then param_picker_open(tr) end
+      local hov = ig.IsItemHovered(ctx)
+      local pcx, pcy, pr = px + rw / 2, py + rh / 2, rh / 2 - 2
+      -- a dragged row dropped here goes to the end
+      if row_drag and in_col and mouse_in(px + 3, py, px + rw - 3, py + rh) and row_from ~= n then
+        ig.DrawList_AddRect(dl, px + 2, py - 1, px + rw - 2, py + rh + 1, T.glow, ROUNDING, 0, 2)
+        if ig.IsMouseReleased(ctx, 0) then row_drop = n + 1 end
+      end
+      local pcol = (c.ink & 0xFFFFFF00) | (hov and 0xFF or 0xB0)
+      if hov then ig.DrawList_AddCircleFilled(dl, pcx, pcy, pr, (c.ink & 0xFFFFFF00) | 0x38, 0) end
+      ig.DrawList_AddCircle(dl, pcx, pcy, pr, pcol, 0, hov and 3 or 2)
+      local pl = pr * 0.45
+      ig.DrawList_AddLine(dl, pcx - pl, pcy, pcx + pl, pcy, pcol, hov and 3 or 2)
+      ig.DrawList_AddLine(dl, pcx, pcy - pl, pcx, pcy + pl, pcol, hov and 3 or 2)
+      if hov then ig.SetTooltip(ctx, 'Add or remove parameters') end
+      hint_hovered('Click: add or remove parameters')
+    end
+    if row_drop and row_from then                          -- the rows are rewritten once the frame is drawn
+      local to = row_drop
+      later[#later + 1] = function() if valid(tr) then params_move(tr, row_from, to) end end
+      ps.last = math.min(to, n)
+    end
+    if ig.BeginPopup(ctx, 'prm_menu') then                  -- right-click on a row (Edit mode): its control, or remove it
+      local mr = rows[PARAM_MENU_ROW or 0]
+      local mfx = mr and gmap[mr.guid]
+      if mr and mfx and ig.BeginMenu(ctx, 'Control') then
+        local mk = param_kind(tr, mfx, mr)
+        for _, o in ipairs(PARAM_CONTROL_OPTS) do
+          local on = (o[1] == nil and not mk.overridden) or (o[1] ~= nil and mk.overridden and mk.kind == o[1])
+          local label = o[2] .. ((o[1] == nil) and (' (now: ' .. PARAM_KIND_LABEL[mk.guess] .. ')') or '')
+          if ig.MenuItem(ctx, label, nil, on) then param_set_override(tr, mfx, mr, o[1]) end
+        end
+        ig.EndMenu(ctx)
+      end
+      if mr then
+        ig.Separator(ctx)
+        if ig.MenuItem(ctx, 'Nickname parameter...') then param_prompt_nick(tr, mr.guid, mr.idx) end
+        if ig.BeginMenu(ctx, 'Recolor parameters') then
+          local one = { { guid = mr.guid, idx = mr.idx } }
+          if ig.MenuItem(ctx, 'This parameter...') then param_open_picker(tr, one, 'Color of this parameter') end
+          -- the rows of the same group (Band 1...) of the same FX, and every row of the FX
+          local gnum, glabel = param_group(mr.pname)
+          local same_g, same_fx = {}, {}
+          for _, rr in ipairs(rows) do
+            if rr.guid == mr.guid then
+              same_fx[#same_fx + 1] = { guid = rr.guid, idx = rr.idx }
+              if gnum and param_group(rr.pname) == gnum then same_g[#same_g + 1] = { guid = rr.guid, idx = rr.idx } end
+            end
+          end
+          if #same_g > 1 and #same_g < #same_fx then
+            local t = ('Every "%s" parameter (%d)...'):format(glabel, #same_g)
+            if ig.MenuItem(ctx, t) then param_open_picker(tr, same_g, ('Color of the "%s" parameters'):format(glabel)) end
+          end
+          if #same_fx > 1 then
+            local fxn = mfx and clean_fx_name(select(2, reaper.TrackFX_GetFXName(tr, mfx, ''))) or 'this FX'
+            if ig.MenuItem(ctx, ('Every parameter of %s (%d)...'):format(fxn, #same_fx)) then
+              param_open_picker(tr, same_fx, 'Color of the parameters of ' .. fxn)
+            end
+          end
+          ig.EndMenu(ctx)
+        end
+        if mfx and ig.MenuItem(ctx, 'Inspect parameter...') then
+          param_picker_open(tr, 'p:' .. mr.guid .. ':' .. mr.idx, 'insp')
+        end
+        if mfx and mr.lim then                              -- (only with limits)
+          if ig.MenuItem(ctx, 'Bring it back inside the limits when moved from outside', nil, mr.snapout == true) then
+            params_update(tr, mr.guid, mr.idx, { snapout = not mr.snapout })
+          end
+        end
+        if mfx then                                         -- copy / paste its limits and curve (params.lua)
+          ig.Separator(ctx)
+          param_clip_menu(tr, mfx, mr, { { tr = tr, guid = mr.guid, idx = mr.idx, name = mr.pname } }, gmap)
+        end
+        ig.Separator(ctx)
+      end
+      if ig.MenuItem(ctx, 'Remove this parameter') and rows[PARAM_MENU_ROW or 0] then
+        local mrow = rows[PARAM_MENU_ROW]
+        params_apply(tr, { { guid = mrow.guid, idx = mrow.idx, name = mrow.pname } }, false)
+      end
+      ig.EndPopup(ctx)
+    end
+    if grid then                                           -- the area the columns take, for the sideways scroll
+      ig.SetCursorScreenPos(ctx, ox, oy)
+      ig.Dummy(ctx, math.ceil(slots / rpc) * step_x + pad, rpc * pitch + pad)
+    else
+      ig.Dummy(ctx, 1, 3)
+    end
+
+    -- a bypassed rack: its parameters are greyed out too (still usable)
+    if inf.bypassed then
+      ig.DrawList_AddRectFilled(dl, cx, cy, cx + cw, cy + ch, (c.bg & 0xFFFFFF00) | 0x99, 0)
+    end
+
+    -- fade at the edges and the position bar
+    local sy, smax = ig.GetScrollY(ctx), ig.GetScrollMaxY(ctx)
+    if grid then
+      local sx, smx = ig.GetScrollX(ctx), ig.GetScrollMaxX(ctx)
+      if smx > 1 then
+        local fw = math.min(M.fh * 1.8, cw / 3)
+        local solid, clear = c.bg, c.bg & 0xFFFFFF00
+        if sx > 1 then
+          ig.DrawList_AddRectFilledMultiColor(dl, cx, cy, cx + fw, cy + ch, solid, clear, clear, solid)
+        end
+        if sx < smx - 1 then
+          ig.DrawList_AddRectFilledMultiColor(dl, cx + cw - fw, cy, cx + cw, cy + ch, clear, solid, solid, clear)
+        end
+        local by = cy + ch - 5
+        local thumb = math.max(16, cw * cw / (cw + smx))
+        local tx = cx + (cw - thumb) * (sx / smx)
+        ig.DrawList_AddRectFilled(dl, cx, by, cx + cw, by + 4, (T.dim & 0xFFFFFF00) | 0x40, 2)
+        ig.DrawList_AddRectFilled(dl, tx, by, tx + thumb, by + 4, (T.dim & 0xFFFFFF00) | 0xE0, 2)
+      end
+    elseif smax > 1 then
+      local fh_ = math.min(M.fh * 1.8, ch / 3)
+      local solid, clear = c.bg, c.bg & 0xFFFFFF00
+      if sy > 1 then
+        ig.DrawList_AddRectFilledMultiColor(dl, cx, cy, cx + cw, cy + fh_, solid, solid, clear, clear)
+      end
+      if sy < smax - 1 then
+        ig.DrawList_AddRectFilledMultiColor(dl, cx, cy + ch - fh_, cx + cw, cy + ch, clear, clear, solid, solid)
+      end
+      local bx = cx + cw - 5
+      local thumb = math.max(16, ch * ch / (ch + smax))
+      local ty = cy + (ch - thumb) * (sy / smax)
+      ig.DrawList_AddRectFilled(dl, bx, cy, bx + 4, cy + ch, (T.dim & 0xFFFFFF00) | 0x40, 2)
+      ig.DrawList_AddRectFilled(dl, bx, ty, bx + 4, ty + thumb, (T.dim & 0xFFFFFF00) | 0xE0, 2)
+    end
+    ig.EndChild(ctx)
+  end
+  if outer then ig.EndChild(ctx) end
+end
+
+-- the "..." menu of a rack's parameters (Edit mode)
+function draw_param_menu(tr)
+  local n = #params_read(tr)
+
+  local nu = PARAM_UNLINKED and #PARAM_UNLINKED or 0
+  local label = nu > 0 and ('Remove the %d parameter%s not linked any more'):format(nu, nu == 1 and '' or 's')
+                        or 'Every parameter is linked: nothing to remove'
+  if ig.MenuItem(ctx, label, nil, false, nu > 0) then params_apply(tr, PARAM_UNLINKED, false) end
+  ig.Separator(ctx)
+  if ig.MenuItem(ctx, 'Clear all', nil, false, n > 0) then
+    request_confirm(('Remove all %d parameter%s of this rack from the quick access panel?\n(Ctrl+Z brings them back.)')
+                    :format(n, n == 1 and '' or 's'),
+      function()
+        if valid(tr) then with_undo('Clear the quick access panel', function() params_drop_fx(tr, nil) end) end
+      end, 'Clear all')
+  end
+end
+
+-- The control of a parameter of the quick access panel (a row of a rack's column, and the Inspector's
+-- preview, which can be turned too): draw_control (controls.lua) given the row's limits, list of values
+-- and curve. id: the control's id; r: the row ({ guid, idx, pname } for a parameter that is not in the
+-- quick access panel); ekind: the kind it is drawn as (a Pan/Width follows its stereo placement); mm: the
+-- row's memo (param_row_memo); kcx, kcy, kr: where, how big; f: the scale; cl: { body, col, ptr }; wkey:
+-- the window it is in (it doesn't scroll under the control). Returns the new value when it was changed.
+-- Here, Ctrl (Cmd on a Mac) + the wheel changes the current range (the one the value is in: Range, List
+-- of ranges): up / down moves it (it stops when an end reaches the value, or the gap before another
+-- range), sideways makes it wider or narrower.
+function draw_param_ctl(id, tr, fxi, r, kind, ekind, mm, norm, kcx, kcy, kr, f, cl, wkey)
+  if kind.kind == 'steps' and r.guid then param_limits_to_steps(tr, r, kind.steps) end
+  local ranged = r.guid and param_wheel_range_ok(r, kind.kind)
+  if ranged and not PARAM_CTRL_HINT then
+    local cm = mod_label('ctrl')
+    PARAM_CTRL_HINT = '  \194\183  ' .. cm .. '+scroll up / down: move the current range (the one the value is in; it stops at the value or before another range)'
+                   .. '  \194\183  ' .. cm .. '+scroll sideways: make the current range wider or narrower'
+  end
+  return draw_control(id, norm, { limits = r, kind = kind, ekind = ekind, memo = mm, cx = kcx, cy = kcy, r = kr, s = f,
+    colors = cl, wkey = wkey, list = param_list_view(tr, fxi, r, kind.kind, mm, norm, kind),
+    ctrl_wheel = ranged and function(wv, wh) param_wheel_range(tr, fxi, r, kind.kind, wv, wh, norm) end or nil,
+    ctrl_hint = ranged and PARAM_CTRL_HINT or nil })
+end
+
+-- Performance mode, Show mode: each rack folds its FX section under the name. The state per
+-- rack: open (what was asked) and t (0 folded .. 1 open, moving toward it so it animates).
+PERF_FOLD, PERF_ACT, PERF_MX, PERF_MY, PERF_FRAME, PERF_FOLD_SECS = {}, 0, 0, 0, 0, 0.2
+
+-- the same for a rack's parameter column: open = widened (asked for), t = how far it is,
+-- last = the row touched last, reveal = frames left to scroll to it after folding back
+PERF_PARAMS = {}
+
+function perf_param_state(guid)
+  local st = PERF_PARAMS[guid]
+  if not st then st = { open = false, t = 0, last = nil, reveal = 0 }; PERF_PARAMS[guid] = st end
+  return st
+end
+
+function perf_fold_state(guid)
+  local st = PERF_FOLD[guid]
+  if not st then st = { open = false, t = 0 }; PERF_FOLD[guid] = st end
+  return st
+end
+
+-- every key ReaImGui knows (but not the mouse and the modifier flags), for the idle timer
+function perf_keys()
+  if not PERF_KEYS then
+    PERF_KEYS = {}
+    for name, fn in pairs(reaper) do
+      if type(name) == 'string' and name:find('^ImGui_Key_')
+         and not (name:find('Mouse') or name:find('Mod') or name:find('Reserved') or name:find('None')
+                  or name:find('Gamepad') or name:find('KeysData') or name:find('COUNT')) then
+        local ok, v = pcall(fn)
+        if ok and type(v) == 'number' then PERF_KEYS[#PERF_KEYS + 1] = v end
+      end
+    end
+  end
+  return PERF_KEYS
+end
+
+-- the last time the user was active in the Racks window: moved the mouse over it, clicked
+-- or dragged, scrolled, or pressed a key while it has the focus. Nothing outside the window
+-- counts. Keys are only looked at while a section is open, and every third frame.
+function perf_activity(now, any_open)
+  local mx, my = ig.GetMousePos(ctx)
+  if ig.IsWindowHovered(ctx, ig.HoveredFlags_ChildWindows()) then
+    local wv, wh = ig.GetMouseWheel(ctx)
+    if mx ~= PERF_MX or my ~= PERF_MY or wv ~= 0 or wh ~= 0
+       or ig.IsMouseDown(ctx, 0) or ig.IsMouseDown(ctx, 1) then
+      PERF_ACT = now
+    end
+  end
+  PERF_MX, PERF_MY = mx, my
+  PERF_FRAME = PERF_FRAME + 1
+  if any_open and PERF_FRAME % 3 == 0 then
+    for _, k in ipairs(perf_keys()) do
+      if ig.IsKeyDown(ctx, k) then PERF_ACT = now; break end
+    end
+  end
+end
+
+-- Performance mode: every rack in one row (it scrolls sideways), a column under each.
+-- In Show mode a rack is just its name until its handle is clicked; its column moves with it.
+function draw_perf_area(infos, M, dt, now)
+  local x_left, y_top = ig.GetCursorScreenPos(ctx)
+  local gap = rack_gap()
+  local wx = x_left + GLOW_M
+  local y = y_top + gap
+  local rects = {}
+
+  if #infos == 0 then
+    ig.SetCursorScreenPos(ctx, wx, y)
+    ig.Text(ctx, ('No tracks named "%s ..." found. Double-click here or use + to create a rack.'):format(PREFIX))
+    empty_space_click(rects, math.huge)
+    return
+  end
+
+  local compact = perf_compact()
+  local any_open = false
+  if compact then
+    for _, inf in ipairs(infos) do
+      if perf_fold_state(reaper.GetTrackGUID(inf.tr)).open then any_open = true; break end
+    end
+  end
+  for _, ps in pairs(PERF_PARAMS) do if ps.open then any_open = true; break end end
+  perf_activity(now, any_open)
+  -- no activity for a while: the FX sections and parameter sections fold back, except the ones pinned
+  -- open (right-click the handle). Show mode, as set in Display > Fold automatically (Settings >
+  -- Performance mode); Edit mode only when Settings says so.
+  local after = CFG.perf_fold_after
+  if any_open and CFG.perf_fold_auto ~= 0 and (is_locked() or CFG.perf_fold_edit ~= 0)
+     and after > 0 and now - PERF_ACT >= after then
+    for _, st in pairs(PERF_FOLD) do if not st.pin then st.open = false end end
+    for _, ps in pairs(PERF_PARAMS) do if not ps.pin then ps.open = false end end
+  end
+
+  local row_h = 0                                  -- Edit mode: full racks, all as tall as the tallest
+  for _, inf in ipairs(infos) do row_h = math.max(row_h, inf.nat) end
+  local total_w = 2 * GLOW_M + #infos * RACK_W + (#infos - 1) * gap
+  local win_x, win_y = ig.GetWindowPos(ctx)
+  local win_w, win_h = ig.GetWindowSize(ctx)
+  local sbw = ig.GetStyleVar(ctx, ig.StyleVar_ScrollbarSize())
+  local bottom = win_y + win_h - (total_w > win_w and sbw or 0) - 2     -- above the sideways scrollbar
+  local folded = folded_height(M)
+  local deepest = y
+  local wide = {}                                  -- widened columns are drawn last, over the others
+  local fx_folded = true                           -- parameters widen only once every FX section is folded
+  for _, st in pairs(PERF_FOLD) do if st.t > 0 then fx_folded = false; break end end
+  local vis_w = math.max(RACK_W, win_w - 2 * GLOW_M)
+
+  for i, inf in ipairs(infos) do
+    local x = wx + (i - 1) * (RACK_W + gap)
+    local H, vh = row_h, row_h
+    if compact then
+      local st = perf_fold_state(reaper.GetTrackGUID(inf.tr))
+      local target = st.open and 1 or 0
+      local step = math.min(dt, 0.05) / PERF_FOLD_SECS
+      if st.t < target then st.t = math.min(target, st.t + step) elseif st.t > target then st.t = math.max(target, st.t - step) end
+      local e = st.t * st.t * (3 - 2 * st.t)           -- smoothstep: eases in and out
+      H = inf.nat
+      vh = folded + (H - folded) * e
+    else
+      perf_fold_state(reaper.GetTrackGUID(inf.tr)).open = false
+      perf_fold_state(reaper.GetTrackGUID(inf.tr)).t = 0
+    end
+    draw_rack(inf, x, y, H, M, dt, now, vh)
+    rects[#rects + 1] = { x, y, x + RACK_W, y + vh }
+    local col_y = y + vh + gap                     -- the same gap as between racks
+    local ps = perf_param_state(reaper.GetTrackGUID(inf.tr))
+    if ps.open and not fx_folded then
+      -- wait for the FX sections to finish folding
+    elseif ps.open then
+      ps.t = math.min(1, ps.t + math.min(dt, 0.05) / PERF_FOLD_SECS)
+    elseif ps.t > 0 then
+      ps.t = math.max(0, ps.t - math.min(dt, 0.05) / PERF_FOLD_SECS)
+      if ps.t == 0 then ps.reveal = 2 end
+    end
+    local pe = ps.t * ps.t * (3 - 2 * ps.t)
+    local col_h = math.max(60, bottom - col_y)
+    if pe > 0 then
+      wide[#wide + 1] = { inf, x, col_y, col_h, ps, pe }
+    else
+      draw_perf_column(inf, x, col_y, RACK_W, col_h, M, ps, 0)
+    end
+    deepest = math.max(deepest, col_y + col_h)
+  end
+  for _, wd in ipairs(wide) do
+    local inf, x, col_y, col_h, ps, pe = table.unpack(wd)
+    local left = win_x + GLOW_M
+    draw_perf_column(inf, x + (left - x) * pe, col_y, RACK_W + (vis_w - RACK_W) * pe, col_h, M, ps, pe)
+  end
+
+  empty_space_click(rects, math.huge)
+
+  -- make the area as wide as the racks (the sideways scrollbar follows), as tall as the columns
+  ig.SetCursorScreenPos(ctx, x_left, deepest)
+  ig.Dummy(ctx, total_w, 1)
+end
+
 -- the grey help line: what the mouse can do with what is under it, or with what is being dragged
 function draw_hint(dl, x, y, w)
   local copy, move = mod_label(COPY_MOD), mod_label(MOVE_MOD)
-  if drag_prev_rack then
+  if drag_prev_row then
+    HINT = 'Moving the parameter: drop it on the parameter whose place it takes, or on the + to put it at the end'
+  elseif drag_prev_rack then
     if has_mod(COPY_MOD) then
       HINT = ('Duplicating the rack: drop it where the copy should go  \194\183  let go of %s to move it instead'):format(copy)
     else
@@ -392,19 +1179,24 @@ end
 -- BeginChild takes a number (child flags) in recent ReaImGui and a boolean
 -- (border) in older ones; try the number first and remember what works.
 child_old_api = false
-function begin_child(id, w, h)
+function begin_child(id, w, h, wflags)
   if not child_old_api then
-    local ok, vis = pcall(ig.BeginChild, ctx, id, w, h, 0, 0)
+    local ok, vis = pcall(ig.BeginChild, ctx, id, w, h, 0, wflags or 0)
     if ok then return vis end
     child_old_api = true
   end
-  return ig.BeginChild(ctx, id, w, h, false, 0)
+  return ig.BeginChild(ctx, id, w, h, false, wflags or 0)
 end
 
 function draw(dt, now)
+  CTL_HOVER_PREV, CTL_HOVER_NOW = CTL_HOVER_NOW, {}
   drag_prev_rack, drag_prev_fx = drag_now_rack, drag_now_fx
   drag_now_rack, drag_now_fx = nil, nil
+  drag_prev_row, drag_now_row = drag_now_row, nil
   hover_prev_rack, hover_now_rack = hover_now_rack, nil
+  hot_prev_fx, hot_now_fx = hot_now_fx, nil
+  row_hot_prev, row_hot_now = row_hot_now, nil
+  row_hot_col_prev, row_hot_col_now = row_hot_col_now, nil
   lat_over_racks = 0
   HINT = nil
 
@@ -418,7 +1210,7 @@ function draw(dt, now)
   local bar_w = ww - 2 * padx
 
   -- gather racks
-  local infos, nfx = {}, 0
+  local infos, nfx, nsel, nparams = {}, 0, 0, nil
   for i, tr in ipairs(racks) do
     if valid(tr) then
       local info = chain_info(tr)
@@ -426,13 +1218,14 @@ function draw(dt, now)
       info.slot = i - 1
       info.bypassed = is_bypassed(tr, info.list)
       info.box = latbox_on(S.lat_box == 'auto' and rack_latency(tr, reaper.GetTrackGUID(tr), info.list, now).total or 0)
-      info.nat = natural_height(#info.list, M, info.box)
+      info.nat = natural_height(#info.list, M, info.box, perf_compact())
       nfx = nfx + #info.list
+      if S.perf and rack_selected(tr) then nsel = nsel + 1; nparams = (nparams or 0) + params_count(tr) end
       infos[#infos + 1] = info
     end
   end
 
-  ------------------------------------------------ top bar (stays put): Plugins Host, centered | + Options
+  ------------------------------------------------ top bar (stays put): Racks, centered | + Options
   local tb_h = math.max(M.fh + 8, title_font and (TITLE_FONT_SIZE + 12) or 0)   -- one row
 
   -- Layout: cue light on the left, + and the menus on the right, the title
@@ -453,7 +1246,7 @@ function draw(dt, now)
   }
 
   local tpushed = push_bold(title_font, TITLE_FONT_SIZE)
-  local ttw = ig.CalcTextSize(ctx, 'Plugins Host')
+  local ttw = ig.CalcTextSize(ctx, 'Racks')
   local tlh = ig.GetTextLineHeight(ctx)
   if tpushed then ig.PopFont(ctx) end
   local vtxt = 'v' .. VERSION
@@ -490,7 +1283,7 @@ function draw(dt, now)
   local title_x = left + math.max(0, (title_r - left - title_w) / 2)
   local title_y = wy + (tb_h - tlh) / 2
   tpushed = push_bold(title_font, TITLE_FONT_SIZE)
-  ig.DrawList_AddText(dl, title_x, title_y, T.title, 'Plugins Host')
+  ig.DrawList_AddText(dl, title_x, title_y, T.title, 'Racks')
   if tpushed then ig.PopFont(ctx) end
   -- the version, small, on the title's baseline
   ig.DrawList_AddText(dl, title_x + ttw + 6, title_y + tlh - M.tlh - 2, T.dim, vtxt)
@@ -571,7 +1364,12 @@ function draw(dt, now)
   local child_h = math.max(40, sb_y - RACK_SPACE - hint_h - top)
 
   ig.SetCursorScreenPos(ctx, wx, top)
-  if begin_child('racks', bar_w, child_h) then
+  if S.perf then
+    if begin_child('racks_perf', bar_w, child_h, ig.WindowFlags_HorizontalScrollbar()) then
+      draw_perf_area(infos, M, dt, now)
+      ig.EndChild(ctx)
+    end
+  elseif begin_child('racks', bar_w, child_h) then
     draw_rack_area(infos, M, dt, now, bar_w - sbw)
     ig.EndChild(ctx)
   end
@@ -580,7 +1378,8 @@ function draw(dt, now)
   draw_hint(dl, wx + 6, top + child_h + (sb_y - top - child_h - M.tlh) / 2, bar_w - 12)
 
   ------------------------------------------------ status bar (stays put)
-  draw_status_bar(dl, wx, sb_y, bar_w, tb_h, M, #infos, nfx)
+  local ptxt = S.perf and (nsel > 0 and ('%d parameter(s) in the selected rack'):format(nparams) or 'no rack selected') or nil
+  draw_status_bar(dl, wx, sb_y, bar_w, tb_h, M, #infos, nfx, ptxt)
 
   apply_pending()
   draw_dialogs()
@@ -593,36 +1392,94 @@ function draw_settings()
   local vis, open = begin_window('settings', 'FOH-Mate Settings', 440, 560, true)
   if vis then
     CONFIRM_HOST = 'settings'
+    -- a search field: only the settings whose name has the text (or whose group does) are listed, the
+    -- groups that have some are open
+    ig.SetNextItemWidth(ctx, -1)
+    local rvs, found = ig.InputTextWithHint(ctx, '##setfind', 'Search settings...', S.set_find or '')
+    if rvs then S.set_find = found end
+    local q = (S.set_find or ''):lower()
+    local function entry_hit(e)
+      if e.label:lower():find(q, 1, true) then return true end
+      for _, o in ipairs(e.options or {}) do if o[2]:lower():find(q, 1, true) then return true end end
+      return false
+    end
+    local group_hit, group_any = {}, {}
+    if q ~= '' then
+      for _, e in ipairs(SCHEMA) do
+        if e.group:lower():find(q, 1, true) then group_hit[e.group], group_any[e.group] = true, true
+        elseif entry_hit(e) then group_any[e.group] = true end
+      end
+      if next(group_any) == nil then ig.TextDisabled(ctx, 'No setting matches.') end
+    end
+    ig.Spacing(ctx)
+    -- caption first, then the field, then its unit: the captions take a column (the widest, at most a
+    -- bit more than half the window), the fields line up after it, the units after them
+    local capw, unitw = 0, 0
+    for _, e in ipairs(SCHEMA) do
+      if e.kind ~= 'bool' then capw = math.max(capw, (ig.CalcTextSize(ctx, e.label))) end
+      local _, u = fmt_unit(e.fmt)
+      if u ~= '' then unitw = math.max(unitw, ig.CalcTextSize(ctx, u) + 4) end
+    end
+    local availw = select(1, ig.GetContentRegionAvail(ctx))
+    capw = math.min(capw + 12, availw * 0.58)
+    local fieldw = math.max(80, math.min(210, availw - capw - unitw))
     local group, group_open = nil, false
     for _, e in ipairs(SCHEMA) do
       if e.group ~= group then
-        group = e.group
-        if S.settings_focus == group then
-          ig.SetNextItemOpen(ctx, true, ig.Cond_Always())
-        end
-        group_open = ig.CollapsingHeader(ctx, group, nil, (group == 'Colors') and ig.TreeNodeFlags_DefaultOpen() or 0)
-        if S.settings_focus == group then
-          ig.SetScrollHereY(ctx, 0)
-          S.settings_focus = nil
+        group, group_open = e.group, false
+        if q == '' or group_any[group] then
+          if q ~= '' or S.settings_focus == group then
+            ig.SetNextItemOpen(ctx, true, ig.Cond_Always())
+          end
+          group_open = section_header(group, group == 'Colors')
+          if S.settings_focus == group then
+            ig.SetScrollHereY(ctx, 0)
+            S.settings_focus = nil
+          end
         end
       end
-      if group_open then
-        ig.SetNextItemWidth(ctx, 210)
+      if group_open and (q == '' or group_hit[group] or entry_hit(e)) then
         local label = e.label .. '##cfg_' .. e.key
-        if e.kind == 'color' then
-          local typ = e.key:match('^col_(.+)$')
-          local rv, v = ig.ColorEdit3(ctx, typ and ('##cfg_' .. e.key) or label, CFG[e.key],
-                                      ig.ColorEditFlags_NoInputs())
-          if typ then                     -- the type name in its own color (picker stays plain)
-            ig.SameLine(ctx)
+        local id = '##cfg_' .. e.key
+        if e.kind ~= 'bool' then
+          local typ = e.kind == 'color' and e.key:match('^col_(.+)$')
+          if typ then                     -- a type name in its own color (the picker stays plain)
+            local x0 = ig.GetCursorPosX(ctx)
+            ig.AlignTextToFramePadding(ctx)
             ig.TextColored(ctx, type_color(typ), e.label)
+            if e.tip and ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, e.tip) end
+            ig.SameLine(ctx, x0 + capw)
+          else
+            field_caption(e.label, capw, e.tip)
           end
+          ig.SetNextItemWidth(ctx, fieldw)
+        end
+        if e.kind == 'color' then
+          local rv, v = ig.ColorEdit3(ctx, id, CFG[e.key], ig.ColorEditFlags_NoInputs())
           if rv then
             CFG[e.key] = v
             save_cfg_value(e)
           end
+        elseif e.kind == 'choice' then
+          local cur = e.options[1][2]
+          for _, o in ipairs(e.options) do if o[1] == CFG[e.key] then cur = o[2] end end
+          if ig.BeginCombo(ctx, id, cur) then
+            for _, o in ipairs(e.options) do
+              if ig.Selectable(ctx, o[2], CFG[e.key] == o[1]) then
+                CFG[e.key] = o[1]
+                save_cfg_value(e)
+              end
+            end
+            ig.EndCombo(ctx)
+          end
+        elseif e.kind == 'bool' then
+          local rv, v = ig.Checkbox(ctx, label, CFG[e.key] ~= 0)
+          if rv then
+            CFG[e.key] = v and 1 or 0
+            save_cfg_value(e)
+          end
         elseif e.kind == 'mod' then
-          if ig.BeginCombo(ctx, label, CFG[e.key]) then
+          if ig.BeginCombo(ctx, id, CFG[e.key]) then
             for _, name in ipairs({ 'ctrl', 'shift', 'alt' }) do
               if ig.Selectable(ctx, name, CFG[e.key] == name) then
                 CFG[e.key] = name
@@ -633,11 +1490,15 @@ function draw_settings()
           end
         else
           local rv, v
+          local f, unit = fmt_unit(e.fmt)
           if e.kind == 'i' then
-            rv, v = ig.SliderInt(ctx, label, CFG[e.key], e.min, e.max, e.fmt)
+            rv, v = ig.SliderInt(ctx, id, CFG[e.key], e.min, e.max, f)
           else
-            rv, v = ig.SliderDouble(ctx, label, CFG[e.key], e.min, e.max, e.fmt)
+            rv, v = ig.SliderDouble(ctx, id, CFG[e.key], e.min, e.max, f)
           end
+          local slider_tip = e.tip and ig.IsItemHovered(ctx)
+          field_unit(unit)
+          if slider_tip then ig.SetTooltip(ctx, e.tip) end
           if rv then CFG[e.key] = v end
           if ig.IsItemDeactivatedAfterEdit(ctx) then
             save_cfg_value(e)
@@ -674,4 +1535,3 @@ function draw_settings()
     if confirm and confirm.host == 'settings' then confirm = nil end   -- closed while asking: Cancel
   end
 end
-

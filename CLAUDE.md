@@ -13,13 +13,23 @@ language and keep them small.
 - Name: **FOH-Mate** (formerly "Live Rack", renamed because of a trademark conflict). Never write
   "Live Rack", "LiveRack" or "RackPanel" in new code, text or file names. Only exception: the
   one-time migration code that reads the old settings and data names.
-- First module: the rack. Its window is titled **Plugins Host**. In code and UI, "FX" is the word
-  for what is inside a rack (not "insert" or "plugin"), and "rack" is used, never "strip".
+- First module: the rack. Its window is titled **Racks** (it was "Plugins Host" until 0.14.107; the
+  internal window ID stays `###Plugins Host`). Windows that dock each have their own ImGui context, so
+  their REAPER docker tab shows their name (context.lua: `in_sub_ctx`): Racks, Parameters, Inspector.
+  Tag `v0.14.106-rollback` marks the state before that change. In code and UI, "FX" is the word
+  for what is inside a rack: always call them "FX", never "plugins" or "inserts". "Rack" is used,
+  never "strip".
 - Version: the `VERSION` constant in the script. Last public release: v0.11.9. Tag
   `v0.11.14-pre-reorg` marks the state before the repo reorganization.
 - Racks are REAPER tracks with the `RACK:` prefix (constant `PREFIX`). Sidechain busses are hidden
   `SC BUS:` tracks. Racks must never be routed to the master.
-- License: GPL-3.0-or-later (LICENSE, script header, README). Bianca holds the copyright.
+- A field reads caption first, then the field (the value), then its unit (`field_caption`, `field_unit`
+  in helpers.lua). Display-only values: plain text (bold or colored if useful), or a read-only box for
+  values that change often. Check boxes keep their usual box-then-label.
+- An X/Y graph (like the curve graph) is always square, with a 1:1 scale.
+- Every section that folds uses `section_header(title, open)` (helpers.lua): bold title a little bigger
+  than the text (`SECT_FONT_SIZE`). Never a plain `CollapsingHeader`.
+- License: MIT (LICENSE, script headers, README; since 0.14). Bianca holds the copyright.
 
 ## Hard constraints
 1. Never use too much CPU or RAM, never add audio latency.
@@ -31,7 +41,9 @@ language and keep them small.
 3. Versioning is major.minor.revision: revision for minor adjustments, minor for new features or big
    changes. The major version is Bianca's decision only. The version lives in the one `VERSION`
    constant and shows in the window title bar, not in the file name.
-4. `CHANGELOG.md` is grouped by minor version only (revisions folded in). Every change needs an entry.
+4. `CHANGELOG.md` is grouped by minor version only: a compiled list of the important, user-facing changes,
+   not every revision or fine-tune (git keeps those). A change that refines something already listed updates
+   that line instead of adding one.
 5. Bianca tests in REAPER; the script can't be run here. After a change, say exactly what to check
    and add it to `docs/TESTING.md` as a numbered open item. When Bianca reports results by number,
    tick the item, move it to Done and note what was found.

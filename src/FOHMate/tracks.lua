@@ -2,7 +2,7 @@
 -- Part of FOH-Mate, loaded by FOHMate.lua (see the note there).
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
--- SPDX-License-Identifier: GPL-3.0-or-later
+-- SPDX-License-Identifier: MIT
 
 ---------------------------------------------------------------- tracks
 
@@ -70,6 +70,7 @@ function finish_copy(new, src, suffix)
   reaper.GetSetMediaTrackInfo_String(new, 'P_NAME', PREFIX .. ' ' .. raw_name(src) .. ' ' .. suffix, true)
   if S.disconnect then disconnect_track(new) else sc_copy_keys(src, new) end
   latok_copy(src, new)
+  params_copy(src, new)
   local i = rack_index(src)
   local r, g, b = color_for_new(src, i and racks[i + 1] or nil)
   set_track_rgb(new, r, g, b)
@@ -106,6 +107,7 @@ function template_rack(tr)
     end
     if not S.disconnect then sc_copy_keys(tr, new) end
     latok_copy(tr, new)
+    params_copy(tr, new)
   end)
   last_scan = -math.huge
 end

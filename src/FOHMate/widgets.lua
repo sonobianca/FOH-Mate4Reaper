@@ -2,7 +2,7 @@
 -- Part of FOH-Mate, loaded by FOHMate.lua (see the note there).
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
--- SPDX-License-Identifier: GPL-3.0-or-later
+-- SPDX-License-Identifier: MIT
 
 ---------------------------------------------------------------- system stats (status bar)
 
@@ -228,6 +228,43 @@ function draw_bar(dl, x, y1, y2, w, level, hold, clipped)
   end
 end
 
+-- a thin horizontal meter (Performance mode, Show mode): one bar for a mono rack, two for a
+-- stereo one, with the clip marker at one end. Normal: fills left to right, marker at the right
+-- end. flip: mirrored (fills right to left, marker at the left end). a = 0..1 fades it out.
+function draw_hbar(dl, x1, x2, yc, lv, hold, clip, mono, a, flip)
+  local function fade(col) return (col & 0xFFFFFF00) | math.floor((col & 0xFF) * a) end
+  local cw = 4
+  local b1, b2, c1, c2                         -- the bar's two ends, the clip marker's two ends
+  if flip then b1, b2, c1, c2 = x2, x1 + cw + 2, x1, x1 + cw
+  else b1, b2, c1, c2 = x1, x2 - cw - 2, x2 - cw, x2 end
+  local w = b2 - b1                            -- negative when flipped: fractions run from b1 toward b2
+  local function rect(xa, xb, y, bh, col, r)
+    ig.DrawList_AddRectFilled(dl, math.min(xa, xb), y, math.max(xa, xb), y + bh, col, r)
+  end
+  local bars
+  if mono then
+    bars = { { math.max(lv[1], lv[2]), math.max(hold[1], hold[2]), clip[1] or clip[2] } }
+  else
+    bars = { { lv[1], hold[1], clip[1] }, { lv[2], hold[2], clip[2] } }
+  end
+  local bh = mono and 5 or 3
+  local y = math.floor(yc - (#bars * bh + (#bars - 1)) / 2)
+  for _, b in ipairs(bars) do
+    rect(b1, b2, y, bh, fade(T.meter_bg), 1)
+    for _, z in ipairs(ZONES) do
+      if b[1] > z[1] then
+        rect(b1 + meter_frac(z[1]) * w, b1 + meter_frac(math.min(b[1], z[2])) * w, y, bh, fade(z[3]))
+      end
+    end
+    if b[2] > METER_MIN then
+      local xh = b1 + meter_frac(b[2]) * w
+      ig.DrawList_AddLine(dl, xh, y, xh, y + bh, fade(b[3] and 0xFF4040FF or T.hold), 2)
+    end
+    rect(c1, c2, y, bh, fade(b[3] and 0xFF2020FF or T.clip_off), 1)
+    y = y + bh + 1
+  end
+end
+
 function draw_meter(dl, x, y1, y2, lv, hold, clip, id, mono)
   local by1 = y1 + CLIP_H + 2
   if mono then
@@ -280,3 +317,217 @@ function audio_device_header(is_out)
   return (running and n) or 0
 end
 
+
+---------------------------------------------------------------- vertical text
+
+-- ReaImGui can't rotate text, so the values of Performance mode rows are drawn with a small
+-- stroke font (cell 5 x 8 units, y down): only the characters a value needs.
+VFONT = {
+  -- digits
+  ['0'] = { { 1,0, 4,0, 5,1, 5,7, 4,8, 1,8, 0,7, 0,1, 1,0 } },
+  ['1'] = { { 1,1.5, 3,0, 3,8 }, { 1,8, 5,8 } },
+  ['2'] = { { 0,1, 1,0, 4,0, 5,1, 5,3, 0,8, 5,8 } },
+  ['3'] = { { 0,0, 5,0, 2.5,3.5, 4,3.5, 5,4.5, 5,7, 4,8, 1,8, 0,7 } },
+  ['4'] = { { 4,8, 4,0, 0,5.5, 5.5,5.5 } },
+  ['5'] = { { 5,0, 0,0, 0,3.5, 4,3.5, 5,4.5, 5,7, 4,8, 1,8, 0,7 } },
+  ['6'] = { { 5,1, 4,0, 1,0, 0,1, 0,7, 1,8, 4,8, 5,7, 5,4.5, 4,3.5, 0,3.5 } },
+  ['7'] = { { 0,0, 5,0, 2,8 } },
+  ['8'] = { { 1,0, 4,0, 5,1, 5,3, 4,4, 1,4, 0,3, 0,1, 1,0 }, { 1,4, 4,4, 5,5, 5,7, 4,8, 1,8, 0,7, 0,5, 1,4 } },
+  ['9'] = { { 0,7, 1,8, 4,8, 5,7, 5,1, 4,0, 1,0, 0,1, 0,3.5, 1,4.5, 5,4.5 } },
+  -- capitals
+  ['A'] = { { 0,8, 2.5,0, 5,8 }, { 1,5.5, 4,5.5 } },
+  ['B'] = { { 0,8, 0,0, 3.5,0, 5,1, 5,3, 3.5,4, 0,4 }, { 3.5,4, 5,5, 5,7, 3.5,8, 0,8 } },
+  ['C'] = { { 5,1.5, 4,0, 1,0, 0,1, 0,7, 1,8, 4,8, 5,6.5 } },
+  ['D'] = { { 0,0, 0,8, 3,8, 5,6, 5,2, 3,0, 0,0 } },
+  ['E'] = { { 5,0, 0,0, 0,8, 5,8 }, { 0,4, 3.5,4 } },
+  ['F'] = { { 5,0, 0,0, 0,8 }, { 0,4, 3.5,4 } },
+  ['G'] = { { 5,1.5, 4,0, 1,0, 0,1, 0,7, 1,8, 4,8, 5,7, 5,4, 3,4 } },
+  ['H'] = { { 0,0, 0,8 }, { 5,0, 5,8 }, { 0,4, 5,4 } },
+  ['I'] = { { 0,0, 3,0 }, { 1.5,0, 1.5,8 }, { 0,8, 3,8 } },
+  ['J'] = { { 5,0, 5,7, 4,8, 1,8, 0,7 } },
+  ['K'] = { { 0,0, 0,8 }, { 5,0, 0,4.5 }, { 1.8,3.2, 5,8 } },
+  ['L'] = { { 0,0, 0,8, 5,8 } },
+  ['M'] = { { 0,8, 0,0, 3.5,5, 7,0, 7,8 } },
+  ['N'] = { { 0,8, 0,0, 5,8, 5,0 } },
+  ['O'] = { { 1,0, 4,0, 5,1, 5,7, 4,8, 1,8, 0,7, 0,1, 1,0 } },
+  ['P'] = { { 0,8, 0,0, 4,0, 5,1, 5,3, 4,4, 0,4 } },
+  ['Q'] = { { 1,0, 4,0, 5,1, 5,7, 4,8, 1,8, 0,7, 0,1, 1,0 }, { 3.2,5.8, 5.2,8.6 } },
+  ['R'] = { { 0,8, 0,0, 4,0, 5,1, 5,3, 4,4, 0,4 }, { 2.5,4, 5,8 } },
+  ['S'] = { { 5,1, 4,0, 1,0, 0,1, 0,3, 1,4, 4,4, 5,5, 5,7, 4,8, 1,8, 0,7 } },
+  ['T'] = { { 0,0, 5,0 }, { 2.5,0, 2.5,8 } },
+  ['U'] = { { 0,0, 0,7, 1,8, 4,8, 5,7, 5,0 } },
+  ['V'] = { { 0,0, 2.5,8, 5,0 } },
+  ['W'] = { { 0,0, 1.8,8, 3.5,2.5, 5.2,8, 7,0 } },
+  ['X'] = { { 0,0, 5,8 }, { 5,0, 0,8 } },
+  ['Y'] = { { 0,0, 2.5,4 }, { 5,0, 2.5,4, 2.5,8 } },
+  ['Z'] = { { 0,0, 5,0, 0,8, 5,8 } },
+  -- small letters (x-height 5, from y = 3 to the baseline at 8; ascenders reach 0, descenders 10)
+  ['a'] = { { 5,3, 5,8 }, { 5,4, 4,3, 1,3, 0,4, 0,7, 1,8, 4,8, 5,7 } },
+  ['b'] = { { 0,0, 0,8 }, { 0,4, 1,3, 4,3, 5,4, 5,7, 4,8, 1,8, 0,7 } },
+  ['c'] = { { 5,4, 4,3, 1,3, 0,4, 0,7, 1,8, 4,8, 5,7 } },
+  ['d'] = { { 5,0, 5,8 }, { 5,4, 4,3, 1,3, 0,4, 0,7, 1,8, 4,8, 5,7 } },
+  ['e'] = { { 0,5.5, 5,5.5, 5,4, 4,3, 1,3, 0,4, 0,7, 1,8, 4,8, 5,7 } },
+  ['f'] = { { 4,0.5, 3.5,0, 2,0, 1,1, 1,8 }, { 0,3.5, 3.5,3.5 } },
+  ['g'] = { { 5,3, 5,9, 4,10, 1,10, 0,9 }, { 5,4, 4,3, 1,3, 0,4, 0,7, 1,8, 4,8, 5,7 } },
+  ['h'] = { { 0,0, 0,8 }, { 0,4, 1,3, 4,3, 5,4, 5,8 } },
+  ['i'] = { { 1,0.2, 1,1 }, { 1,3, 1,8 } },
+  ['j'] = { { 2,0.2, 2,1 }, { 2,3, 2,9, 1,10, 0,9.5 } },
+  ['k'] = { { 0,0, 0,8 }, { 4.5,3, 0,6 }, { 1.8,5, 4.5,8 } },
+  ['l'] = { { 1,0, 1,8 } },
+  ['m'] = { { 0,3, 0,8 }, { 0,4, 1,3, 3,3, 3.5,4, 3.5,8 }, { 3.5,4, 4.5,3, 6,3, 7,4, 7,8 } },
+  ['n'] = { { 0,3, 0,8 }, { 0,4, 1,3, 4,3, 5,4, 5,8 } },
+  ['o'] = { { 1,3, 4,3, 5,4, 5,7, 4,8, 1,8, 0,7, 0,4, 1,3 } },
+  ['p'] = { { 0,3, 0,10 }, { 0,4, 1,3, 4,3, 5,4, 5,7, 4,8, 1,8, 0,7 } },
+  ['q'] = { { 5,3, 5,10 }, { 5,4, 4,3, 1,3, 0,4, 0,7, 1,8, 4,8, 5,7 } },
+  ['r'] = { { 0,3, 0,8 }, { 0,5, 1,3.5, 2.5,3, 4,3 } },
+  ['s'] = { { 5,3.8, 4,3, 1,3, 0,4, 1,5.2, 4,5.8, 5,7, 4,8, 1,8, 0,7.2 } },
+  ['t'] = { { 1.5,1, 1.5,7, 2.5,8, 4,8 }, { 0,3, 4,3 } },
+  ['u'] = { { 0,3, 0,7, 1,8, 4,8, 5,7 }, { 5,3, 5,8 } },
+  ['v'] = { { 0,3, 2.5,8, 5,3 } },
+  ['w'] = { { 0,3, 1.8,8, 3.5,4, 5.2,8, 7,3 } },
+  ['x'] = { { 0,3, 5,8 }, { 5,3, 0,8 } },
+  ['y'] = { { 0,3, 2.5,8 }, { 5,3, 2.5,8, 1.5,10, 0.5,10 } },
+  ['z'] = { { 0,3, 5,3, 0,8, 5,8 } },
+  -- punctuation and signs
+  ['.'] = { { 1,7, 1,8 } },
+  [','] = { { 1,7, 1,8, 0.2,9.5 } },
+  [':'] = { { 1,3, 1,4 }, { 1,7, 1,8 } },
+  [';'] = { { 1,3, 1,4 }, { 1,7, 1,8, 0.2,9.5 } },
+  ['!'] = { { 1,0, 1,5.5 }, { 1,7.3, 1,8 } },
+  ['?'] = { { 0,1.5, 1,0, 4,0, 5,1, 5,3, 2.5,4.5, 2.5,5.5 }, { 2.5,7.2, 2.5,8 } },
+  ['('] = { { 3,0, 1,2, 1,6, 3,8 } },
+  [')'] = { { 0,0, 2,2, 2,6, 0,8 } },
+  ['['] = { { 3,0, 0,0, 0,8, 3,8 } },
+  [']'] = { { 0,0, 3,0, 3,8, 0,8 } },
+  ['-'] = { { 0.5,4, 4.5,4 } },
+  ['+'] = { { 0.5,4, 4.5,4 }, { 2.5,2, 2.5,6 } },
+  ['='] = { { 0,3, 5,3 }, { 0,5.5, 5,5.5 } },
+  ['*'] = { { 2.5,1, 2.5,5 }, { 0.6,2, 4.4,4 }, { 4.4,2, 0.6,4 } },
+  ['/'] = { { 0,8, 4,0 } },
+  ['\\'] = { { 0,0, 4,8 } },
+  ['_'] = { { 0,9, 5,9 } },
+  ["'"] = { { 1,0, 1,2.5 } },
+  ['"'] = { { 0.5,0, 0.5,2.5 }, { 3,0, 3,2.5 } },
+  ['<'] = { { 4.5,1, 0.5,4.5, 4.5,8 } },
+  ['>'] = { { 0.5,1, 4.5,4.5, 0.5,8 } },
+  ['#'] = { { 1.5,0, 1,8 }, { 4,0, 3.5,8 }, { 0,2.5, 5,2.5 }, { 0,5.5, 5,5.5 } },
+  ['%'] = { { 0,0, 1.5,0, 1.5,1.5, 0,1.5, 0,0 }, { 3.5,6.5, 5,6.5, 5,8, 3.5,8, 3.5,6.5 }, { 0.3,8, 4.7,0 } },
+  ['&'] = { { 5,8, 1.5,3.5, 1.5,1, 2.5,0, 3.5,1, 3.5,2.5, 0,5.5, 0,7, 1,8, 3,8, 5,5.5 } },
+  ['$'] = { { 5,1, 4,0, 1,0, 0,1, 0,3, 1,4, 4,4, 5,5, 5,7, 4,8, 1,8, 0,7 }, { 2.5,-1, 2.5,9 } },
+  ['@'] = { { 3.5,5.5, 2,5.5, 2,3.5, 3.5,3.5, 3.5,6, 4.5,6, 4.5,2, 3.7,1, 1.2,1, 0,2.5, 0,6.5, 1,8, 4,8 } },
+  ['~'] = { { 0,5, 1.2,3.8, 2.5,5, 3.8,6.2, 5,5 } },
+  ['^'] = { { 0,3, 2.5,0, 5,3 } },
+  ['|'] = { { 1,0, 1,9 } },
+}
+
+-- the width of a character's cell where it is not 5 (the next character starts 2 units after it)
+VWIDTH = { ['I'] = 3, ['M'] = 7, ['W'] = 7, ['m'] = 7, ['w'] = 7, ['f'] = 4, ['r'] = 4, ['t'] = 4, ['i'] = 2, ['j'] = 2,
+           ['l'] = 2, ['.'] = 2, [','] = 2, [':'] = 2, [';'] = 2, ['!'] = 2, ['('] = 3, [')'] = 3, ['['] = 3, [']'] = 3,
+           ['/'] = 4, ['\\'] = 4, ["'"] = 2, ['"'] = 4, ['|'] = 2 }
+
+function vfont_advance(ch)
+  if ch == ' ' then return 3 end
+  return (VWIDTH[ch] or 5) + 2
+end
+
+-- A character's strokes as runs that can each be drawn in one call (a polyline): a stroke is cut
+-- where it turns sharply (more than 100 degrees, the tips of V, W, M...), where a joined line would
+-- grow a spike, so those corners look as before. Found once per character.
+VRUNS = {}
+function vfont_runs(ch)
+  local runs = VRUNS[ch]
+  if runs then return runs end
+  runs = {}
+  for _, st in ipairs(VFONT[ch] or {}) do
+    local run = { st[1], st[2] }
+    for j = 3, #st, 2 do
+      run[#run + 1], run[#run + 2] = st[j], st[j + 1]
+      if j + 3 <= #st then
+        local ax, ay = st[j] - st[j - 2], st[j + 1] - st[j - 1]
+        local bx, by = st[j + 2] - st[j], st[j + 3] - st[j + 1]
+        local cos = (ax * bx + ay * by) / math.sqrt((ax * ax + ay * ay) * (bx * bx + by * by))
+        if cos < math.cos(math.rad(100)) then
+          runs[#runs + 1] = run
+          run = { st[j], st[j + 1] }
+        end
+      end
+    end
+    runs[#runs + 1] = run
+  end
+  VRUNS[ch] = runs
+  return runs
+end
+
+-- the runs of `text` placed in the box, as point arrays for DrawList_AddPolyline
+function vtext_paths(text, bx, by, bw, bh, ccw, zoom)
+  local paths = {}
+  local units = 0
+  for i = 1, #text do units = units + vfont_advance(text:sub(i, i)) end
+  units = units - 2
+  local s = math.min(1.15 * zoom, (bh - 12) / units, (bw - 6) / 8)      -- a bit smaller than the box allows
+  if s <= 0 then return paths end
+  local len, thick = units * s, 8 * s
+  local cx, cy = bx + bw / 2, by + bh / 2
+  local ox, oy, dux, duy, dvx, dvy
+  if ccw then
+    ox, oy, dux, duy, dvx, dvy = cx - thick / 2, cy + len / 2, 0, -1, 1, 0
+  else
+    ox, oy, dux, duy, dvx, dvy = cx + thick / 2, cy - len / 2, 0, 1, -1, 0
+  end
+  local u = 0
+  for i = 1, #text do
+    local ch = text:sub(i, i)
+    if VFONT[ch] then
+      for _, run in ipairs(vfont_runs(ch)) do
+        local arr = reaper.new_array(#run)
+        for j = 1, #run, 2 do
+          local gu, gv = u + run[j] * s, run[j + 1] * s
+          arr[j], arr[j + 1] = ox + dux * gu + dvx * gv, oy + duy * gu + dvy * gv
+        end
+        paths[#paths + 1] = arr
+      end
+    end
+    u = u + vfont_advance(ch) * s
+  end
+  return paths
+end
+
+-- Draws `text` rotated a quarter turn inside the box (bx, by, bw, bh), centered, as big as fits.
+-- ccw: reads from bottom to top (a control on the left); otherwise top to bottom (control on the right).
+-- memo (a table kept by the caller, optional): the placed strokes are kept there and drawn again as
+-- they are while the text and the box don't change.
+function draw_vtext(dl, text, bx, by, bw, bh, col, ccw, zoom, memo)
+  zoom = zoom or 1
+  local paths
+  if memo then
+    local key = text .. '|' .. bx .. '|' .. by .. '|' .. bw .. '|' .. bh .. '|' .. (ccw and 1 or 0) .. '|' .. zoom
+    if memo.vkey ~= key then memo.vkey, memo.vpaths = key, vtext_paths(text, bx, by, bw, bh, ccw, zoom) end
+    paths = memo.vpaths
+  else
+    paths = vtext_paths(text, bx, by, bw, bh, ccw, zoom)
+  end
+  for i = 1, #paths do ig.DrawList_AddPolyline(dl, paths[i], col, 0, 1.5 * zoom) end
+end
+
+---------------------------------------------------------------- small drawings
+
+-- a small padlock, h tall, centered on cx, cy: a body and its shackle
+function draw_lock(dl, cx, cy, h, col)
+  local bw, bh = h * 0.72, h * 0.5
+  local by = cy + h / 2 - bh                       -- the top of the body
+  ig.DrawList_AddRectFilled(dl, cx - bw / 2, by, cx + bw / 2, cy + h / 2, col, h * 0.1)
+  -- the shackle: up the left side, over the top, down the right side
+  local sr, top = bw * 0.32, cy - h / 2 + bw * 0.32
+  ig.DrawList_PathLineTo(dl, cx - sr, by + 0.5)
+  ig.DrawList_PathArcTo(dl, cx, top, sr, math.pi, 2 * math.pi)
+  ig.DrawList_PathLineTo(dl, cx + sr, by + 0.5)
+  ig.DrawList_PathStroke(dl, col, 0, math.max(1.2, h * 0.12))
+end
+
+-- a push pin (a thumb tack seen from the side, 15 px tall) centered on cx, cy
+function draw_pin(dl, cx, cy, col)
+  ig.DrawList_AddRectFilled(dl, cx - 4.5, cy - 7.5, cx + 4.5, cy - 5, col, 1.5)                                   -- the head
+  ig.DrawList_AddQuadFilled(dl, cx - 3, cy - 5, cx + 3, cy - 5, cx + 2, cy + 1, cx - 2, cy + 1, col)             -- the body
+  ig.DrawList_AddRectFilled(dl, cx - 6, cy + 1, cx + 6, cy + 3, col, 1)                                          -- the plate
+  ig.DrawList_AddLine(dl, cx, cy + 3, cx, cy + 8, col, 1.8)                                                      -- the needle
+end

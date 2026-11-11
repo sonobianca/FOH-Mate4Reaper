@@ -2,7 +2,7 @@
 -- Part of FOH-Mate, loaded by FOHMate.lua (see the note there).
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
--- SPDX-License-Identifier: GPL-3.0-or-later
+-- SPDX-License-Identifier: MIT
 
 ---------------------------------------------------------------- sidechain
 --
@@ -35,10 +35,10 @@ function bus_name(tr)
 end
 
 -- The key pins are the inputs beyond the main ones (main = as many as the
--- outputs): 4 in / 2 out = stereo key, 3/2 = mono key, and on mono plugins
+-- outputs): 4 in / 2 out = stereo key, 3/2 = mono key, and on mono FX
 -- 2/1 = mono key, 3/1 = stereo key.
 -- Returns kind (0 = no key input, 1 = mono key, 2 = stereo key) and the first key pin.
--- (What the plug-in has; sc_key below says what the key is used as.)
+-- (What the FX has; sc_key below says what the key is used as.)
 function sc_kind(tr, fx)
   local _, ins, outs = reaper.TrackFX_GetIOSize(tr, fx)
   ins, outs = ins or 0, outs or 0
@@ -71,7 +71,7 @@ function chan_mask(c)
 end
 
 -- The key as it is used: a mono FX (one output, or on the mono part of its rack) always
--- gets a mono key, even when the plug-in has two key pins: both pins then hear the same
+-- gets a mono key, even when the FX has two key pins: both pins then hear the same
 -- mono signal. mono: true/false when known (the FX's width in its rack), nil to look it up.
 -- Returns the key kind used (0/1/2), the first key pin, and how many key pins it has.
 function sc_key(tr, fx, mono)
@@ -90,7 +90,7 @@ function sc_key(tr, fx, mono)
 end
 
 -- key pins of `fx` (from pin `first`) -> channel pair starting at c (nil = listen to nothing).
--- pins: how many key pins the plug-in has (a mono key on two pins feeds both from channel c)
+-- pins: how many key pins the FX has (a mono key on two pins feeds both from channel c)
 function sc_set_pins(tr, fx, kind, c, first, pins)
   local lo, hi = chan_mask(c)
   local changed = false
@@ -462,4 +462,3 @@ function sc_maintain(tr, info)
     end
   end
 end
-

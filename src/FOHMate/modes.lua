@@ -2,7 +2,7 @@
 -- Part of FOH-Mate, loaded by FOHMate.lua (see the note there).
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
--- SPDX-License-Identifier: GPL-3.0-or-later
+-- SPDX-License-Identifier: MIT
 
 ---------------------------------------------------------------- modes and selection
 
@@ -101,3 +101,24 @@ function rack_action(tr, what, fn, label)
   end
 end
 
+-- the same for removing FX: when some of them have rows in the Performance (which: rack -> the set of
+-- FX GUIDs that would go, nil = all), it always asks first: remove the rows too (fn(rack)), or keep
+-- them (fn(rack, true)) for a matching FX to take back
+function fx_removal(tr, what, fn, which)
+  local trs = targets_for(tr)
+  local n = 0
+  for _, t in ipairs(trs) do n = n + params_count_fx(t, which(t)) end
+  if n == 0 then return rack_action(tr, what, fn) end
+  local function go(keep)
+    return function()
+      later[#later + 1] = function()
+        for _, t in ipairs(trs) do if valid(t) then fn(t, keep) end end
+        last_scan = -math.huge
+      end
+    end
+  end
+  request_confirm(('%s%s?\n%d parameter%s in the quick access panel belong to these FX.\n'
+                   .. 'Kept parameters stay greyed out, and come back to life when a matching FX\nis put on the rack again.\n(Ctrl+Z brings everything back.)')
+                  :format(what, #trs > 1 and (' for the %d selected racks'):format(#trs) or '', n, n == 1 and '' or 's'),
+    go(false), 'Remove FX and parameters', nil, { label = 'Remove FX, keep parameters', fn = go(true) })
+end

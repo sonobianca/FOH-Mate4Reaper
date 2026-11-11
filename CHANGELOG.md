@@ -2,6 +2,54 @@
 
 Changes since the last public release, grouped by minor version (revisions are folded in).
 
+## 0.14
+
+**Performance mode** (a work in progress; see the README, section "Performance mode"):
+
+- **Display > Performance mode** puts every rack in one row that scrolls sideways, with a **quick access
+  panel** under each: a column of the parameters you need at hand, which scrolls on its own (the rows
+  fade at the edges, a slim bar shows where you are). A band at its top widens it over its neighbours.
+- **Show mode** shrinks a rack to its name with **M** (mute) and **B** (bypass); the handle under it opens
+  its FX section with thin meters. Open sections and widened panels fold back by themselves after a while
+  (Settings > Performance mode).
+- **Controls** drawn for each kind of parameter: encoder (a fader's marks for a dB parameter), stepped
+  encoder, width band, Q band, pan, drop-down and toggle, with a default mark (double-click goes back to
+  it) and the value written beside it. FOH-Mate picks the control; right-click a parameter > Control to
+  change it (remembered for every project). Drag up and down or around (Settings > Controls); the mouse
+  wheel turns them too (Shift: finer).
+- **Parameters window**: a tree of every rack, FX, group (an EQ's bands) and parameter, with search, tick
+  boxes, Add to / Remove from the quick access panel, hidden placeholders and MIDI CC entries, and a
+  Refresh for FX that rename their parameters. It follows what you click in the racks.
+- **Inspector**: the selected parameter's control, direction and default mark, limits, curve, a preview
+  you can turn, and what REAPER says about it.
+- **Limits**: a Range (on a range selector with an arrow and a round handle at each end), a List of
+  values (as a stepped encoder or a drop-down) or a List of ranges; options to use the full travel of
+  the control, to let the control turn on while the value waits at a limit, to skip the gaps or turn
+  through them, and to bring a parameter back inside its limits when it is moved from outside (off by
+  default; a red lock and glow show it). Ctrl+wheel over a control moves or resizes the current range.
+- **Value curves**: Linear, Ease in, Ease out, or Custom points, saved and reused; a pink dot on the
+  control shows where it is turned to when that differs from the value.
+- Parameters get **nicknames** (remembered per FX, optional), **colors** (FX have a color too, and an EQ's
+  bands are told apart), can be **inverted**, **reordered** by dragging, and their limits and curve
+  **copied and pasted**. Pointing at an FX makes its parameters glow, and the other way round.
+- A **duplicated rack** or a template keeps its parameters, controlling its own FX. Deleting an FX that has
+  parameters asks first; a new FX of the same plug-in takes back the parameters of a deleted one;
+  parameters whose FX is gone can be hidden (Display > Hide disabled parameters) or cleared.
+- The controls, the range selector, the curve editor and the parameter tree are built to be reused by
+  other modules.
+
+Also in 0.14:
+
+- FOH-Mate is now under the **MIT License** (it was GPL-3.0-or-later).
+- The main window is now called **Racks** (it was Plugins Host). The Parameters and Inspector windows dock
+  on their own, with their own docker tab (Display > Windows > Dock Parameters / Dock Inspector), and
+  open again where they were.
+- The **Display** menu is in groups (Daylight and Colors; Performance mode; dock and windows).
+- Settings and the Inspector use foldable sections with clear titles; fields read caption, value, unit.
+- The **Out** menu lists mono outputs before stereo pairs, like everywhere else.
+- Settings, the FX list and the parameter windows open next to the Racks window (a remembered position
+  could leave them off the screen).
+
 ## 0.13
 
 - **Latency > Count every format at its highest latency** (off by default). A plugin installed in

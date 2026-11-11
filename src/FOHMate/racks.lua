@@ -2,7 +2,7 @@
 -- Part of FOH-Mate, loaded by FOHMate.lua (see the note there).
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
--- SPDX-License-Identifier: GPL-3.0-or-later
+-- SPDX-License-Identifier: MIT
 
 ---------------------------------------------------------------- racks
 
@@ -24,12 +24,21 @@ function metrics()
   }
 end
 
+-- Performance mode in Show mode ("compact"): the rack is its name with a small M and B and a
+-- handle; the FX section (and the meters beside it) folds under it. No In/Out, routing, level.
+function perf_compact()
+  return S.perf and is_locked()
+end
+
+-- the strip at the bottom of a compact rack that holds its fold handle
+HANDLE_H = 14
+
 -- the three sections of a rack: header, FX, controls
-function section_heights(n_fx, M)
+function section_heights(n_fx, M, compact)
   local rows = math.max(n_fx, 1)
-  local hdr = SI + M.name_h + M.spy + M.fh + SI
+  local hdr = compact and (SI + M.name_h + SI) or (SI + M.name_h + M.spy + M.fh + SI)
   local fxs = SI + rows * M.rowp + M.sm + SI
-  local ctl = SI + M.fh + M.spy + M.btn_h + SI
+  local ctl = compact and 0 or (SI + M.fh + M.spy + M.btn_h + SI)
   return hdr, fxs, ctl
 end
 
@@ -45,9 +54,15 @@ function latbox_h(M, on)
   return on and (M.fh + SG) or 0
 end
 
-function natural_height(n_fx, M, box)
-  local hdr, fxs, ctl = section_heights(n_fx, M)
-  return PAD + hdr + SG + fxs + SG + ctl + latbox_h(M, box) + PAD
+function natural_height(n_fx, M, box, compact)
+  local hdr, fxs, ctl = section_heights(n_fx, M, compact)
+  return PAD + hdr + SG + fxs + (compact and HANDLE_H or (SG + ctl)) + latbox_h(M, box) + PAD
+end
+
+-- a compact rack with its FX section folded: the name box and the handle
+function folded_height(M)
+  local hdr = section_heights(0, M, true)
+  return PAD + hdr + HANDLE_H + PAD
 end
 
 -- one dot (n = 1, mono) or two overlapping dots, one solid and one outlined (n = 2,
@@ -77,16 +92,11 @@ function contrast_glow(tr)
   return (r << 24) | (g << 16) | (b << 8) | 0xFF
 end
 
--- a round "radio" checkbox: ring with a dot inside when on
-function circle_check(dl, id, x, y, d, checked)
-  ig.SetCursorScreenPos(ctx, x, y)
-  local clicked = ig.InvisibleButton(ctx, id, d, d)
-  local hovered = ig.IsItemHovered(ctx)
-  local cx, cy, r = x + d / 2, y + d / 2, d / 2 - 2
-  ig.DrawList_AddCircleFilled(dl, cx, cy, r, T.chk_bg, 0)
-  ig.DrawList_AddCircle(dl, cx, cy, r, hovered and 0x6FB4FFFF or T.chk_ring, 0, 2)
-  if checked then ig.DrawList_AddCircleFilled(dl, cx, cy, r - 4, T.chk_dot, 0) end
-  return clicked
+-- a button that stays lit in col, also under the pointer and while pressed (pop it with PopStyleColor(ctx, 3))
+function push_lit(col)
+  ig.PushStyleColor(ctx, ig.Col_Button(), col)
+  ig.PushStyleColor(ctx, ig.Col_ButtonHovered(), mix(col, WHITE, 0.2))
+  ig.PushStyleColor(ctx, ig.Col_ButtonActive(), mix(col, BLACK, 0.2))
 end
 
 -- a drop target that appends to the FX of a rack
@@ -105,7 +115,7 @@ function drop_zone(id, x, y, w, h, tr, append_idx)
   end
 end
 
-function draw_rack(info, x0, y0, H, M, dt, now)
+function draw_rack(info, x0, y0, H, M, dt, now, vis_h)
   local tr = info.tr
   local guid = reaper.GetTrackGUID(tr)
   local list = info.list
@@ -184,26 +194,37 @@ function draw_rack(info, x0, y0, H, M, dt, now)
 
   ------------------------------------------------ geometry
   local fh, spx, spy, sm = M.fh, M.spx, M.spy, M.sm
-  local hdr_h, fxs_h, ctl_h = section_heights(#list, M)
+  local compact = perf_compact()
+  local vh = vis_h or H                        -- the height shown (less than H while the FX section is folded)
+  local hdr_h, fxs_h, ctl_h = section_heights(#list, M, compact)
 
   local cx  = x0 + PAD + METER_W + GAP         -- middle area
+  local CW  = CENTER_W                         -- its width
+  if compact then cx, CW = x0 + PAD, RACK_W - 2 * PAD end   -- no vertical meters: the FX section takes the full width
   local wx  = cx + SI                          -- widgets inside a section
-  local WW  = CENTER_W - 2 * SI                -- widget width
+  local WW  = CW - 2 * SI                      -- widget width
 
   local hdr_top = y0 + PAD
   local hdr_bot = hdr_top + hdr_h
-  local ctl_bot = y0 + H - PAD - latbox_h(M, info.box)
+  local ctl_bot = y0 + H - PAD - latbox_h(M, info.box) - (compact and HANDLE_H or 0)
   local ctl_top = ctl_bot - ctl_h
   local fxs_top = hdr_bot + SG
-  local fxs_bot = ctl_top - SG
+  local fxs_bot = compact and ctl_bot or (ctl_top - SG)
 
+  local NH, hb = M.name_h, 0                   -- the name box (hb: room kept free at its bottom)
+  local nx, NW = wx, WW                        -- where the name box is
+  local mb_w = NH + 6                          -- compact: M and B, rounded rectangles as tall as the name box
+  if compact then
+    nx = x0 + PAD + SI
+    NW = RACK_W - 2 * PAD - 2 * SI - 2 * (mb_w + spx)    -- room for M and B on the right
+  end
   local name_y = hdr_top + SI
   local io_y   = name_y + M.name_h + spy
   local lvl_y  = ctl_top + SI
   local btn_y  = lvl_y + fh + spy
   local add_y  = fxs_bot - SI - sm
 
-  if mouse_in(x0, y0, x0 + RACK_W, y0 + H) then hover_now_rack = guid end
+  if mouse_in(x0, y0, x0 + RACK_W, y0 + vh) then hover_now_rack = guid end
 
   ------------------------------------------------ frame, sections
   local dl = ig.GetWindowDrawList(ctx)
@@ -213,21 +234,78 @@ function draw_rack(info, x0, y0, H, M, dt, now)
     local base = T.glow & 0xFFFFFF00
     for i = 1, GLOW_M do
       local a = math.floor(170 * (1 - (i - 1) / GLOW_M) ^ 2)
-      ig.DrawList_AddRect(dl, x0 - i, y0 - i, x0 + RACK_W + i, y0 + H + i,
+      ig.DrawList_AddRect(dl, x0 - i, y0 - i, x0 + RACK_W + i, y0 + vh + i,
                           base | a, ROUNDING + 2 + i, 0, 1)
     end
   end
-  ig.DrawList_AddRectFilled(dl, x0, y0, x0 + RACK_W, y0 + H, c.bg, ROUNDING + 2)
-  ig.DrawList_AddRect(dl, x0, y0, x0 + RACK_W, y0 + H,
+  ig.DrawList_AddRectFilled(dl, x0, y0, x0 + RACK_W, y0 + vh, c.bg, ROUNDING + 2)
+  ig.DrawList_AddRect(dl, x0, y0, x0 + RACK_W, y0 + vh,
                       selected and mix(c.border, T.glow, 0.6) or c.border, ROUNDING + 2, 0, selected and 3 or 2)
 
-  local function section(y1, y2)
-    ig.DrawList_AddRectFilled(dl, cx, y1, cx + CENTER_W, y2, c.sec_bg, ROUNDING)
-    ig.DrawList_AddRect(dl, cx, y1, cx + CENTER_W, y2, c.sec_bd, ROUNDING, 0, 1)
+  local function section(y1, y2, wide)
+    local sx, sw = cx, CW
+    if wide then sx, sw = x0 + PAD, RACK_W - 2 * PAD end
+    ig.DrawList_AddRectFilled(dl, sx, y1, sx + sw, y2, c.sec_bg, ROUNDING)
+    ig.DrawList_AddRect(dl, sx, y1, sx + sw, y2, c.sec_bd, ROUNDING, 0, 1)
   end
-  section(hdr_top, hdr_bot)
+
+  -- while the FX section is folded (or folding), everything below the name is cut off at vh
+  local clipped = false
+  local function clip_on()
+    if vh < H - 0.5 and not clipped then
+      -- compact: the handle strip and the padding below it are not content
+      ig.PushClipRect(ctx, x0, y0, x0 + RACK_W, y0 + vh - (compact and (PAD + HANDLE_H) or 0), true)
+      clipped = true
+    end
+  end
+  local function clip_off()
+    if clipped then ig.PopClipRect(ctx); clipped = false end
+  end
+  -- compact: the handle at the bottom of the rack folds and unfolds its FX section. It is
+  -- submitted before everything else (and before the clip below, which would cut it off).
+  local handle
+  if compact then
+    ig.PushID(ctx, guid)
+    local fs = perf_fold_state(guid)
+    local hy = y0 + vh - PAD - HANDLE_H
+    ig.SetCursorScreenPos(ctx, x0 + 2, hy)
+    if not fs.open then fs.pin = false end                  -- a pin only holds an open section
+    if ig.InvisibleButton(ctx, 'fold', RACK_W - 4, HANDLE_H + PAD - 2) then
+      fs.open = not fs.open
+      fs.pin = false                                        -- clicked: the pin is gone (and a folded section isn't pinned)
+      PERF_ACT = now
+      if fs.open then for _, ps in pairs(PERF_PARAMS) do ps.open = false end end   -- widened parameters fold back first
+    end
+    local pinned_now = fs.open and fs.pin
+    handle = { hov = ig.IsItemHovered(ctx), open = fs.open, pin = pinned_now, y = hy + (HANDLE_H + PAD) / 2 }   -- centered between the section above and the bottom edge
+    if ig.IsItemClicked(ctx, 1) then                        -- right-click: pin it open, or take the pin off
+      PERF_ACT = now
+      if pinned_now then
+        fs.pin = false
+      else
+        if not fs.open then
+          fs.open = true
+          for _, ps in pairs(PERF_PARAMS) do ps.open = false end
+        end
+        fs.pin = true
+      end
+    end
+    if handle.hov then
+      ig.SetTooltip(ctx, pinned_now and 'Pinned open: click to fold it' or (fs.open and 'Fold the FX section' or 'Show the FX section'))
+    end
+    hint_hovered(pinned_now
+      and 'Pinned open: it stays open until you click the handle (which folds it)  \194\183  right-click: take the pin off, the section folds back by itself again as set in Display > Fold automatically'
+      or (fs.open
+        and 'Click: fold the FX section  \194\183  right-click: pin it open (a push pin: it stays until you click the handle); it folds back by itself otherwise, as set in Display > Fold automatically'
+        or 'Click: show the FX section (it folds back by itself as set in Display > Fold automatically)  \194\183  right-click: show it pinned open'))
+
+    ig.PopID(ctx)
+  end
+
+  clip_on()
+  section(hdr_top, hdr_bot, compact)
   section(fxs_top, fxs_bot)
-  section(ctl_top, ctl_bot)
+  if not compact then section(ctl_top, ctl_bot) end
 
   -- the drag preview of this rack: its outline, sections and name, as a see-through shape
   local function rack_ghost()
@@ -235,17 +313,17 @@ function draw_rack(info, x0, y0, H, M, dt, now)
     local gdl = ig.GetWindowDrawList(ctx)
     local dx, dy = gx - x0, gy - y0
     local function fade(rgba, a) return (rgba & 0xFFFFFF00) | a end
-    ig.DrawList_AddRectFilled(gdl, gx, gy, gx + RACK_W, gy + H, fade(c.bg, 0xC8), ROUNDING + 2)
-    ig.DrawList_AddRect(gdl, gx, gy, gx + RACK_W, gy + H, c.border, ROUNDING + 2, 0, 3)
-    for _, sec in ipairs({ { hdr_top, hdr_bot }, { fxs_top, fxs_bot }, { ctl_top, ctl_bot } }) do
-      ig.DrawList_AddRectFilled(gdl, cx + dx, sec[1] + dy, cx + dx + CENTER_W, sec[2] + dy, fade(c.sec_bg, 0xB0), ROUNDING)
-      ig.DrawList_AddRect(gdl, cx + dx, sec[1] + dy, cx + dx + CENTER_W, sec[2] + dy, fade(c.sec_bd, 0xFF), ROUNDING, 0, 1)
+    ig.DrawList_AddRectFilled(gdl, gx, gy, gx + RACK_W, gy + vh, fade(c.bg, 0xC8), ROUNDING + 2)
+    ig.DrawList_AddRect(gdl, gx, gy, gx + RACK_W, gy + vh, c.border, ROUNDING + 2, 0, 3)
+    for _, sec in ipairs(compact and { { hdr_top, hdr_bot } } or { { hdr_top, hdr_bot }, { fxs_top, fxs_bot }, { ctl_top, ctl_bot } }) do
+      ig.DrawList_AddRectFilled(gdl, cx + dx, sec[1] + dy, cx + dx + CW, sec[2] + dy, fade(c.sec_bg, 0xB0), ROUNDING)
+      ig.DrawList_AddRect(gdl, cx + dx, sec[1] + dy, cx + dx + CW, sec[2] + dy, fade(c.sec_bd, 0xFF), ROUNDING, 0, 1)
     end
-    ig.DrawList_AddRectFilled(gdl, wx + dx, name_y + dy, wx + dx + WW, name_y + dy + M.name_h, c.name_bg, ROUNDING)
-    local nm = fit_text(raw_name(tr) ~= '' and raw_name(tr) or '(unnamed)', WW - 8)
-    ig.DrawList_AddText(gdl, wx + dx + (WW - ig.CalcTextSize(ctx, nm)) / 2,
-                        name_y + dy + (M.name_h - ig.GetTextLineHeight(ctx)) / 2, c.name_txt, nm)
-    ig.Dummy(ctx, RACK_W, H)
+    ig.DrawList_AddRectFilled(gdl, nx + dx, name_y + dy, nx + dx + NW, name_y + dy + NH, c.name_bg, ROUNDING)
+    local nm = fit_text(raw_name(tr) ~= '' and raw_name(tr) or '(unnamed)', NW - 8)
+    ig.DrawList_AddText(gdl, nx + dx + (NW - ig.CalcTextSize(ctx, nm)) / 2,
+                        name_y + dy + (NH - hb - ig.GetTextLineHeight(ctx)) / 2, c.name_txt, nm)
+    ig.Dummy(ctx, RACK_W, vh)
   end
 
   ig.PushID(ctx, guid)
@@ -254,21 +332,25 @@ function draw_rack(info, x0, y0, H, M, dt, now)
   local by = name_y + (M.name_h - METER_W) / 2
 
   lock_begin(locked)
-  ig.SetCursorScreenPos(ctx, x0 + PAD, by)
-  push_native()
-  ig.PushStyleVar(ctx, ig.StyleVar_FrameRounding(), METER_W / 2)
-  if ig.Button(ctx, 'R##route', METER_W, METER_W) then open_routing(tr) end
-  ig.PopStyleVar(ctx)
-  pop_native()
-  if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Routing window') end
-  hint_hovered('Click: REAPER\'s routing window for this rack')
+  if not compact then
+    ig.SetCursorScreenPos(ctx, x0 + PAD, by)
+    push_native()
+    ig.PushStyleVar(ctx, ig.StyleVar_FrameRounding(), METER_W / 2)
+    if ig.Button(ctx, 'R##route', METER_W, METER_W) then open_routing(tr) end
+    ig.PopStyleVar(ctx)
+    pop_native()
+    if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Routing window') end
+    hint_hovered('Click: REAPER\'s routing window for this rack')
+  end
 
-  ig.SetCursorScreenPos(ctx, x0 + RACK_W - PAD - METER_W, by)
-  ig.PushStyleVar(ctx, ig.StyleVar_FrameRounding(), METER_W / 2)
-  if ig.Button(ctx, '...##opt', METER_W, METER_W) then ig.OpenPopup(ctx, 'rack_opt') end
-  ig.PopStyleVar(ctx)
-  if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Rack Option Menu') end
-  hint_hovered('Click: rack options (level match, duplicate, color, remove FX...); they apply to every selected rack')
+  if not compact then
+    ig.SetCursorScreenPos(ctx, x0 + RACK_W - PAD - METER_W, by)
+    ig.PushStyleVar(ctx, ig.StyleVar_FrameRounding(), METER_W / 2)
+    if ig.Button(ctx, '...##opt', METER_W, METER_W) then ig.OpenPopup(ctx, 'rack_opt') end
+    ig.PopStyleVar(ctx)
+    if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Rack Option Menu') end
+    hint_hovered('Click: rack options (level match, duplicate, color, remove FX...); they apply to every selected rack')
+  end
   lock_end(locked)
 
   if ig.BeginPopup(ctx, 'rack_opt') then
@@ -291,9 +373,11 @@ function draw_rack(info, x0, y0, H, M, dt, now)
     if ig.MenuItem(ctx, 'Recolor automatically') then rack_action(tr, 'Recolor automatically', recolor_rack_auto) end
     if ig.MenuItem(ctx, 'Choose color...') then open_picker('rack', tr) end
     ig.Separator(ctx)
-    if ig.MenuItem(ctx, 'Remove every FX') then rack_action(tr, 'Remove every FX', remove_all_fx) end
+    if ig.MenuItem(ctx, 'Remove every FX') then
+      fx_removal(tr, 'Remove every FX', remove_all_fx, function() return nil end)
+    end
     if ig.MenuItem(ctx, 'Remove bypassed FX') then
-      rack_action(tr, 'Remove bypassed FX', remove_bypassed_fx)
+      fx_removal(tr, 'Remove bypassed FX', remove_bypassed_fx, bypassed_fx_guids)
     end
     ig.Separator(ctx)
     if ig.MenuItem(ctx, 'Revert to regular track') then rack_action(tr, 'Revert to regular track', revert_to_track) end
@@ -316,14 +400,14 @@ function draw_rack(info, x0, y0, H, M, dt, now)
   local ns = name_state[guid]
   if not ns then ns = { editing = false }; name_state[guid] = ns end
   local pushed = push_bold(name_font, NAME_FONT_SIZE)
-  ig.SetCursorScreenPos(ctx, wx, name_y)
+  ig.SetCursorScreenPos(ctx, nx, name_y)
   if locked then ns.editing = false end
 
   if ns.editing then
     if ns.fresh then ig.SetKeyboardFocusHere(ctx); ns.fresh = false end
     ig.PushStyleColor(ctx, ig.Col_Text(), c.name_txt)
     ig.PushStyleColor(ctx, ig.Col_FrameBg(), c.name_bg)
-    ig.SetNextItemWidth(ctx, WW)
+    ig.SetNextItemWidth(ctx, NW)
     local rv, new = ig.InputText(ctx, '##nm', ns.text, ig.InputTextFlags_AutoSelectAll())
     ig.PopStyleColor(ctx, 2)
     if rv then ns.text = new end
@@ -332,20 +416,24 @@ function draw_rack(info, x0, y0, H, M, dt, now)
     if ig.IsItemDeactivatedAfterEdit(ctx) then rename_rack(tr, new) end
     if ns.was_active and not active then ns.editing = false; ns.was_active = false end
   else
-    ig.DrawList_AddRectFilled(dl, wx, name_y, wx + WW, name_y + M.name_h, c.name_bg, ROUNDING)
-    ig.InvisibleButton(ctx, 'name', WW, M.name_h)
+    ig.DrawList_AddRectFilled(dl, nx, name_y, nx + NW, name_y + NH, c.name_bg, ROUNDING)
+    ig.InvisibleButton(ctx, 'name', NW, NH)
     -- click selects the rack (REAPER's track selection); Cmd/Ctrl-click adds or removes it
     if ig.IsItemClicked(ctx, 0) then select_rack(tr, has_mod('ctrl')) end
+    -- right-click: select it in the Parameters tree (Shift: and unfold it, FX and groups)
+    if ig.IsItemClicked(ctx, 1) then param_pick_rack(tr, has_mod('shift')) end
     if locked then
       hint_hovered(('Click: select the rack  \194\183  %s+click: add it to the selection, or take it out'):format(mod_label('ctrl')))
     else
       hint_hovered(('Click: select  \194\183  %s+click: add to / take out of the selection  \194\183  double-click: rename'
-                    .. '  \194\183  drag: reorder  \194\183  %s+drag: duplicate'):format(mod_label('ctrl'), mod_label(COPY_MOD)))
+                    .. '  \194\183  drag: reorder  \194\183  %s+drag: duplicate'
+                    .. '  \194\183  right-click: select it in the Parameters window  \194\183  Shift+right-click: and unfold it')
+                   :format(mod_label('ctrl'), mod_label(COPY_MOD)))
     end
-    local txt = fit_text(raw_name(tr) ~= '' and raw_name(tr) or '(unnamed)', WW - 8)
+    local txt = fit_text(raw_name(tr) ~= '' and raw_name(tr) or '(unnamed)', NW - 8)
     local tw = ig.CalcTextSize(ctx, txt)
     local lh = ig.GetTextLineHeight(ctx)
-    ig.DrawList_AddText(dl, wx + (WW - tw) / 2, name_y + (M.name_h - lh) / 2, c.name_txt, txt)
+    ig.DrawList_AddText(dl, nx + (NW - tw) / 2, name_y + (NH - hb - lh) / 2, c.name_txt, txt)
 
     if not locked then
       if ig.IsItemHovered(ctx) then
@@ -364,78 +452,101 @@ function draw_rack(info, x0, y0, H, M, dt, now)
   end
   if pushed then ig.PopFont(ctx) end
 
-  ------------------------------------------------ In / Out
-  local iow = (WW - spx) / 2
-  lock_begin(locked)
-  ig.SetCursorScreenPos(ctx, wx, io_y)
-  if ig.Button(ctx, 'In: ' .. in_text(tr) .. '##in', iow, fh) then ig.OpenPopup(ctx, 'in_pop') end
-  if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Input: ' .. in_text(tr) .. ' (' .. width_text(io_in) .. ')') end
-  hint_hovered('Click: choose the input (mono, stereo or MIDI); mono in makes the rack mono')
-
-  ig.SetCursorScreenPos(ctx, wx + iow + spx, io_y)
-  if ig.Button(ctx, 'Out: ' .. out_text(tr) .. '##out', iow, fh) then ig.OpenPopup(ctx, 'out_pop') end
-  if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Output: ' .. out_text(tr) .. ' (' .. width_text(io_out) .. ')') end
-  hint_hovered('Click: choose the hardware output (stereo pair or mono)')
-  lock_end(locked)
-
-  if ig.BeginPopup(ctx, 'in_pop') then
-    local cur   = math.floor(reaper.GetMediaTrackInfo_Value(tr, 'I_RECINPUT'))
-    local armed = reaper.GetMediaTrackInfo_Value(tr, 'I_RECARM') == 1
-    local n = audio_device_header(false)
-    if ig.MenuItem(ctx, 'None (receives only)', nil, (not armed) or cur < 0) then set_input(tr, -1) end
-    if n >= 1 and ig.BeginMenu(ctx, 'Mono input') then
-      for i = 0, n - 1 do
-        local nm = reaper.GetInputChannelName(i) or ''
-        if ig.MenuItem(ctx, ('%d  %s'):format(i + 1, nm), nil, armed and cur == i) then set_input(tr, i) end
-      end
-      ig.EndMenu(ctx)
+  -- compact: M and B on the right of the name, rounded rectangles like BYPASS and MUTE
+  if compact then
+    local bx_b = x0 + RACK_W - PAD - SI - mb_w
+    local bx_m = bx_b - spx - mb_w
+    local muted_now = reaper.GetMediaTrackInfo_Value(tr, 'B_MUTE') == 1
+    ig.SetCursorScreenPos(ctx, bx_m, name_y)
+    if muted_now then push_lit(T.mute) end
+    if ig.Button(ctx, 'M##mute_s', mb_w, NH) then
+      reaper.SetMediaTrackInfo_Value(tr, 'B_MUTE', muted_now and 0 or 1)
     end
-    if n >= 2 and ig.BeginMenu(ctx, 'Stereo input') then
-      for i = 0, n - 2, pair_step() do
-        local nm = reaper.GetInputChannelName(i) or ''
-        if ig.MenuItem(ctx, ('%d/%d  %s'):format(i + 1, i + 2, nm), nil, armed and cur == (i | 1024)) then
-          set_input(tr, i | 1024)
-        end
-      end
-      ig.EndMenu(ctx)
-    end
-    local midi_all = 4096 | (63 << 5)
-    if ig.MenuItem(ctx, 'MIDI (all devices, all channels)', nil, armed and cur == midi_all) then
-      set_input(tr, midi_all)
-    end
-    ig.EndPopup(ctx)
+    if muted_now then ig.PopStyleColor(ctx, 3) end
+    if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Mute') end
+    hint_hovered('Click: mute the rack')
+    ig.SetCursorScreenPos(ctx, bx_b, name_y)
+    if bypassed then push_lit(T.byp) end
+    if ig.Button(ctx, 'B##byp_s', mb_w, NH) then set_bypass(tr, not bypassed) end
+    if bypassed then ig.PopStyleColor(ctx, 3) end
+    if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Bypass') end
+    hint_hovered('Click: bypass the whole rack (FX that were off stay off when it comes back)')
   end
 
-  if ig.BeginPopup(ctx, 'out_pop') then
-    local nh = reaper.GetTrackNumSends(tr, 1)
-    local d0 = (nh == 1) and math.floor(reaper.GetTrackSendInfo_Value(tr, 1, 0, 'I_DSTCHAN')) or nil
-    local n = audio_device_header(true)
-    -- an output kept from another interface that this one does not have
-    for i = 0, nh - 1 do
-      local d = math.floor(reaper.GetTrackSendInfo_Value(tr, 1, i, 'I_DSTCHAN'))
-      local last = (d & 1023) + ((d & 1024 ~= 0) and 1 or 2)
-      if n > 0 and last > n then
-        ig.TextDisabled(ctx, ('Current output %s is not on this device.'):format(
-          (d & 1024 ~= 0) and tostring((d & 1023) + 1) or ('%d/%d'):format((d & 1023) + 1, (d & 1023) + 2)))
-        break
+  ------------------------------------------------ In / Out
+  if not compact then
+    local iow = (WW - spx) / 2
+    lock_begin(locked)
+    ig.SetCursorScreenPos(ctx, wx, io_y)
+    if ig.Button(ctx, 'In: ' .. in_text(tr) .. '##in', iow, fh) then ig.OpenPopup(ctx, 'in_pop') end
+    if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Input: ' .. in_text(tr) .. ' (' .. width_text(io_in) .. ')') end
+    hint_hovered('Click: choose the input (mono, stereo or MIDI); mono in makes the rack mono')
+
+    ig.SetCursorScreenPos(ctx, wx + iow + spx, io_y)
+    if ig.Button(ctx, 'Out: ' .. out_text(tr) .. '##out', iow, fh) then ig.OpenPopup(ctx, 'out_pop') end
+    if ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, 'Output: ' .. out_text(tr) .. ' (' .. width_text(io_out) .. ')') end
+    hint_hovered('Click: choose the hardware output (mono or stereo pair)')
+    lock_end(locked)
+
+    if ig.BeginPopup(ctx, 'in_pop') then
+      local cur   = math.floor(reaper.GetMediaTrackInfo_Value(tr, 'I_RECINPUT'))
+      local armed = reaper.GetMediaTrackInfo_Value(tr, 'I_RECARM') == 1
+      local n = audio_device_header(false)
+      if ig.MenuItem(ctx, 'None (receives only)', nil, (not armed) or cur < 0) then set_input(tr, -1) end
+      if n >= 1 and ig.BeginMenu(ctx, 'Mono input') then
+        for i = 0, n - 1 do
+          local nm = reaper.GetInputChannelName(i) or ''
+          if ig.MenuItem(ctx, ('%d  %s'):format(i + 1, nm), nil, armed and cur == i) then set_input(tr, i) end
+        end
+        ig.EndMenu(ctx)
       end
-    end
-    if ig.MenuItem(ctx, 'No hardware output', nil, nh == 0) then set_hw_out(tr, nil) end
-    if n >= 2 and ig.BeginMenu(ctx, 'Hardware out: stereo pair') then
-      for i = 0, n - 2, pair_step() do
-        local nm = reaper.GetOutputChannelName(i) or ''
-        if ig.MenuItem(ctx, ('%d/%d  %s'):format(i + 1, i + 2, nm), nil, d0 == i) then set_hw_out(tr, i) end
+      if n >= 2 and ig.BeginMenu(ctx, 'Stereo input') then
+        for i = 0, n - 2, pair_step() do
+          local nm = reaper.GetInputChannelName(i) or ''
+          if ig.MenuItem(ctx, ('%d/%d  %s'):format(i + 1, i + 2, nm), nil, armed and cur == (i | 1024)) then
+            set_input(tr, i | 1024)
+          end
+        end
+        ig.EndMenu(ctx)
       end
-      ig.EndMenu(ctx)
-    end
-    if n >= 1 and ig.BeginMenu(ctx, 'Hardware out: mono') then
-      for i = 0, n - 1 do
-        local nm = reaper.GetOutputChannelName(i) or ''
-        if ig.MenuItem(ctx, ('%d  %s'):format(i + 1, nm), nil, d0 == (i | 1024)) then set_hw_out(tr, i | 1024) end
+      local midi_all = 4096 | (63 << 5)
+      if ig.MenuItem(ctx, 'MIDI (all devices, all channels)', nil, armed and cur == midi_all) then
+        set_input(tr, midi_all)
       end
-      ig.EndMenu(ctx)
+      ig.EndPopup(ctx)
     end
-    ig.EndPopup(ctx)
+
+    if ig.BeginPopup(ctx, 'out_pop') then
+      local nh = reaper.GetTrackNumSends(tr, 1)
+      local d0 = (nh == 1) and math.floor(reaper.GetTrackSendInfo_Value(tr, 1, 0, 'I_DSTCHAN')) or nil
+      local n = audio_device_header(true)
+      -- an output kept from another interface that this one does not have
+      for i = 0, nh - 1 do
+        local d = math.floor(reaper.GetTrackSendInfo_Value(tr, 1, i, 'I_DSTCHAN'))
+        local last = (d & 1023) + ((d & 1024 ~= 0) and 1 or 2)
+        if n > 0 and last > n then
+          ig.TextDisabled(ctx, ('Current output %s is not on this device.'):format(
+            (d & 1024 ~= 0) and tostring((d & 1023) + 1) or ('%d/%d'):format((d & 1023) + 1, (d & 1023) + 2)))
+          break
+        end
+      end
+      if ig.MenuItem(ctx, 'No hardware output', nil, nh == 0) then set_hw_out(tr, nil) end
+      if n >= 1 and ig.BeginMenu(ctx, 'Hardware out: mono') then
+        for i = 0, n - 1 do
+          local nm = reaper.GetOutputChannelName(i) or ''
+          if ig.MenuItem(ctx, ('%d  %s'):format(i + 1, nm), nil, d0 == (i | 1024)) then set_hw_out(tr, i | 1024) end
+        end
+        ig.EndMenu(ctx)
+      end
+      if n >= 2 and ig.BeginMenu(ctx, 'Hardware out: stereo pair') then
+        for i = 0, n - 2, pair_step() do
+          local nm = reaper.GetOutputChannelName(i) or ''
+          if ig.MenuItem(ctx, ('%d/%d  %s'):format(i + 1, i + 2, nm), nil, d0 == i) then set_hw_out(tr, i) end
+        end
+        ig.EndMenu(ctx)
+      end
+      ig.EndPopup(ctx)
+    end
   end
 
   ------------------------------------------------ FX section
@@ -506,6 +617,12 @@ function draw_rack(info, x0, y0, H, M, dt, now)
     end
     if not it.enabled then ig.PopStyleColor(ctx) end
     pop_native()
+    local own_col = fxcol_read(tr)[fx_guid]                  -- a color given to this FX: a tab on the button
+    if own_col then ig.DrawList_AddRectFilled(dl, wx + fh + spx, y + 3, wx + fh + spx + 4, y + fh - 3, (own_col << 8) | 0xFF, 2) end
+    if ig.IsItemHovered(ctx) then hot_now_fx = fx_guid end   -- its Performance rows glow, in its color
+    if row_hot_prev == fx_guid then                          -- one of its Performance rows is pointed at: in that row's color
+      draw_link_glow(dl, wx, y, wx + WW, y + fh, row_hot_col_prev, ROUNDING)
+    end
     if locked then
       hint_hovered('Click: open or close the FX window')
     else
@@ -572,9 +689,22 @@ function draw_rack(info, x0, y0, H, M, dt, now)
         end)
         ig.EndMenu(ctx)
       end
+      if ig.MenuItem(ctx, 'Color...') then fx_open_picker(tr, fx_guid, it.name) end
+      if ig.MenuItem(ctx, 'Inspect FX...') then param_pick_fx(tr, fx_guid) end
       if ig.MenuItem(ctx, 'Delete FX...') then
-        request_confirm(('Delete "%s" from this rack?'):format(clean_fx_name(it.name)),
-          function() delete_fx(tr, fx_guid) end, 'Delete', 'delete_fx')
+        -- with rows in the Performance it always asks, even after "Don't show this again": remove
+        -- the rows too, or keep them for a matching FX to take back
+        local nrows = params_count_fx(tr, { [fx_guid] = true })
+        if nrows > 0 then
+          request_confirm(('Delete "%s" from this rack?\nIt has %d parameter%s in the quick access panel.\n'
+                           .. 'Kept parameters stay greyed out, and come back to life when a matching FX\nis put on this rack again.\n(Ctrl+Z brings everything back.)')
+                          :format(clean_fx_name(it.name), nrows, nrows == 1 and '' or 's'),
+            function() delete_fx(tr, fx_guid) end, 'Delete FX and parameters', nil,
+            { label = 'Delete FX, keep parameters', fn = function() delete_fx(tr, fx_guid, true) end })
+        else
+          request_confirm(('Delete "%s" from this rack?'):format(clean_fx_name(it.name)),
+            function() delete_fx(tr, fx_guid) end, 'Delete', 'delete_fx')
+        end
       end
       ig.Separator(ctx)
       local fl = lat.fx[fx_guid] or 0
@@ -670,82 +800,88 @@ function draw_rack(info, x0, y0, H, M, dt, now)
   end
 
   ------------------------------------------------ controls section
-  local vol = reaper.GetMediaTrackInfo_Value(tr, 'D_VOL')
-  local txt = (vol > 0.000001) and ('%.1f'):format(amp_to_db(vol)) or '-inf'
-  local sbw = fh                                 -- round "send to sidechain bus" button
-  ig.SetCursorScreenPos(ctx, wx, lvl_y)
-  local lv = text_edit(guid .. ':lvl', txt, WW - 30 - spx - sbw - spx)
-  -- Shift + double-click resets the level to 0 dB
-  if ig.IsItemHovered(ctx) and ig.IsMouseDoubleClicked(ctx, 0) and has_mod('shift') then
-    reaper.SetMediaTrackInfo_Value(tr, 'D_VOL', 1.0)
-    local st = edit_state[guid .. ':lvl']
-    if st then st.skip = true; st.active = false end
-    lv = nil
-  end
-  -- Alt-click: 0 dB, or -inf when it already is at 0 dB
-  if ig.IsItemHovered(ctx) and ig.IsMouseClicked(ctx, 0) and has_mod('alt') then
-    local v = reaper.GetMediaTrackInfo_Value(tr, 'D_VOL')
-    reaper.SetMediaTrackInfo_Value(tr, 'D_VOL', (math.abs(v - 1.0) < 0.0001) and 0.0 or 1.0)
-    local st = edit_state[guid .. ':lvl']
-    if st then st.skip = true; st.active = false end
-    lv = nil
-  end
-  hint_hovered(('Click: type a level in dB, Enter to apply  \194\183  %s+click: 0 dB, again: -inf  \194\183  Shift+double-click: 0 dB')
-               :format(mod_label('alt')))
-  if lv then apply_level(tr, lv) end
-  ig.SetCursorScreenPos(ctx, wx + WW - 30 - sbw - spx, lvl_y + M.fpy)
-  ig.Text(ctx, 'dB')
+  if not compact then
+    local vol = reaper.GetMediaTrackInfo_Value(tr, 'D_VOL')
+    local txt = (vol > 0.000001) and ('%.1f'):format(amp_to_db(vol)) or '-inf'
+    local sbw = fh                                 -- round "send to sidechain bus" button
+    ig.SetCursorScreenPos(ctx, wx, lvl_y)
+    local lv = text_edit(guid .. ':lvl', txt, WW - 30 - spx - sbw - spx)
+    -- Shift + double-click resets the level to 0 dB
+    if ig.IsItemHovered(ctx) and ig.IsMouseDoubleClicked(ctx, 0) and has_mod('shift') then
+      reaper.SetMediaTrackInfo_Value(tr, 'D_VOL', 1.0)
+      local st = edit_state[guid .. ':lvl']
+      if st then st.skip = true; st.active = false end
+      lv = nil
+    end
+    -- Alt-click: 0 dB, or -inf when it already is at 0 dB
+    if ig.IsItemHovered(ctx) and ig.IsMouseClicked(ctx, 0) and has_mod('alt') then
+      local v = reaper.GetMediaTrackInfo_Value(tr, 'D_VOL')
+      reaper.SetMediaTrackInfo_Value(tr, 'D_VOL', (math.abs(v - 1.0) < 0.0001) and 0.0 or 1.0)
+      local st = edit_state[guid .. ':lvl']
+      if st then st.skip = true; st.active = false end
+      lv = nil
+    end
+    hint_hovered(('Click: type a level in dB, Enter to apply  \194\183  %s+click: 0 dB, again: -inf  \194\183  Shift+double-click: 0 dB')
+                 :format(mod_label('alt')))
+    if lv then apply_level(tr, lv) end
+    ig.SetCursorScreenPos(ctx, wx + WW - 30 - sbw - spx, lvl_y + M.fpy)
+    ig.Text(ctx, 'dB')
 
-  local nsend = n_bus_sends(tr)
-  lock_begin(locked)
-  if round_button(dl, '##scsend', wx + WW - sbw, lvl_y, sbw, nsend > 0,
-                  function(kx, ky, ink)
-                    local tw, th = ig.CalcTextSize(ctx, 'SC')
-                    ig.DrawList_AddText(dl, kx - tw / 2, ky - th / 2, ink, 'SC')
-                  end,
-                  nsend > 0 and ('Sends to %d sidechain bus%s'):format(nsend, nsend > 1 and 'ses' or '')
-                             or 'Send to a sidechain bus') then
-    ig.OpenPopup(ctx, 'sc_send')
-  end
-  hint_hovered('Click: send this rack to sidechain busses, with a send level')
-  lock_end(locked)
-  if ig.BeginPopup(ctx, 'sc_send') then
-    draw_bus_sends(tr)
-    ig.EndPopup(ctx)
+    local nsend = n_bus_sends(tr)
+    lock_begin(locked)
+    if round_button(dl, '##scsend', wx + WW - sbw, lvl_y, sbw, nsend > 0,
+                    function(kx, ky, ink)
+                      local tw, th = ig.CalcTextSize(ctx, 'SC')
+                      ig.DrawList_AddText(dl, kx - tw / 2, ky - th / 2, ink, 'SC')
+                    end,
+                    nsend > 0 and ('Sends to %d sidechain bus%s'):format(nsend, nsend > 1 and 'ses' or '')
+                               or 'Send to a sidechain bus') then
+      ig.OpenPopup(ctx, 'sc_send')
+    end
+    hint_hovered('Click: send this rack to sidechain busses, with a send level')
+    lock_end(locked)
+    if ig.BeginPopup(ctx, 'sc_send') then
+      draw_bus_sends(tr)
+      ig.EndPopup(ctx)
+    end
   end
 
-  local hw = (WW - spx) / 2
-  ig.SetCursorScreenPos(ctx, wx, btn_y)
-  if bypassed then ig.PushStyleColor(ctx, ig.Col_Button(), T.byp) end
-  if ig.Button(ctx, 'BYPASS##byp', hw, M.btn_h) then set_bypass(tr, not bypassed) end
-  hint_hovered('Click: bypass the whole rack (FX that were off stay off when it comes back)')
-  if bypassed then ig.PopStyleColor(ctx) end
+  if not compact then
+    local hw = (WW - spx) / 2
+    ig.SetCursorScreenPos(ctx, wx, btn_y)
+    if bypassed then push_lit(T.byp) end
+    if ig.Button(ctx, 'BYPASS##byp', hw, M.btn_h) then set_bypass(tr, not bypassed) end
+    hint_hovered('Click: bypass the whole rack (FX that were off stay off when it comes back)')
+    if bypassed then ig.PopStyleColor(ctx, 3) end
 
-  ig.SetCursorScreenPos(ctx, wx + hw + spx, btn_y)
-  local muted = reaper.GetMediaTrackInfo_Value(tr, 'B_MUTE') == 1
-  if muted then ig.PushStyleColor(ctx, ig.Col_Button(), T.mute) end
-  if ig.Button(ctx, 'MUTE##mute', hw, M.btn_h) then
-    reaper.SetMediaTrackInfo_Value(tr, 'B_MUTE', muted and 0 or 1)
+    ig.SetCursorScreenPos(ctx, wx + hw + spx, btn_y)
+    local muted = reaper.GetMediaTrackInfo_Value(tr, 'B_MUTE') == 1
+    if muted then push_lit(T.mute) end
+    if ig.Button(ctx, 'MUTE##mute', hw, M.btn_h) then
+      reaper.SetMediaTrackInfo_Value(tr, 'B_MUTE', muted and 0 or 1)
+    end
+    hint_hovered('Click: mute the rack')
+    if muted then ig.PopStyleColor(ctx, 3) end
   end
-  hint_hovered('Click: mute the rack')
-  if muted then ig.PopStyleColor(ctx) end
 
   ------------------------------------------------ meters: from under the name to the bottom of the buttons
   -- a rack is being dragged: fade the original, outline the one under the cursor and drop on it
+  clip_off()
   if drag_prev_rack then
     local copying = has_mod(COPY_MOD)
-    local over = mouse_in(x0, y0, x0 + RACK_W, y0 + H)
+    local over = mouse_in(x0, y0, x0 + RACK_W, y0 + vh)
     if drag_prev_rack == guid and not copying then
-      ig.DrawList_AddRectFilled(dl, x0, y0, x0 + RACK_W, y0 + H, S.daylight and 0xFFFFFF99 or 0x00000099, ROUNDING + 2)
+      ig.DrawList_AddRectFilled(dl, x0, y0, x0 + RACK_W, y0 + vh, S.daylight and 0xFFFFFF99 or 0x00000099, ROUNDING + 2)
     elseif not locked and over then
-      ig.DrawList_AddRect(dl, x0 - 2, y0 - 2, x0 + RACK_W + 2, y0 + H + 2, copying and COPY_BADGE or T.glow, ROUNDING + 4, 0, 3)
+      ig.DrawList_AddRect(dl, x0 - 2, y0 - 2, x0 + RACK_W + 2, y0 + vh + 2, copying and COPY_BADGE or T.glow, ROUNDING + 4, 0, 3)
       if ig.IsMouseReleased(ctx, 0) then
         pending_racks[#pending_racks + 1] = { src = drag_prev_rack, dst = tr, copy = copying }
       end
     end
   end
 
-  if metering then
+  clip_on()
+  if metering and not compact then
     local my1, my2 = io_y, btn_y + M.btn_h
     draw_meter(dl, x0 + PAD, my1, my2, m.lv_in, m.hold_in, m.clip_in, 'min', io_in == W_MONO)
     draw_meter(dl, x0 + RACK_W - PAD - METER_W, my1, my2, m.lv_out, m.hold_out, m.clip_out, 'mout', io_out == W_MONO)
@@ -787,6 +923,28 @@ function draw_rack(info, x0, y0, H, M, dt, now)
     end
   end
 
+  clip_off()
+
+  -- the handle's chevron, over everything: down when folded, up when open; a push pin in a contrasting
+  -- color when it is pinned open
+  if handle then
+    local hx = x0 + RACK_W / 2
+    local hcol = (c.ink & 0xFFFFFF00) | (handle.hov and 0xFF or 0xA0)
+    local dir = handle.open and -3 or 3
+    if handle.pin then
+      draw_pin(dl, hx, handle.y, contrast_glow(tr))
+    else
+      ig.DrawList_AddLine(dl, hx - 12, handle.y - dir * 0.5, hx, handle.y + dir * 0.5, hcol, 2.5)
+      ig.DrawList_AddLine(dl, hx, handle.y + dir * 0.5, hx + 12, handle.y - dir * 0.5, hcol, 2.5)
+    end
+    -- Performance mode, Show mode: thin horizontal meters either side of the chevron (input on the
+    -- left, output on the right) are the only meters; the FX section has the full width.
+    if metering then
+      draw_hbar(dl, x0 + PAD + SI, hx - 20, handle.y, m.lv_in, m.hold_in, m.clip_in, io_in == W_MONO, 1)
+      draw_hbar(dl, hx + 20, x0 + RACK_W - PAD - SI, handle.y, m.lv_out, m.hold_out, m.clip_out, io_out == W_MONO, 1, true)   -- mirrored: its top and clip marker are next to the chevron
+    end
+  end
+
   -- latency watchdog: flashing tag on the rack's top border
   if alert then
     local ms = lat.counted * 1000 / sample_rate()
@@ -797,7 +955,7 @@ function draw_rack(info, x0, y0, H, M, dt, now)
         -- the whole rack is over its limit: its frame flashes red (drawn first, the tag goes on top).
         -- Same outline and corners as the rack's own frame, and thicker (2, or 3 when selected), so
         -- the rack's color doesn't show through
-        ig.DrawList_AddRect(dl, x0, y0, x0 + RACK_W, y0 + H, ALERT_RED, ROUNDING + 2, 0, 4)
+        ig.DrawList_AddRect(dl, x0, y0, x0 + RACK_W, y0 + vh, ALERT_RED, ROUNDING + 2, 0, 4)
       end
       local x1, y1, x2, y2 = draw_alert_pill(dl, px, py, ('!!  %s  %.1f ms'):format(what, ms))
       ig.DrawList_AddRect(dl, x1, y1, x2, y2, WHITE, (y2 - y1) / 2, 0, 1)   -- thin outline, readable on any color
@@ -822,4 +980,3 @@ function draw_rack(info, x0, y0, H, M, dt, now)
 
   ig.PopID(ctx)
 end
-

@@ -2,7 +2,7 @@
 -- Part of FOH-Mate, loaded by FOHMate.lua (see the note there).
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
--- SPDX-License-Identifier: GPL-3.0-or-later
+-- SPDX-License-Identifier: MIT
 
 ---------------------------------------------------------------- FX latency list
 --
@@ -160,9 +160,9 @@ function latdb_over(e)
   return e and not e.allowed and e.src ~= 'failed' and (latency_counted(e.name, e.lat or 0)) > LAT_LIMIT
 end
 
----------------------------------------- one plugin in several formats
+---------------------------------------- one FX in several formats
 --
--- Some formats report 0 latency where another format of the same plugin reports
+-- Some formats report 0 latency where another format of the same FX reports
 -- the real figure (often AU vs VST3). With Latency > Count every format at its
 -- highest latency, an FX counts with the highest figure any of its formats
 -- reports. Only FOH-Mate's alerts, limits and figures use it: REAPER's own
@@ -170,7 +170,7 @@ end
 --
 -- Formats are matched on name and developer, leaving out the type ("VST3: "), a
 -- channel count at the end ("(4ch)", "(4->8ch)", "(2 out)"), spaces, and the
--- developer's name inside the plugin's name:
+-- developer's name inside the FX's name:
 --   "VST3: FabFilter Pro-Q 3 (FabFilter) (4ch)" and "AU: Pro-Q 3 (FabFilter)"
 --   both give "pro-q3|fabfilter". JSFX exist in one format only and are left out.
 
@@ -187,7 +187,7 @@ function fx_family_key(name)
   dev = dev:gsub('%s', '')
   if dev ~= '' then
     local short = base:gsub(dev:gsub('%p', '%%%0'), '')
-    if short ~= '' then base = short end     -- a plugin named just like its developer keeps its name
+    if short ~= '' then base = short end     -- an FX named just like its developer keeps its name
   end
   return base .. '|' .. dev
 end
@@ -251,7 +251,7 @@ end
 ---------------------------------------- favorite and recently used FX
 --
 -- Both are plain lists of full FX names, one per line, in the data folder:
---   favorites.txt   FX starred in FX > Plugin list...
+--   favorites.txt   FX starred in FX > FX list...
 --   recent_fx.txt   FX picked from an FX menu, newest first
 
 FAV_FILE    = LATDB_DIR .. '/favorites.txt'
@@ -394,8 +394,7 @@ function check_new_fx(now)
       and 'FOH-Mate can measure the latency of your %d installed effects, so the\nlatency watchdog knows them before you load them.\n\n'
       or  '%d new effects were found since the last latency scan.\n\n')
       .. 'Each one is loaded once on a hidden track and removed. Audio may glitch while\n'
-      .. 'it runs, so do it when nothing is live. Save your project first: a plug-in that\n'
+      .. 'it runs, so do it when nothing is live. Save your project first: an FX that\n'
       .. 'crashes on load can take REAPER down (it is skipped next time).\n\nScan now?'
   request_confirm(text:format(#list), function() start_scan(list) end, 'Scan', 'new_fx')
 end
-

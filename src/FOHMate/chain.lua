@@ -2,7 +2,7 @@
 -- Part of FOH-Mate, loaded by FOHMate.lua (see the note there).
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
--- SPDX-License-Identifier: GPL-3.0-or-later
+-- SPDX-License-Identifier: MIT
 
 ---------------------------------------------------------------- chain
 
@@ -93,7 +93,8 @@ end
 function is_bypassed(tr, list)
   if not get_saved_bypass(tr) then return false end
   for _, it in ipairs(list) do
-    if it.enabled then
+    -- (an FX that is offline, like one Show mode took offline for latency, can't be switched off)
+    if it.enabled and not reaper.TrackFX_GetOffline(tr, it.fx) then
       -- an FX was re-enabled by hand: forget the stale bypass state
       reaper.GetSetMediaTrackInfo_String(tr, EXT_BYPASS, '', true)
       return false
@@ -126,21 +127,41 @@ function unbypass_if_needed(tr)
   if get_saved_bypass(tr) then set_bypass(tr, false) end
 end
 
-function remove_all_fx(tr)
+-- keep_rows: the FX's rows in the Performance stay (greyed out), for a new instance of the same
+-- FX to take back (params_relink)
+function remove_all_fx(tr, keep_rows)
   with_undo('Rack: remove every FX', function()
     local list = chain_info(tr).list
     for i = #list, 1, -1 do reaper.TrackFX_Delete(tr, list[i].fx) end
     reaper.GetSetMediaTrackInfo_String(tr, EXT_BYPASS, '', true)
+    if not keep_rows then params_drop_fx(tr, nil) end
   end)
 end
 
-function remove_bypassed_fx(tr)
+-- the FX "Remove bypassed FX" takes away (with the rack bypassed: those that were off before)
+function bypassed_fx_guids(tr)
+  local s = get_saved_bypass(tr)
+  local states = {}
+  if s then for v in s:gmatch('[01]') do states[#states + 1] = v end end
+  local out = {}
+  for i, it in ipairs(chain_info(tr).list) do
+    if (s and states[i] == '0') or (not s and not it.enabled) then out[reaper.TrackFX_GetFXGUID(tr, it.fx)] = true end
+  end
+  return out
+end
+
+function remove_bypassed_fx(tr, keep_rows)
   with_undo('Rack: remove bypassed FX', function()
     unbypass_if_needed(tr)
     local list = chain_info(tr).list
+    local gone = {}
     for i = #list, 1, -1 do
-      if not list[i].enabled then reaper.TrackFX_Delete(tr, list[i].fx) end
+      if not list[i].enabled then
+        gone[reaper.TrackFX_GetFXGUID(tr, list[i].fx)] = true
+        reaper.TrackFX_Delete(tr, list[i].fx)
+      end
     end
+    if not keep_rows then params_drop_fx(tr, gone) end
   end)
 end
 
@@ -187,6 +208,7 @@ function add_fx_to_rack(tr, ident)
       local info = chain_info(tr)
       if info.out_fx and idx > info.out_fx then move_fx(tr, idx, info.out_fx) end
       fit_new_fx(tr, g)
+      params_relink(tr, g)
     end
   end)
 end
@@ -199,6 +221,7 @@ function insert_fx_at(tr, ident, pos)
       local g = reaper.TrackFX_GetFXGUID(tr, idx)
       move_fx(tr, idx, pos)
       fit_new_fx(tr, g)
+      params_relink(tr, g)
     end
   end)
 end
@@ -225,14 +248,15 @@ function replace_fx(tr, old_guid, ident)
         sc_write(tr, map)
       end
       fit_new_fx(tr, new_guid)
+      params_relink(tr, new_guid)
     end
   end)
 end
 
-function delete_fx(tr, guid)
+function delete_fx(tr, guid, keep_rows)
   with_undo('Rack: delete FX', function()
     local pos = fx_index_by_guid(tr, guid)
     if pos then reaper.TrackFX_Delete(tr, pos) end
+    if not keep_rows then params_drop_fx(tr, { [guid] = true }) end
   end)
 end
-

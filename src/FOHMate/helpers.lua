@@ -2,7 +2,7 @@
 -- Part of FOH-Mate, loaded by FOHMate.lua (see the note there).
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
--- SPDX-License-Identifier: GPL-3.0-or-later
+-- SPDX-License-Identifier: MIT
 
 ---------------------------------------------------------------- helpers
 
@@ -91,10 +91,29 @@ function fit_text(s, w)
   return s .. '...'
 end
 
+UNDO_DEPTH, UNDO_PENDING, UNDO_T = 0, nil, 0
 function with_undo(label, fn)
   reaper.Undo_BeginBlock2(0)
+  UNDO_DEPTH = UNDO_DEPTH + 1
   fn()
+  UNDO_DEPTH = UNDO_DEPTH - 1
   reaper.Undo_EndBlock2(0, label, -1)
+end
+
+-- An edit made outside a with_undo block (the Inspector's limits, curve, list values...) gets its own
+-- undo point once it has been still for half a second (so a drag or a run of wheel notches is one point,
+-- not one per frame). undo_mark notes the change; undo_commit (every frame, and before an Undo) writes the point.
+function undo_mark(label)
+  if UNDO_DEPTH > 0 then return end
+  UNDO_PENDING, UNDO_T = label, reaper.time_precise()
+end
+
+function undo_commit(force)
+  if not UNDO_PENDING then return end
+  if force or reaper.time_precise() - UNDO_T > 0.5 then
+    reaper.Undo_OnStateChangeEx2(0, UNDO_PENDING, 1, -1)      -- 1: the track configuration (where the rows are kept)
+    UNDO_PENDING = nil
+  end
 end
 
 function has_mod(name)
@@ -104,6 +123,26 @@ function has_mod(name)
   elseif name == 'alt' then flag = ig.Mod_Alt()
   else flag = ig.Mod_Ctrl() end
   return (mods & flag) ~= 0
+end
+
+-- a modifier held now, also when the FOH-Mate window under the mouse doesn't have the keyboard focus (ImGui
+-- only knows the keys of the focused window): asked of the system through js_ReaScriptAPI when it is
+-- installed. For the wheel over a control, which then works without a click in the window first.
+function mod_down(name)
+  if has_mod(name) then return true end
+  if not reaper.JS_Mouse_GetState then return false end
+  local bit = (name == 'shift' and 8) or (name == 'alt' and 16) or 4      -- 4: Cmd on a Mac, Ctrl elsewhere
+  return (reaper.JS_Mouse_GetState(bit) & bit) ~= 0
+end
+
+-- Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z pressed in a FOH-Mate window go to REAPER's Undo and Redo (ImGui keeps
+-- the keys, so REAPER wouldn't see them). Not while typing in a box: the box has its own undo.
+function pass_undo_keys()
+  if not ig.IsWindowFocused(ctx, ig.FocusedFlags_AnyWindow()) or ig.IsAnyItemActive(ctx) then return end
+  if has_mod('ctrl') and ig.IsKeyPressed(ctx, ig.Key_Z(), false) then
+    undo_commit(true)                                        -- an edit still waiting for its point is one too
+    reaper.Main_OnCommand(has_mod('shift') and 40030 or 40029, 0)     -- Edit: Redo / Edit: Undo
+  end
 end
 
 -- the name of a modifier key as printed on this system's keyboard
@@ -128,9 +167,13 @@ end
 -- what is being dragged right now (a rack's guid / "guid|fxindex"); the "prev" values
 -- are last frame's, so every rack can react to a drag that started in another one
 drag_now_rack, drag_now_fx, drag_prev_rack, drag_prev_fx = nil, nil, nil, nil
+drag_now_row, drag_prev_row = nil, nil   -- a Performance row being dragged: "rack guid|row number"
 lat_over_racks = 0      -- racks over the latency limit, counted while drawing
 SHOWOFF_MSG = nil       -- "N FX taken offline" after switching to Show
 hover_now_rack, hover_prev_rack = nil, nil   -- rack under the pointer (guid), same idea
+hot_now_fx, hot_prev_fx = nil, nil           -- FX whose name is under the pointer (guid): its Performance rows glow
+row_hot_now, row_hot_prev = nil, nil         -- FX of the Performance row under the pointer (guid): it glows in its rack
+row_hot_col_now, row_hot_col_prev = nil, nil -- ... in the color of that row (0xRRGGBBAA)
 
 -- will dropping what is being dragged make a copy?
 -- FX: copy key held, or dropped on another rack without the move key. Racks: copy key held.
@@ -185,13 +228,13 @@ function rack_index(tr)
   return nil
 end
 
--- the window being drawn ('latlist', 'settings'; nil = Plugins Host). A confirmation opens over the
--- window that asked for it: opened over Plugins Host it can hide behind the other window and block
+-- the window being drawn ('latlist', 'settings'; nil = Racks). A confirmation opens over the
+-- window that asked for it: opened over Racks it can hide behind the other window and block
 -- every FOH-Mate window until answered.
 CONFIRM_HOST = nil
-MAIN_CENTER, MAIN_DOCKED = nil, false   -- Plugins Host, as of its last frame
+MAIN_CENTER, MAIN_DOCKED = nil, false   -- the Racks window, as of its last frame
 
--- Plugins Host docked: the floating FOH-Mate windows stay in front of it and would hide its
+-- the Racks window docked: the floating FOH-Mate windows stay in front of it and would hide its
 -- boxes. Returns the open one used last (its id), or nil.
 function floating_host()
   if not MAIN_DOCKED then return nil end
@@ -203,22 +246,58 @@ function floating_host()
   return best
 end
 
+-- How a field reads, everywhere: its caption first, then the field (the value), then its unit.
+-- field_caption draws the caption and puts the field col pixels from where the caption starts (fields
+-- of a group line up when they share col); tip shows over the caption too. field_unit writes the unit.
+function field_caption(caption, col, tip)
+  local x0 = ig.GetCursorPosX(ctx)
+  ig.AlignTextToFramePadding(ctx)
+  ig.Text(ctx, caption)
+  if tip and ig.IsItemHovered(ctx) then ig.SetTooltip(ctx, tip) end
+  ig.SameLine(ctx, x0 + col)
+end
+
+function field_unit(unit)
+  if not unit or unit == '' then return end
+  ig.SameLine(ctx, 0, 4)
+  ig.AlignTextToFramePadding(ctx)
+  ig.Text(ctx, unit)
+end
+
+-- a slider's format split in the number and its unit ('%d px' > '%d', 'px')
+function fmt_unit(fmt)
+  if not fmt then return nil, '' end
+  local f, unit = fmt:match('^(%%[^%s]+)%s+(.+)$')
+  if f then return f, (unit:gsub('%%%%', '%%')) end
+  return fmt, ''
+end
+
+-- A section that folds, the way every one in FOH-Mate looks: its title bold and a little bigger
+-- than the text (SECT_FONT_SIZE). open: unfolded at first. Returns true while it is unfolded.
+function section_header(title, open)
+  local pushed = push_bold(sect_font, SECT_FONT_SIZE)
+  local shown = ig.CollapsingHeader(ctx, title, nil, open and ig.TreeNodeFlags_DefaultOpen() or 0)
+  if pushed then ig.PopFont(ctx) end
+  return shown
+end
+
 -- id: only for popups that are not critical. The box then has a "Don't show this
 -- again" checkbox; once hidden, the popup is answered "yes" without showing.
-function request_confirm(text, yes, label, id)
+-- alt: a second answer, { label = ..., fn = ... }, as a button between the first one and Cancel.
+function request_confirm(text, yes, label, id, alt)
   if id and popup_hidden(id) then
     later[#later + 1] = function() yes(); last_scan = -math.huge end
     return
   end
   local host, over_main = CONFIRM_HOST, false
   if not host then
-    -- asked by Plugins Host: opened from a floating window when one would hide it, still centered
-    -- on Plugins Host
+    -- asked by the Racks window: opened from a floating window when one would hide it, still centered
+    -- on the Racks window
     host = floating_host() or 'main'
     over_main = host ~= 'main'
   end
   confirm = { text = text, yes = yes, label = label or 'Yes', host = host, over_main = over_main,
-              id = id, dont_show = false }
+              id = id, dont_show = false, alt = alt }
   confirm_open = true
 end
 
