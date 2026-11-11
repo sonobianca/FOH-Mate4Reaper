@@ -13,6 +13,7 @@ A rack-based FX panel built with ReaImGui. A few REAPER tracks become racks, eac
 - **Level match,** duplicate a rack or use it as a template, rack colors and a Daylight theme.
 - **Latency watchdog.** Racks and FX that add more latency than your limit flash an alert. An FX installed in several formats (AU, VST3...) can count at its highest latency, since some formats report 0.
 - **FX list** of every installed FX, with favorites, developers, latency and scan status.
+- **Performance mode** (work in progress): every rack in one row, each with a quick access panel of its critical parameters (encoders, bands, pans, drop-downs, toggles) with limits and value curves.
 
 ## Requirements
 REAPER 7.x and ReaImGui (install it from ReaPack, ReaTeam Extensions). Developed and tested on macOS with REAPER 7.84; Windows and Linux are untested.
