@@ -17,7 +17,7 @@ window, away from your playback tracks, so the mixer and the track view stay cle
 > **Status: work in progress (v0.x).** It is used and tested on macOS with REAPER 7.84. Windows and
 > Linux are untested. Expect rough edges and changes between versions.
 
-![Racks](docs/screenshot.png)
+![Racks](docs/img/racks-window.png)
 
 **Contents:** [What it does](#what-it-does) · [Quick start](#quick-start) · [Requirements](#requirements) ·
 [Installation on a fresh REAPER](#installation-on-a-fresh-reaper) · [Using FOH-Mate](#using-foh-mate) ·
@@ -420,6 +420,8 @@ where you are.
 - The small yellow mark is the **default**: double-click the control to go back to it.
 - A small box between the control and the name shows the value, turned a quarter turn.
 
+<img src="docs/img/parameters-window.png" width="402" alt="The Parameters window: a rack, its FX and their parameters, with tick boxes">
+
 **Adding parameters: the Parameters window.** Click the **+** at the end of a panel (or **Display >
 Windows > Show parameter treeview**). It is a tree of every rack, its FX, their groups (an EQ's **Band 1**, **Band 2**...)
 and their parameters, with a search box. Tick a parameter, a group or a whole FX to put it in (or take it
@@ -434,6 +436,8 @@ inspector**), in sections that fold:
 
 - **Control**, **Direction and default** (invert it, move or remove the default mark), **Preview** (the
   control itself, which can be turned) and **Details** (what REAPER says about the parameter).
+<img src="docs/img/inspector-limit-values.png" width="394" alt="The Inspector: Limit values, a Range on the range selector">
+
 - **Limit values**, the values the control may give:
   - **Range**: a Min and a Max, on a bar with an arrow at each end (drag an arrow or the round handle
     under it, or the blue part, or the handle over it, to move the whole range). The control stops at Min
@@ -450,8 +454,10 @@ inspector**), in sections that fold:
     moved from the FX's own window or MIDI learn and stays outside its limits for half a second, it goes
     back to the nearest allowed value (not when it has an automation envelope). A small red lock and a red
     glow show it on the parameter.
-- **Curve**: how the value follows the control: **Linear**, **Ease in**, **Ease out**, or **Custom points**
+- **Curve** (below): how the value follows the control: **Linear**, **Ease in**, **Ease out**, or **Custom points**
   (click to add a point, drag it, right-click to remove it). Curves can be saved and reused.
+
+  <img src="docs/img/inspector-curve.png" width="382" alt="The Inspector: a curve with custom points">
 - When the value and the control can differ (a curve, Limit only values, a gap), a small pink dot on the
   control's ring shows where it is turned to; the hand shows the value.
 

@@ -8,19 +8,6 @@ How Performance mode is built (a work in progress, in the 0.14 versions). How to
 An optional view, switched on and off with **Display > Performance mode** (saved for REAPER, not per
 project). Edit and Show keep working inside it.
 
-```
- ┌ top bar ─────────────────────────────────────────────────────────────────────┐
- │ RACK 1                   │ RACK 2                   │ RACK 3        │ ... →   │   one row,
- │ name, In/Out, FX boxes   │                          │               │         │   scrolls sideways
- │ level, BYPASS, MUTE      │                          │               │         │
- ├──────────────────────────┼──────────────────────────┼───────────────┼─────────┤
- │ Threshold        (o)     │ Ratio            (o)     │      (+)      │         │   a quick access
- │ (o)        Attack        │ (o)        Mix           │               │         │   panel per rack,
- │ Gain             (o)     │ HPF freq       (v)       │               │         │   its own scroll
- │ (+)                      │ (+)                      │               │         │
- └──────────────────────────┴──────────────────────────┴───────────────┴─────────┘
-```
-
 - **Edit mode:** full racks. **Show mode:** a rack is its name with **M** and **B**; the handle under it
   unfolds the FX section (with thin horizontal meters either side of the handle), pushing only that
   rack's panel down. Open sections fold back after a time without activity (Settings, default 15 s;
@@ -37,6 +24,9 @@ project). Edit and Show keep working inside it.
 - **The Parameters window** (a tree of every rack, FX, group and parameter, with tick boxes) adds and
   removes parameters; **the Inspector** sets the one selected. Both are windows of their own that dock
   separately; Show mode closes them, Edit mode brings them back.
+
+<img src="img/parameters-window.png" width="402" alt="The Parameters window">
+<img src="img/inspector-limit-values.png" width="394" alt="The Inspector, Limit values">
 
 ## The parts, and what other modules can reuse
 
