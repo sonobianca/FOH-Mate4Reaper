@@ -17,7 +17,7 @@ window, away from your playback tracks, so the mixer and the track view stay cle
 > **Status: work in progress (v0.x).** It is used and tested on macOS with REAPER 7.84. Windows and
 > Linux are untested. Expect rough edges and changes between versions.
 
-![Racks](docs/img/racks-window.png)
+<img src="docs/img/racks-window.png" width="840" alt="The Racks window: five racks in Edit mode, with the help line and the status bar">
 
 **Contents:** [What it does](#what-it-does) · [Quick start](#quick-start) · [Requirements](#requirements) ·
 [Installation on a fresh REAPER](#installation-on-a-fresh-reaper) · [Using FOH-Mate](#using-foh-mate) ·
@@ -197,18 +197,11 @@ keyboard shortcut, select it in **Actions > Show action list...** and click **Ad
 
 ### A rack at a glance
 
-```
- (R)  [      Rack name      ]  (...)      R   = routing window
-  |   [ In: 1   |  Out: 1/2 ]   |        ... = Rack Option Menu
-  |   ------------------------   |
-  |   (o) FX one                 |        (o) = FX on/off, click a name to open the FX window
-  |   (o) FX two                 |
-  |   (+)               [A/B]    |        + = add an FX, A/B = invert every FX on/off
-  |   ------------------------   |
-  |   [ 0.0            ] dB      |
-  |   [ BYPASS ]  [ MUTE ]       |
- input meter                output meter
-```
+<img src="docs/img/rack.png" width="250" alt="One rack">
+
+From the top: **R** (routing window), the name and **...** (Rack Option Menu), **In** and **Out**, the FX
+chain (**+** adds an FX, **A/B** inverts every FX on/off), the level in dB with **SC**, **BYPASS** and **MUTE**,
+and the input and output meters on each side.
 
 - **Name:** click to select the rack, double-click to rename, drag to reorder.
 - **In / Out:** pick the hardware input (mono, stereo or MIDI) and the hardware output.
@@ -260,13 +253,19 @@ The switch at the top left of the main bar toggles the mode (it is remembered be
 | Add, insert, replace, delete, move, copy FX | yes | locked |
 | Rack Option Menu | yes | locked |
 
+<img src="docs/img/show-mode-racks.png" width="840" alt="Show mode: the switch is red, everything but the controls is locked; an FX over the latency limit is offline, its name struck through">
+
 ### Selecting racks
 
 Click a rack's name to select it, and Cmd-click (Ctrl-click on Windows) to add or remove racks from
 the selection. Selection is REAPER's own track selection, so both stay in sync. Selected racks glow.
 Click empty space to deselect.
 
+<img src="docs/img/select-racks.png" width="840" alt="Two racks selected: they glow">
+
 ### The Rack Option Menu (the `...` button)
+
+<img src="docs/img/rack-option-menu.png" width="470" alt="The Rack Option Menu">
 
 | Item | What it does |
 |---|---|
@@ -283,6 +282,9 @@ If you open the menu on a **selected** rack, the action applies to **all selecte
 confirmation. Everything is undoable with REAPER's undo.
 
 ### Adding and changing FX
+
+<img src="docs/img/add-fx-menu.png" width="700" alt="The + menu: search, Favorites, Recently used, by developer, all FX">
+<img src="docs/img/fx-menu.png" width="300" alt="Right-click an FX">
 
 - **+ button** (or right-click an FX > **Insert FX**): a menu of your installed FX. Every entry shows
   its type before the name (`VST3: ...`, `AU: ...`, `JS: ...`), so formats of the same FX can be
@@ -302,6 +304,9 @@ confirmation. Everything is undoable with REAPER's undo.
 - **FX > FX types** limits the menus to the FX types you use, with a count for each type.
 
 ### Sidechains
+
+<img src="docs/img/sidechain-menu.png" width="600" alt="The key button of an FX: its sidechain source">
+<img src="docs/img/sc-send-menu.png" width="600" alt="The SC button: send the rack to sidechain busses">
 
 - **Key button** on an FX row opens its sidechain menu: *None*, *Mono Input* (any hardware input),
   *Stereo Input* (any input pair; summed to mono when the FX has a mono sidechain) and *Bus* (every
@@ -324,6 +329,8 @@ confirmation. Everything is undoable with REAPER's undo.
 
 ### Dragging racks
 
+<img src="docs/img/drag-rack.png" width="840" alt="A rack being dragged: a see-through copy follows the pointer, the rack stays faded in its place">
+
 Drag a rack by its name. A see-through copy follows the cursor and the rack under it is outlined.
 Drop it on another rack to place it there, or in the empty space around or below the racks to send it
 to the last position. Racks follow your project's track order.
@@ -333,6 +340,9 @@ you drop it, or right after the original if you drop it on itself. A green **+**
 and the target is outlined in green while a drop would copy.
 
 ### Mono and stereo racks
+
+<img src="docs/img/in-menu.png" width="560" alt="The In menu: mono or stereo hardware input, or MIDI">
+<img src="docs/img/out-menu.png" width="620" alt="The Out menu: mono outputs or stereo pairs">
 
 A rack's width comes from its routing, separately for each side, so a rack can be mono in and stereo
 out:
@@ -390,6 +400,8 @@ track channels, so outputs, sends and meters always agree.
 - **Display > Daylight mode** switches the whole panel to a light theme for bright rooms. Each rack's own color
   is kept as a pale tint with a solid name label.
 
+<img src="docs/img/daylight.png" width="840" alt="Daylight mode">
+
 ### Performance mode (work in progress)
 
 > Performance mode is still being built: what is described here works, more is coming, and details may
@@ -400,6 +412,8 @@ rack: its **quick access panel**, the parameters of its FX you need at hand duri
 scrolls on its own; the rows fade at the top or bottom edge while there is more, and a slim bar shows
 where you are.
 
+<img src="docs/img/performance-mode.png" width="840" alt="Performance mode, Edit mode: every rack in one row, its quick access panel under it">
+
 - **Edit mode:** full racks. Add, remove, reorder (drag a parameter's name box), rename and recolor
   parameters.
 - **Show mode:** a rack is its name, with **M** (mute) and **B** (bypass) on the right. The handle under the
@@ -408,6 +422,10 @@ where you are.
   the parameters then flow in columns and get bigger. The band again folds it back.
 - **Fold by itself:** open FX sections and widened panels fold back after a while without activity
   (**Settings > Performance mode**; in Edit mode only when you ask for it there).
+
+<img src="docs/img/show-mode.png" width="840" alt="Performance mode, Show mode: each rack is its name with M and B">
+<img src="docs/img/show-mode-fx-open.png" width="800" alt="Show mode: the handle under a rack name opens its FX section">
+<img src="docs/img/performance-mode-widened.png" width="840" alt="A widened quick access panel: the parameters flow in columns, bigger">
 
 **The controls.** FOH-Mate picks one that fits each parameter; right-click a parameter (Edit mode) >
 **Control** to change it:
@@ -419,6 +437,9 @@ where you are.
   Controls > Rotary encoder**. The mouse wheel (or two fingers on a trackpad) turns it too; **Shift** is finer.
 - The small yellow mark is the **default**: double-click the control to go back to it.
 - A small box between the control and the name shows the value, turned a quarter turn.
+
+<img src="docs/img/quick-access-controls.png" width="260" alt="Controls: encoders, a stepped encoder (Tone), a drop-down (Bank), a toggle (Swap L/R); a blue arc shows limits">
+<img src="docs/img/quick-access-row-menu.png" width="660" alt="Right-click a parameter (Edit mode): Control, Nickname, Recolor, Inspect, the snap-back option, Copy / Paste, Remove">
 
 <img src="docs/img/parameters-window.png" width="402" alt="The Parameters window: a rack, its FX and their parameters, with tick boxes">
 
@@ -434,32 +455,50 @@ parameters (ReaEQ does when a band changes type). Clicking a parameter in a rack
 in a rack, or **Inspect parameter...** from its right-click menu; **Display > Windows > Show parameters
 inspector**), in sections that fold:
 
-- **Control**, **Direction and default** (invert it, move or remove the default mark), **Preview** (the
-  control itself, which can be turned) and **Details** (what REAPER says about the parameter).
-<img src="docs/img/inspector-limit-values.png" width="394" alt="The Inspector: Limit values, a Range on the range selector">
+- **Control** (the kind of control, or Automatic), **Direction and default** (invert it, move or remove the
+  default mark), **Preview** (the control itself, which can be turned) and **Details** (what REAPER says
+  about the parameter).
+
+  <img src="docs/img/inspector-control.png" width="392" alt="Inspector, Control">
+  <img src="docs/img/inspector-direction-preview-details.png" width="392" alt="Inspector, Direction and default, Preview and Details">
 
 - **Limit values**, the values the control may give:
   - **Range**: a Min and a Max, on a bar with an arrow at each end (drag an arrow or the round handle
     under it, or the blue part, or the handle over it, to move the whole range). The control stops at Min
     and Max; **Limit only values** lets it turn all the way while the value waits at Min or Max. Max below
     Min keeps the two outer parts.
+
+    <img src="docs/img/inspector-limit-values.png" width="392" alt="A Range, with the snap-back option on">
+
   - **List of values**: only those values, in your order, as a stepped encoder or a drop-down (two values:
     a toggle).
+
+    <img src="docs/img/inspector-list-of-values.png" width="392" alt="A List of values">
+
   - **List of ranges**: several ranges. **Skip the gaps** makes the control jump over the gaps between
     them; without it, the value waits at the last range while the control turns through a gap
     (**Snap to nearest limit**: it takes the nearest one instead). **Invert** keeps the gaps instead.
+
+    <img src="docs/img/inspector-list-of-ranges.png" width="392" alt="A List of ranges">
+
   - **Use the full range of the control**: the whole travel covers what is allowed, for finer moves.
   - Ctrl+wheel (Cmd on a Mac) over a control moves the current range; sideways makes it wider or narrower.
   - **Bring it back inside the limits when moved from outside** (off by default): when the parameter is
     moved from the FX's own window or MIDI learn and stays outside its limits for half a second, it goes
     back to the nearest allowed value (not when it has an automation envelope). A small red lock and a red
-    glow show it on the parameter.
-- **Curve** (below): how the value follows the control: **Linear**, **Ease in**, **Ease out**, or **Custom points**
+    glow show it on the parameter (hover the lock for a reminder).
+
+    <img src="docs/img/quick-access-lock.png" width="660" alt="The red lock and glow of the snap-back option, with its tooltip">
+
+- **Curve**: how the value follows the control: **Linear**, **Ease in**, **Ease out**, or **Custom points**
   (click to add a point, drag it, right-click to remove it). Curves can be saved and reused.
 
-  <img src="docs/img/inspector-curve.png" width="382" alt="The Inspector: a curve with custom points">
+  <img src="docs/img/inspector-curve.png" width="382" alt="A curve with custom points">
+
 - When the value and the control can differ (a curve, Limit only values, a gap), a small pink dot on the
   control's ring shows where it is turned to; the hand shows the value.
+
+  <img src="docs/img/position-dot.png" width="240" alt="The pink dot: where the control is turned to, while the hand shows the value">
 
 Right-click a parameter (Edit mode, or in the tree) to **Copy** its limits and curve and **Paste** them on
 another parameter or on the whole selection. **Nickname parameter...** gives it a name of your own, and
@@ -479,6 +518,8 @@ shows or hides each one. Each floats or docks on its own, with its own tab in a 
 one, a window becomes a tab of it; to have them side by side, put them in different dockers on the same
 side of REAPER's window (**Display > Windows > Dock Parameters / Dock Inspector** picks the docker).
 
+<img src="docs/img/docked-windows.png" width="840" alt="Racks, Inspector and Parameters docked side by side">
+
 ### Menus
 
 The top bar, right side: **+** (new rack), then four menus.
@@ -490,6 +531,9 @@ The top bar, right side: **+** (new rack), then four menus.
 | **Latency** | Latency alerts, Silence / Resume, Latency limits, Scan new / Rescan all FX, Retry failed FX, Ask to scan new FX |
 | **Options** | Disconnect inputs/outputs on copy and template, Disable metering and Level match, Stereo pairs on odd-even channels only, Open the FOH-Mate data folder, Settings... |
 
+<img src="docs/img/menu-display.png" width="400" alt="The Display menu"> <img src="docs/img/menu-fx.png" width="400" alt="The FX menu">
+<img src="docs/img/menu-latency.png" width="400" alt="The Latency menu"> <img src="docs/img/menu-options.png" width="400" alt="The Options menu">
+
 Windows (Settings, FX list) reopen at the size you left them, also after being collapsed.
 
 ### Status bar
@@ -500,9 +544,13 @@ CPU and RAM gauges, **Latency: in [..] ms - out [..] ms** as reported by REAPER,
 The grey **help line** just above it says what clicks and keys do on whatever the mouse points at (a
 rack name, an FX, a button), and follows along while you drag a rack or an FX.
 
+<img src="docs/img/status-bar.png" width="840" alt="The help line and the status bar">
+
 ### Latency watchdog
 
 FOH-Mate keeps an eye on the latency each rack adds (every FX reports its own, in samples):
+
+<img src="docs/img/latency-alert.png" width="560" alt="A rack over the latency limit: the !! RACK tag, the FX that adds it, and the tooltip">
 
 - When a rack's FX add up to more than the **latency limit**, a red **!! x.x ms** tag flashes on the
   rack's top edge and a **!!** flashes on every FX that adds latency. Hover the tag for the list of
@@ -543,6 +591,8 @@ folder** shows it, with favorites, the scan log and the last error report). Ever
 is added or updated as it is seen; a scan can fill it in for everything installed.
 
 **FX > FX list...** shows every installed FX, one per row:
+
+<img src="docs/img/fx-list.png" width="764" alt="The FX list, filtered on "Rea": latency over the limit in red">
 
 - **Star** (click it to make the FX a favorite), **Type** in its color, **FX** name, **Developer**,
   **Latency** (last reported) and **Highest** seen, **Allowed** (tick it here too), and **Status**:
@@ -588,6 +638,8 @@ is added or updated as it is seen; a scan can fill it in for everything installe
   big FX to reload).
 
 ### Settings
+
+<img src="docs/img/settings.png" width="444" alt="Settings, with the Performance mode section open">
 
 **Options > Settings...** opens a window with the values you can change: automatic color ranges, meter
 range and fall speed, Level match time and gate, latency limits and silence time, FX type colors,

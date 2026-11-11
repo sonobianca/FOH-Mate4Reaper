@@ -8,6 +8,8 @@ How Performance mode is built (a work in progress, in the 0.14 versions). How to
 An optional view, switched on and off with **Display > Performance mode** (saved for REAPER, not per
 project). Edit and Show keep working inside it.
 
+<img src="img/performance-mode.png" width="840" alt="Performance mode: every rack in one row, its quick access panel under it">
+
 - **Edit mode:** full racks. **Show mode:** a rack is its name with **M** and **B**; the handle under it
   unfolds the FX section (with thin horizontal meters either side of the handle), pushing only that
   rack's panel down. Open sections fold back after a time without activity (Settings, default 15 s;
@@ -26,7 +28,7 @@ project). Edit and Show keep working inside it.
   separately; Show mode closes them, Edit mode brings them back.
 
 <img src="img/parameters-window.png" width="402" alt="The Parameters window">
-<img src="img/inspector-limit-values.png" width="394" alt="The Inspector, Limit values">
+<img src="img/inspector-limit-values.png" width="392" alt="The Inspector, Limit values">
 
 ## The parts, and what other modules can reuse
 
