@@ -51,6 +51,9 @@ window, away from your playback tracks, so the mixer and the track view stay cle
 - **Favorites and recently used FX** at the top of every FX menu.
 - **Status bar** with CPU and RAM gauges, REAPER's latency, latency alerts, and rack and FX counts,
   and a **help line** above it that says what the mouse can do on whatever it points at.
+- **Performance mode** *(work in progress)*: every rack in one row, each with a **quick access panel**
+  under it: the critical parameters of its FX as encoders, bands, pans, drop-downs and toggles, with
+  limits and value curves.
 
 ---
 
@@ -386,6 +389,77 @@ track channels, so outputs, sends and meters always agree.
   you create or copy.
 - **Display > Daylight mode** switches the whole panel to a light theme for bright rooms. Each rack's own color
   is kept as a pale tint with a solid name label.
+
+### Performance mode (work in progress)
+
+> Performance mode is still being built: what is described here works, more is coming, and details may
+> change between versions.
+
+**Display > Performance mode** puts every rack in one row that scrolls sideways, with a column under each
+rack: its **quick access panel**, the parameters of its FX you need at hand during a show. Each panel
+scrolls on its own; the rows fade at the top or bottom edge while there is more, and a slim bar shows
+where you are.
+
+- **Edit mode:** full racks. Add, remove, reorder (drag a parameter's name box), rename and recolor
+  parameters.
+- **Show mode:** a rack is its name, with **M** (mute) and **B** (bypass) on the right. The handle under the
+  name opens its FX section (with thin meters either side of the handle). Only the controls move.
+- **Widen a panel:** the band at the top of a panel (two small triangles) widens it over its neighbours;
+  the parameters then flow in columns and get bigger. The band again folds it back.
+- **Fold by itself:** open FX sections and widened panels fold back after a while without activity
+  (**Settings > Performance mode**; in Edit mode only when you ask for it there).
+
+**The controls.** FOH-Mate picks one that fits each parameter; right-click a parameter (Edit mode) >
+**Control** to change it:
+
+- **Encoder** (7:30 = minimum, 4:30 = maximum; a parameter in dB gets a fader's marks), **stepped encoder**
+  (one mark per value), **width band** and **Q band** (a band at the top that widens, or narrows as Q goes
+  up), **pan** (a band from the center), **drop-down**, **toggle**.
+- Drag up and down (finer the farther the pointer is to the side) or around the control: **Settings >
+  Controls > Rotary encoder**. The mouse wheel (or two fingers on a trackpad) turns it too; **Shift** is finer.
+- The small yellow mark is the **default**: double-click the control to go back to it.
+- A small box between the control and the name shows the value, turned a quarter turn.
+
+**Adding parameters: the Parameters window.** Click the **+** at the end of a panel (or **Display >
+Windows > Show parameter treeview**). It is a tree of every rack, its FX, their groups (an EQ's **Band 1**, **Band 2**...)
+and their parameters, with a search box. Tick a parameter, a group or a whole FX to put it in (or take it
+out of) the quick access panel of its rack, or select several and use **Add to the quick access panel** /
+**Remove from the quick access panel**. Placeholders and MIDI CC entries are hidden (**Show hidden** lists
+them; right-click a parameter > **Hide this parameter**). **Refresh** reads the FX again when it renamed its
+parameters (ReaEQ does when a band changes type). Clicking a parameter in a rack selects it in the tree.
+
+**Setting a parameter: the Inspector.** It shows the parameter selected in the tree (or double-clicked
+in a rack, or **Inspect parameter...** from its right-click menu; **Display > Windows > Show parameters
+inspector**), in sections that fold:
+
+- **Control**, **Direction and default** (invert it, move or remove the default mark), **Preview** (the
+  control itself, which can be turned) and **Details** (what REAPER says about the parameter).
+- **Limit values**, the values the control may give:
+  - **Range**: a Min and a Max, on a bar with an arrow at each end (drag an arrow or the round handle
+    under it, or the blue part, or the handle over it, to move the whole range). The control stops at Min
+    and Max; **Limit only values** lets it turn all the way while the value waits at Min or Max. Max below
+    Min keeps the two outer parts.
+  - **List of values**: only those values, in your order, as a stepped encoder or a drop-down (two values:
+    a toggle).
+  - **List of ranges**: several ranges. **Skip the gaps** makes the control jump over the gaps between
+    them; without it, the value waits at the last range while the control turns through a gap
+    (**Snap to nearest limit**: it takes the nearest one instead). **Invert** keeps the gaps instead.
+  - **Use the full range of the control**: the whole travel covers what is allowed, for finer moves.
+  - Ctrl+wheel (Cmd on a Mac) over a control moves the current range; sideways makes it wider or narrower.
+  - **Bring it back inside the limits when moved from outside** (off by default): when the parameter is
+    moved from the FX's own window or MIDI learn and stays outside its limits for half a second, it goes
+    back to the nearest allowed value (not when it has an automation envelope). A small red lock and a red
+    glow show it on the parameter.
+- **Curve**: how the value follows the control: **Linear**, **Ease in**, **Ease out**, or **Custom points**
+  (click to add a point, drag it, right-click to remove it). Curves can be saved and reused.
+- When the value and the control can differ (a curve, Limit only values, a gap), a small pink dot on the
+  control's ring shows where it is turned to; the hand shows the value.
+
+Right-click a parameter (Edit mode, or in the tree) to **Copy** its limits and curve and **Paste** them on
+another parameter or on the whole selection. **Nickname parameter...** gives it a name of your own, and
+**Recolor parameters** a color (FX have a color too: right-click an FX > **Color...**). The **...** at the top
+right of a panel removes the parameters whose FX is gone, or clears the panel; **Display > Hide disabled
+parameters** hides those. Deleting an FX that has parameters in a panel asks first.
 
 ### Docking
 

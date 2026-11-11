@@ -2,39 +2,25 @@
 
 Accepted ideas. Nothing here is started unless noted. New ideas get added as they come up.
 
-## Performance mode (next: 0.14)
 Shipped in 0.13 and no longer listed here: the latency mismatch option. Translations: dropped for now.
 
-Bianca's design (planning stage, nothing built yet):
-- **A toggle**, not a third mode: an optional, different workflow. Edit and Show keep working inside it.
-- Racks in a single row, scrolling left to right. The FX part of each rack (the boxes we already
-  have) lines up at the top. The full rack or a slimmer one: **a toggle, the user chooses**.
-- **Under each rack, its own column of parameter rows,** in the same visual style. A column belongs to
-  its rack. (Later: a row controlling an FX of another rack. Not now, but don't close the door.)
-- Each row is one parameter of an FX of that rack. There is always one empty row at the end with a +
-  in a circle; clicking it opens a dialog to pick an FX parameter.
-- The control fits the parameter when REAPER can tell: on/off, a drop-down for a few fixed values, a
-  rotary knob for continuous values (switchable to a slider per row; the default may be swapped to
-  slider after trying it). FX that report nothing about their steps get the continuous control.
-- Name: what the FX reports by default, renamable. Color: the rack's color by default, changeable
-  from a drop-down.
-- Rows alternate sides (row 1 name left, control right; row 2 control left, name right), so a control
-  is harder to hit by mistake.
-- Usable in Show and Edit mode. Rows are added, removed and reordered in Edit mode only.
-- Deleting an FX deletes its parameter rows too; the delete confirmation says so.
-- Rows are saved with the project, on the rack.
-- **Scrolling is per column,** and where you are must be clear at a glance: the content fades to
-  transparent at the top and bottom edge while there is more beyond, plus a slim position indicator.
-- **XY controller (Edit mode):** rows are selectable; any two selected parameters can be combined into
-  one XY pad. Axes can be reversed or swapped from a context menu (reverse is on every control).
-- The meters stay in the slim rack.
-- Detail and build order: `docs/PERFORMANCE_MODE.md`.
-- Replaces the "Performance Panel" idea under Advanced view mode below. MIDI mapping stays a later step.
+## Performance mode
+Being built in the 0.14 versions (a work in progress): every rack in one row, each with its **quick
+access panel** of critical parameters (encoders, bands, pans, drop-downs, toggles, with limits and
+value curves), a Parameters window to pick them and an Inspector to set them. How it is built:
+`docs/PERFORMANCE_MODE.md`; how to use it: the README.
+
+Ideas for it, not started:
+- **XY controller (Edit mode):** any two selected parameters combined into one XY pad; axes reversed or
+  swapped from a context menu.
+- **MIDI mapping** of the controls (the reason the position dot exists: a hardware control's position
+  can differ from the value).
+- **A parameter controlling an FX of another rack** (the storage doesn't forbid it).
+- Other modules reusing the controls, the range selector, the curve editor and the parameter tree.
 
 ## Advanced view mode
 - Basic stays the default; the mode is saved per project.
 - Overview row of racks with small controls for exposed parameters.
-- **Performance Panel**: the exposed parameters of the selected racks.
 - Each parameter has a **Map MIDI control** button.
 
 ## Latency watchdog and CPU

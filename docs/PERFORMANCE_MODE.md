@@ -1,102 +1,83 @@
 # FOH-Mate: Performance mode
 
-Design agreed with Bianca, and the order to build it in. Built step by step on the `performance-mode` branch. The short version of
-the idea is in `docs/ROADMAP.md`; this file is the detail. Built in the 0.14 versions.
+How Performance mode is built (a work in progress, in the 0.14 versions). How to use it is in the README
+(section "Performance mode"); ideas for later are in `docs/ROADMAP.md`.
 
 ## What it is
 
-An optional view, switched on and off with a toggle. Edit and Show keep working inside it.
-
-The column of parameters under each rack is its **quick access panel**: the critical parameters, at hand. Its
-limits and curves belong to it (another module that reuses the controls gives them its own).
+An optional view, switched on and off with **Display > Performance mode** (saved for REAPER, not per
+project). Edit and Show keep working inside it.
 
 ```
- ┌ top bar (as today) ──────────────────────────────────────────────────────────┐
- │ RACK 1 (full, or slim)   │ RACK 2                   │ RACK 3        │ ... →   │   one row,
+ ┌ top bar ─────────────────────────────────────────────────────────────────────┐
+ │ RACK 1                   │ RACK 2                   │ RACK 3        │ ... →   │   one row,
  │ name, In/Out, FX boxes   │                          │               │         │   scrolls sideways
  │ level, BYPASS, MUTE      │                          │               │         │
- │ meters stay              │                          │               │         │
  ├──────────────────────────┼──────────────────────────┼───────────────┼─────────┤
- │ Threshold        (o)     │ Ratio            (o)     │      (+)      │         │   one column per
- │ (o)        Attack        │ (o)        Mix           │               │         │   rack, its own
- │ Gain             [==|=]  │ HPF freq   [ 80 Hz v]    │               │         │   vertical scroll
- │ (+)                      │ [   XY pad   ]           │               │         │   (fades at the
- └──────────────────────────┴──────────────────────────┴───────────────┴─────────┘   edges + position bar)
+ │ Threshold        (o)     │ Ratio            (o)     │      (+)      │         │   a quick access
+ │ (o)        Attack        │ (o)        Mix           │               │         │   panel per rack,
+ │ Gain             (o)     │ HPF freq       (v)       │               │         │   its own scroll
+ │ (+)                      │ (+)                      │               │         │
+ └──────────────────────────┴──────────────────────────┴───────────────┴─────────┘
 ```
 
-- **The toggle** switches the whole window; the choice is saved like the other view settings (for REAPER, not per project).
-- **Edit mode:** full racks, everything as in the normal view.
-- **Show mode:** a rack is its name with a small **M** and **B** on the right and a handle at the bottom
-  of the name. The handle unfolds the rack's FX section (with the meters beside it), pushing only that
-  rack's column down; again to fold. Animated (about 0.2 s). The meters are thin horizontal bars either side of
-  the chevron (input left, output right, mirrored so their tops and clip lights meet at the chevron), folded or open; there are no vertical meters in Show
-  mode, so the FX section uses the full width of the rack. Open sections fold back by themselves
-  after a time without mouse or key activity (Settings, default 15 s, 0 = never).
-- **A column belongs to its rack.** Each row is one parameter of an FX of that rack. (Later: rows
-  controlling an FX of another rack. The storage must not forbid it.)
-- **Rows alternate sides:** name left / control right, then control left / name right.
-- **Controls** (no sliders): a rotary encoder (7:30 minimum to 4:30 maximum, clockwise raises it,
-  short lines around it mark the minimum and maximum and a small yellow arrow the default (which can be moved or switched off per row; a row can also be inverted); an arc inside it for a range or
-  width; one mark per value when there are only a few), a toggle (a plain circle) and a drop-down (a
-  circle with an arrow, the values in a menu). How the encoder turns is a global setting (Settings >
-  Controls): vertical drag, finer the farther the pointer is to the side, or dragging around it.
-  The default mark is the value the parameter had when it was added to the quick access panel.
-- **Name** defaults to what the FX reports and can be renamed. **Color** is the rack's, changeable
-  per row from a drop-down.
-- **Row look:** the name in bold in its own box (two lines allowed), the control outside the box,
-  rows taller for that, the whole row (control included) glows under the pointer.
-- **Value box:** a small vertical box between the control and the name shows the parameter's value
-  as text, turned a quarter turn (counterclockwise with the control on the left, clockwise on the
-  right). Later: double-click the value to type one in; in Edit mode, double-click the name to rename
-  the parameter.
-- **Widening a column:** a band at the top of every column (two small triangles, back to back to widen,
-  face to face to fold back; same size and behaviour as the chevron under the FX section) widens the
-  column over the neighbouring ones, to the width of the window. The rows then flow in columns, top
-  to bottom, that scroll sideways. Folding back (the band again, or the inactivity time) returns to
-  one column showing the row touched last. One column is widened at a time; open FX sections fold
-  first. Animated.
-- **Always one empty row** at the end with a + in a circle: it opens a dialog to pick a parameter.
-- **Edit mode only:** add, remove, reorder, rename, recolor, combine. Show mode only moves the controls.
-- **Deleting an FX** deletes its rows; the delete confirmation says so.
-- **Scroll position** (per column): the rows fade to transparent at the top or bottom edge while there
-  is more beyond, plus a slim position bar.
-- **Selecting rows (Edit mode):** click a row to select it, Cmd/Ctrl-click to add more. With exactly two
-  selected, the context menu offers **Combine as XY pad**.
-- **XY pad:** one control for two parameters, with X and Y labels, drag to move both, double-click to
-  reset. From its context menu: **reverse X**, **reverse Y**, **swap axes**, **split back into two
-  rows**. Reverse is on every control, not only the pad: knobs and sliders get **Reverse** too.
+- **Edit mode:** full racks. **Show mode:** a rack is its name with **M** and **B**; the handle under it
+  unfolds the FX section (with thin horizontal meters either side of the handle), pushing only that
+  rack's panel down. Open sections fold back after a time without activity (Settings, default 15 s;
+  in Edit mode only when asked for).
+- **The quick access panel** is the column under a rack: the critical parameters of its FX, at hand. A
+  panel belongs to its rack (rows are saved on the rack's track, so a duplicated rack takes them along).
+  Each row is one parameter: the FX's GUID, the parameter's index and the name the FX reported (to
+  notice a changed FX); a row whose FX or parameter is gone is greyed out, never dropped silently.
+- **Rows alternate sides** (name left / control right, then the other way). The name is bold in its own
+  box (two lines), a small vertical box between name and control shows the value. The whole row glows
+  under the pointer; pointing at an FX in a rack makes its rows glow in its color, and the other way.
+- **Each panel scrolls on its own** (the rows fade at an edge while there is more, plus a slim bar). A
+  band at its top widens it over the neighbours (rows flow in columns, bigger); one at a time.
+- **The Parameters window** (a tree of every rack, FX, group and parameter, with tick boxes) adds and
+  removes parameters; **the Inspector** sets the one selected. Both are windows of their own that dock
+  separately; Show mode closes them, Edit mode brings them back.
 
-## Things to know before building
+## The parts, and what other modules can reuse
 
-- ReaImGui has no knob or XY pad: both are drawn by hand (mouse drag, fine adjust with a modifier key,
-  double-click to reset).
-- REAPER gives the value of a parameter as text ("-6.0 dB") and whether it is a toggle or has steps,
-  but not the names of the steps. A drop-down's entries are found by trying each step and reading the
-  text, then putting the value back. FX that don't expose steps get a knob.
-- A parameter is stored as the FX's GUID plus its index (and its name, to notice when an FX update
-  changed it). A row whose FX or parameter is gone is shown greyed out, not silently dropped.
-- Cost: only the rows that are visible are read each frame, and a value is only written while the
-  control is being moved. Nothing here may add latency or noticeable CPU.
-- Rows are saved on the rack (its track), like the other per-rack data, so a duplicated rack copies them.
+Every piece below is a file of its own in `src/FOHMate/`, with a header that says how to use it. None of
+them knows about racks or rows: a module gives them its data and gets back what changed.
 
-## Build order
+| File | What it is | How a module uses it |
+|---|---|---|
+| `controls.lua` | The controls, drawn by hand (ReaImGui has none): encoder, stepped encoder, width band, Q band, pan, drop-down, toggle, round on/off box; and `draw_control`, which turns one through limits, a list of values and a curve, with the mouse and the wheel | `draw_control(id, value, { kind, limits, memo, cx, cy, r, ... })` returns the new value (0..1) when it was changed |
+| `limit_map.lua` | The maths of limits and curves: where the control is for a value, what value a position gives, gaps, the dot | `param_map(limits, kind, curve)` then `param_map_val` / `param_ctl_pos`; the limits are a plain table (the same fields as a quick access row) |
+| `range_bar.lua` | The range selector: two value boxes, a bar, an arrow per end (tip on the value) with a round handle, a handle over the covered part | `draw_range_bar(id, lo, hi, { text, find, steps, inv, right })` returns the new lo, hi |
+| `curve_graph.lua` | The curve editor: kind of curve, a square 1:1 graph with its points, saved curves | `draw_curve_graph(id, curve, pos, steps)` returns the new curve |
+| `param_tree.lua` | The tree of the project's racks, FX, groups and parameters, with search, selection and tick boxes | `draw_tree(state, data, { have, apply, in_label, add_label, remove_label, leaf_menu })` inside the module's own window |
 
-Each step is a version (0.14.x), ends with something to test in REAPER, and is committed on its own.
+What belongs to the quick access panel stays in `params.lua` (its rows and how they are saved, the
+Inspector, copy and paste of limits, the snap back from outside) and `window.lua` (drawing the panels).
 
-1. **The view.** The toggle, racks in one row, an empty column under each, full/slim rack, per-column
-   scroll with the fade and the position bar. No parameters yet.
-   *Test:* switch the view on and off, scroll sideways, slim and full, docked and floating, many racks.
-2. **Parameter rows, basics.** The + dialog (list an FX's parameters, with a search), rows stored and
-   restored, a knob/slider/toggle/drop-down that moves the real parameter, names and colors, side
-   alternation, rows greyed out when missing.
-   *Test:* add rows from a few different FX, move them, rename, recolor, save and reopen.
-3. **Edit-mode handling.** Select, reorder, remove, reverse; delete FX removes its rows (with the
-   warning); duplicating a rack copies its rows; Show mode locks everything but the controls.
-   *Test:* each action, undo, and Show mode.
-4. **XY pad.** Select two rows, combine, reverse each axis, swap axes, split.
-   *Test:* combine two parameters, drag, reverse, swap, split, save and reopen.
-5. **Polish.** What testing turns up: sizes, feel of the controls, docs (README, screenshots).
+## Rules the controls follow
 
-## Not in this feature
+- **A control** turns from 7:30 (minimum) clockwise to 4:30 (maximum). Small lines mark the minimum and
+  maximum, a yellow mark the default (double-click goes back to it). Drag up and down (finer the farther
+  the pointer is to the side) or around it (Settings > Controls); the wheel turns it too (Shift: finer;
+  a stepped control or a list: one step at a time).
+- **Limits** (Range, List of values, List of ranges), the **full range** option, **Limit only values**,
+  **Skip the gaps** and **Snap to nearest limit** decide how the control turns and what value it gives
+  (the details are at the top of `limit_map.lua`). An arc around the control shows what is allowed.
+- **A curve** covers the stretch the control turns through. Where the value and the control's position
+  can differ, the hand shows the value and a small pink dot on the ring shows where the control is.
+- **A stepped control** sits on its steps, and so do its limits and its curve's dots.
+- **From outside** (the FX's own window, MIDI learn): the hand shows the real value, past the arc. Per
+  parameter and off by default, the value can be brought back inside the limits after half a second of
+  no movement (not with an automation envelope); a red lock and a red glow show the option is on.
 
-MIDI mapping of the controls (roadmap, later); rows controlling another rack's FX (later, see above).
+## Things to know
+
+- REAPER gives a parameter's value as text ("-6.0 dB") and whether it is a toggle or has steps, but not
+  the names of the steps: a drop-down's entries are found by trying each step and reading the text, then
+  putting the value back. FX that don't expose steps get an encoder.
+- An FX may rename its parameters (ReaEQ when a band changes type): the tree reads them again with
+  Refresh, or when a rack puts something in focus in it.
+- Cost: only the rows in view are drawn, each row keeps what the FX last told it and asks again only when
+  the value moved, and a value is only written while a control is being moved. The snap back from
+  outside reads only the parameters that have it on, ten times a second. Nothing here may add latency or
+  noticeable CPU.
