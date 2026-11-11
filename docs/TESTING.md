@@ -2,7 +2,7 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 209).
+New items get the next free number (next: 210).
 
 ## Open
 
@@ -19,6 +19,7 @@ New items get the next free number (next: 209).
 
 ## Done
 
+- [x] 209. (0.14.166) The debug timer ("Script … ms - racks … ms") is gone from the status bar; FOH-Mate starts without an error. Found (Claude, automated in REAPER): restarted 0.14.166, no timer, Performance mode, Show mode and the normal view draw as before.
 - [x] 208. (0.14.162) Parameters window, Refresh: in ReaEQ change a band's type so its parameters get other names; press Refresh next to the search box: the tree shows the new names and they can be added. Without Refresh: clicking a parameter's row in a rack, Inspect FX... or right-clicking the rack's name also brings the tree up to date. Found (Bianca): ok (C66).
 - [x] 207. (0.14.161) Code move (param_tree.lua), nothing should change in the Parameters window: search, Show hidden, folding racks / FX / groups, Shift+right-click a rack's name, clicking, Cmd/Ctrl-click and Shift-click to select, the tick boxes of a parameter / group / FX (and their counts "3 of 12 in the quick access panel"), Add / Remove buttons, right-click a parameter (Hide, Copy / Paste limits and curve), right-click an FX (Color...), Inspect FX from a rack, a parameter clicked in a rack selected in the tree, names in their colors. Found (Bianca): everything works (C65). An FX that renames its parameters (ReaEQ, a band changing type) is not followed by the tree: Refresh added in 208.
 - [x] 206. (0.14.160) Range selector, alignment: each round handle is centered on its line; Min's and Max's value lines sit at the very ends of the blue part, not past them; the arrows' tips touch the value lines; the bar's edges look crisp. Found (Bianca): handles, lines and the blue part line up (C59).
