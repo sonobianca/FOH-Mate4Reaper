@@ -2,14 +2,14 @@
 -- Part of FOH-Mate, loaded by FOHMate.lua (see the note there).
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
--- SPDX-License-Identifier: GPL-3.0-or-later
+-- SPDX-License-Identifier: MIT
 
 ---------------------------------------------------------------- JSFX
 
 JSFX_SRC = [==[
 desc:FOHMate Meter
 // Part of FOH-Mate (FOHMate.lua) - do not remove. Audio passes through untouched.
-// Copyright (C) 2026 Bianca and the FOH-Mate contributors. GPL-3.0-or-later (see LICENSE).
+// Copyright (C) 2026 Bianca and the FOH-Mate contributors. MIT License (see LICENSE).
 // Stage 0 = chain input, stage 1 = chain output (before the track fader).
 // Publishes peak and RMS data to the panel through gmem.
 options:gmem=FOHMateMeters

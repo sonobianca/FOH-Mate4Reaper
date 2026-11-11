@@ -40,6 +40,7 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 Also in 0.14:
 
+- FOH-Mate is now under the **MIT License** (it was GPL-3.0-or-later).
 - The main window is now called **Racks** (it was Plugins Host). The Parameters and Inspector windows dock
   on their own, with their own docker tab (Display > Windows > Dock Parameters / Dock Inspector), and
   open again where they were.

@@ -3,15 +3,11 @@
 -- FX panel built with ReaImGui.
 --
 -- Copyright (C) 2026 Bianca and the FOH-Mate contributors
--- SPDX-License-Identifier: GPL-3.0-or-later
+-- SPDX-License-Identifier: MIT
 --
--- This program is free software: you can redistribute it and/or modify it under
--- the terms of the GNU General Public License as published by the Free Software
--- Foundation, either version 3 of the License, or (at your option) any later version.
--- It is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
--- without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
--- PURPOSE. See the GNU General Public License for more details, in the LICENSE file
--- or at <https://www.gnu.org/licenses/>.
+-- Free software under the MIT License: you may use, copy, modify and share it, as
+-- long as the copyright and license notice stay with it. It comes with no warranty.
+-- The full text is in the LICENSE file.
 --
 -- Every track whose name starts with PREFIX is a "rack". On detection the
 -- script hides it from the TCP and the mixer and adds two small meter JSFX
@@ -27,9 +23,7 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.14.165'   -- major.minor.revision, shown in the window's title bar
-DEBUG_TIMER     = true      -- status bar shows how long the script takes per frame; must be false in a
-                            -- public version (tools/make_reapack_index.sh refuses to build otherwise)
+VERSION         = '0.14.166'   -- major.minor.revision, shown in the window's title bar
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
 GLOW_M          = 6         -- room left around the racks for the selection glow
 NAME_FONT_SIZE  = 16        -- rack name font (bold)
@@ -135,7 +129,6 @@ function pop_theme(nc, nv)
 end
 
 function loop()
-  local t0 = reaper.time_precise()
   if not ctx_is_valid() then create_ctx() end
   FRAME = FRAME + 1
   local now = reaper.time_precise()
@@ -211,7 +204,6 @@ function loop()
   pop_theme(nc, nv)
   undo_commit()
   was_visible = visible
-  if DEBUG_TIMER then timer_frame(t0) end
 
   -- things that open a native dialog run here, after the frame is complete
   if #later > 0 then

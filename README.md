@@ -734,8 +734,7 @@ By contributing you agree that your contribution is licensed under the same term
 
 ## License
 
-FOH-Mate is free software, licensed under the **GNU General Public License, version 3 or (at your
-option) any later version** (GPL-3.0-or-later). See the [LICENSE](LICENSE) file.
+FOH-Mate is free software under the **MIT License**. See the [LICENSE](LICENSE) file.
 
-You are free to use, study, share and modify it. If you distribute a modified version, or a larger
-work that includes it, you must make the source available under the same license.
+You are free to use, copy, modify and share it, also as part of other work, as long as the copyright
+and license notice stay with it. It comes with no warranty.

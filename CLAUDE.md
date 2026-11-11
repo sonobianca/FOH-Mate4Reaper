@@ -29,7 +29,7 @@ language and keep them small.
 - An X/Y graph (like the curve graph) is always square, with a 1:1 scale.
 - Every section that folds uses `section_header(title, open)` (helpers.lua): bold title a little bigger
   than the text (`SECT_FONT_SIZE`). Never a plain `CollapsingHeader`.
-- License: GPL-3.0-or-later (LICENSE, script header, README). Bianca holds the copyright.
+- License: MIT (LICENSE, script headers, README; since 0.14). Bianca holds the copyright.
 
 ## Hard constraints
 1. Never use too much CPU or RAM, never add audio latency.
@@ -41,7 +41,9 @@ language and keep them small.
 3. Versioning is major.minor.revision: revision for minor adjustments, minor for new features or big
    changes. The major version is Bianca's decision only. The version lives in the one `VERSION`
    constant and shows in the window title bar, not in the file name.
-4. `CHANGELOG.md` is grouped by minor version only (revisions folded in). Every change needs an entry.
+4. `CHANGELOG.md` is grouped by minor version only: a compiled list of the important, user-facing changes,
+   not every revision or fine-tune (git keeps those). A change that refines something already listed updates
+   that line instead of adding one.
 5. Bianca tests in REAPER; the script can't be run here. After a change, say exactly what to check
    and add it to `docs/TESTING.md` as a numbered open item. When Bianca reports results by number,
    tick the item, move it to Done and note what was found.
