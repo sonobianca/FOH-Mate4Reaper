@@ -632,7 +632,10 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         -- the value box between control and name, a little closer to the name (gap vn) than to the control (vc)
         local vw, vn, vc = 22 * f, 2.5 * f, 5.5 * f
         local box_w = rw2 - kw - vw - vn - vc
-        local left = (j % 2 == 1)                            -- odd rows: name left; even rows: name right
+        -- the name on the left (the control on the right), or the other way: the panel's control position
+        -- (panel_ctl_side, params.lua); alternating: odd rows have the name on the left
+        local side = panel_ctl_side(tr)
+        local left = side == 'right' or (side == 'alt' and j % 2 == 1)
         local bx = left and rx or (rx + rw2 - box_w)
         local kx = left and (rx + rw2 - kw) or rx
         local vx = left and (bx + box_w + vn) or (kx + kw + vc)
@@ -948,6 +951,22 @@ end
 -- the "..." menu of a rack's parameters (Edit mode)
 function draw_param_menu(tr)
   local n = #params_read(tr)
+
+  -- where its controls sit: Default follows Settings > Performance mode > Control position
+  if ig.BeginMenu(ctx, 'Control position') then
+    local own = panel_ctl_side_own(tr)
+    for _, o in ipairs(PANEL_SIDES) do
+      local label = o[2]
+      if not o[1] then
+        for _, d in ipairs(PANEL_SIDES) do
+          if d[1] and d[1] == (CFG.ctl_side or 'right') then label = ('Default (now: %s)'):format(d[2]) end
+        end
+      end
+      if ig.MenuItem(ctx, label, nil, own == o[1]) and own ~= o[1] then panel_set_ctl_side(tr, o[1]) end
+    end
+    ig.EndMenu(ctx)
+  end
+  ig.Separator(ctx)
 
   local nu = PARAM_UNLINKED and #PARAM_UNLINKED or 0
   local label = nu > 0 and ('Remove the %d parameter%s not linked any more'):format(nu, nu == 1 and '' or 's')

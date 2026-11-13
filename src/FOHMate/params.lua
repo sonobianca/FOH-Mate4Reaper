@@ -130,6 +130,31 @@ function fx_guid_map(tr)
   return m
 end
 
+-- Where the controls of a rack's quick access panel sit: 'left', 'right' or 'alt' (alternating), saved on the
+-- rack (a duplicated rack or a template keeps it); none: the general option (Settings > Performance mode >
+-- Control position). Read again every 20 frames, like the rows.
+CTLSIDE_CACHE = {}
+PANEL_SIDES = { { nil, 'Default' }, { 'left', 'Left' }, { 'right', 'Right' }, { 'alt', 'Alternating' } }
+function panel_ctl_side_own(tr)
+  local guid = reaper.GetTrackGUID(tr)
+  local c = CTLSIDE_CACHE[guid]
+  if not c or FRAME - c.frame >= 20 then
+    local _, s = reaper.GetSetMediaTrackInfo_String(tr, EXT_CTLSIDE, '', false)
+    c = { v = (s == 'left' or s == 'right' or s == 'alt') and s or nil, frame = FRAME }
+    CTLSIDE_CACHE[guid] = c
+  end
+  return c.v
+end
+
+function panel_ctl_side(tr) return panel_ctl_side_own(tr) or CFG.ctl_side or 'right' end
+
+function panel_set_ctl_side(tr, v)
+  with_undo('Quick access panel: control position', function()
+    reaper.GetSetMediaTrackInfo_String(tr, EXT_CTLSIDE, v or '', true)
+  end)
+  CTLSIDE_CACHE[reaper.GetTrackGUID(tr)] = nil
+end
+
 -- The colors given to the FX of a rack (Performance mode: the parameters of an FX take its color): FX guid
 -- -> 0xRRGGBB, saved with the rack. An FX without one has the rack's color. Read again every 20 frames.
 FXCOL_CACHE = {}

@@ -2,6 +2,10 @@
 
 Changes since the last public release, grouped by minor version (revisions are folded in).
 
+## 0.15
+
+- **Control position** of the quick access panels: the controls sit on the right of every row (the new default), on the left, or alternating as before. Settings > Performance mode > Control position sets it for every panel; a panel's **...** menu > Control position gives it its own (Default follows Settings).
+
 ## 0.14
 
 **Performance mode** (a work in progress; see the README, section "Performance mode"):

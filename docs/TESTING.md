@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 211).
+New items get the next free number (next: 212).
 
 ## Open
 
+- [ ] 211. (0.15.0) Control position. (a) Every quick access panel now has its controls on the right of every row (the name on the left). (b) Settings > Performance mode > Control position: Left puts every control on the left, Alternating goes back to the old look; every panel follows. (c) Edit mode, a panel's "..." menu > Control position: Default (now: ...) is ticked; pick Left on one rack: only that panel changes, and Settings no longer changes it; Default makes it follow Settings again. (d) Widen a panel: the controls stay on the same side. (e) Duplicate that rack (and Use as template): the copy keeps its position. (f) Ctrl+Z undoes a change made from the menu.
 
 
 
