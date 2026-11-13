@@ -4,6 +4,7 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.15
 
+- **Emphasis** of the quick access rows: on the name (as before) or on the value: the value large, horizontal and centered with its unit, the name small on one line above it in a tag of the row's color. Settings > Performance mode > Emphasis, or Display > Emphasis.
 - **Control position** of the quick access panels: the controls sit on the right of every row (the new default), on the left, or alternating as before. Settings > Performance mode > Control position sets it for every panel; a panel's **...** menu > Control position gives it its own (Default follows Settings).
 
 ## 0.14

@@ -72,6 +72,15 @@ function draw_display_menu()
                     .. 'Right-click its handle to pin a section open with a push pin. Edit mode: not by default\n'
                     .. '(Settings > Performance mode).')
   end
+  if ig.BeginMenu(ctx, 'Emphasis') then                -- what stands out in a quick access row (Settings too)
+    for _, o in ipairs({ { 'name', 'Name' }, { 'value', 'Value' } }) do
+      if ig.MenuItem(ctx, o[2] .. '##emph', nil, (CFG.emphasis or 'name') == o[1]) then
+        CFG.emphasis = o[1]
+        save_cfg_value({ key = 'emphasis' })
+      end
+    end
+    ig.EndMenu(ctx)
+  end
   toggle_setting('Hide disabled parameters', 'hide_dead', 'hidedead',
     'Performance mode: the parameters whose FX was deleted (or changed) are left out of the quick access panels.\nThey are kept: a matching FX on the rack takes them back.')
   ig.Separator(ctx)

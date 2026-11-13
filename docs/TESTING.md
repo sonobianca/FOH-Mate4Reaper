@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 212).
+New items get the next free number (next: 213).
 
 ## Open
 
+- [ ] 212. (0.15.2) Emphasis on the value (Display > Emphasis > Value, also in Settings > Performance mode). (a) Each quick access row: no vertical value box; the name small and bold on one line at the top, in a thin rounded frame of the row's color, cut with ... when too long; under it the value, horizontal, centered, as big as fits without touching anything, a little brighter than the name; the unit a little smaller after the number, always shown. (b) Turn a control: the value's size doesn't jump (it only gets smaller once if a wider value shows). (c) A parameter with the snap-back option: the red lock is in the name line at the end away from the control, with its tooltip, and the red glow. (d) Every control position (Left, Right, Alternating) and a widened panel (bigger value). (e) Daylight. (f) Emphasis > Name gives back the usual look with the vertical value.
 
 
 
