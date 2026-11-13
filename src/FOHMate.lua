@@ -23,7 +23,7 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.14.167'   -- major.minor.revision, shown in the window's title bar
+VERSION         = '0.15.9'   -- major.minor.revision, shown in the window's title bar
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
 GLOW_M          = 6         -- room left around the racks for the selection glow
 NAME_FONT_SIZE  = 16        -- rack name font (bold)
@@ -55,6 +55,7 @@ EXT_SHOWOFF     = 'P_EXT:FOHMate_showoff' -- guids of FX taken offline by Show m
 EXT_SPLIT       = 'P_EXT:FOHMate_split' -- guid of the FX picked as the stereo point
 EXT_PARAMS      = 'P_EXT:FOHMate_params' -- Performance mode: the parameter rows of a rack
 EXT_FXCOL       = 'P_EXT:FOHMate_fxcolors' -- Performance mode: the colors given to FX of a rack (FX guid=RRGGBB;...)
+EXT_CTLSIDE     = 'P_EXT:FOHMate_ctlside'  -- Performance mode: where a rack's quick access controls sit (left / right / alt; none: Settings)
 COPY_BADGE      = 0x2EB84EFF            -- the green "+" that follows the pointer when a drag copies
 
 -- Buttons that open a native REAPER window (FX windows, routing) use this

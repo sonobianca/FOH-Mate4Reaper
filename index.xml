@@ -10,82 +10,41 @@
         <link rel="website">https://github.com/sonobianca/FOH-Mate4Reaper</link>
         <description><![CDATA[{\rtf1\ansi\deff0 {\fonttbl {\f0 Helvetica;}}\f0\fs24 \pard\sa120{\b\fs40 FOH-Mate}\par \pard\sa120 Live sound tools for REAPER, made by a live sound engineer.\par \pard\sb240\sa80{\b\fs28 Racks, the first module}\par \pard\sa120 A rack-based FX panel built with ReaImGui. A few REAPER tracks become racks, each with its own input and output routing, a chain of FX, a level, mute and bypass, and input and output meters. All the racks live in one window, away from your playback tracks, so the mixer and the track view stay clean.\par \pard\sb240\sa80{\b\fs28 What it does}\par \pard\li360\fi-240\sa80 \'95  {\b Racks are tracks.} Any track named "RACK: ..." becomes a rack, hidden from the track list and kept off the master.\par \pard\li360\fi-240\sa80 \'95  {\b Edit and Show modes.} A cue-light switch locks the racks and their FX while you perform. Level, mute, bypass and FX on/off keep working.\par \pard\li360\fi-240\sa80 \'95  {\b Quick FX handling.} Add, insert, replace, delete, reorder, copy and move FX with menus and drag and drop.\par \pard\li360\fi-240\sa80 \'95  {\b Sidechains without the routing maze.} A key button on every FX that has a sidechain input.\par \pard\li360\fi-240\sa80 \'95  {\b Mono, stereo and mono-to-stereo racks.} FX switch to their mono or stereo version on their own.\par \pard\li360\fi-240\sa80 \'95  {\b Level match,} duplicate a rack or use it as a template, rack colors and a Daylight theme.\par \pard\li360\fi-240\sa80 \'95  {\b Latency watchdog.} Racks and FX that add more latency than your limit flash an alert. An FX installed in several formats (AU, VST3...) can count at its highest latency, since some formats report 0.\par \pard\li360\fi-240\sa80 \'95  {\b FX list} of every installed FX, with favorites, developers, latency and scan status.\par \pard\li360\fi-240\sa80 \'95  {\b Performance mode} (work in progress): every rack in one row, each with a quick access panel of its critical parameters (encoders, bands, pans, drop-downs, toggles) with limits and value curves.\par \pard\sb240\sa80{\b\fs28 Requirements}\par \pard\sa120 REAPER 7.x and ReaImGui (install it from ReaPack, ReaTeam Extensions). Developed and tested on macOS with REAPER 7.84; Windows and Linux are untested.\par \pard\sb240\sa80{\b\fs28 Status}\par \pard\sa120 Work in progress (version 0.x): expect rough edges and changes between versions. Free and open source (MIT License). Not affiliated with or endorsed by Cockos Incorporated; REAPER is a trademark of Cockos.\par \pard\sa120 Full guide, screenshots and issue tracker: https://github.com/sonobianca/FOH-Mate4Reaper\par }]]></description>
       </metadata>
-      <version name="0.14.167" author="Bianca" time="2026-11-11T19:46:52Z">
-        <changelog><![CDATA[**Performance mode** (a work in progress; see the README, section "Performance mode"):
-
-- **Display > Performance mode** puts every rack in one row that scrolls sideways, with a **quick access
-  panel** under each: a column of the parameters you need at hand, which scrolls on its own (the rows
-  fade at the edges, a slim bar shows where you are). A band at its top widens it over its neighbours.
-- **Show mode** shrinks a rack to its name with **M** (mute) and **B** (bypass); the handle under it opens
-  its FX section with thin meters. Open sections and widened panels fold back by themselves after a while
-  (Settings > Performance mode).
-- **Controls** drawn for each kind of parameter: encoder (a fader's marks for a dB parameter), stepped
-  encoder, width band, Q band, pan, drop-down and toggle, with a default mark (double-click goes back to
-  it) and the value written beside it. FOH-Mate picks the control; right-click a parameter > Control to
-  change it (remembered for every project). Drag up and down or around (Settings > Controls); the mouse
-  wheel turns them too (Shift: finer).
-- **Parameters window**: a tree of every rack, FX, group (an EQ's bands) and parameter, with search, tick
-  boxes, Add to / Remove from the quick access panel, hidden placeholders and MIDI CC entries, and a
-  Refresh for FX that rename their parameters. It follows what you click in the racks.
-- **Inspector**: the selected parameter's control, direction and default mark, limits, curve, a preview
-  you can turn, and what REAPER says about it.
-- **Limits**: a Range (on a range selector with an arrow and a round handle at each end), a List of
-  values (as a stepped encoder or a drop-down) or a List of ranges; options to use the full travel of
-  the control, to let the control turn on while the value waits at a limit, to skip the gaps or turn
-  through them, and to bring a parameter back inside its limits when it is moved from outside (off by
-  default; a red lock and glow show it). Ctrl+wheel over a control moves or resizes the current range.
-- **Value curves**: Linear, Ease in, Ease out, or Custom points, saved and reused; a pink dot on the
-  control shows where it is turned to when that differs from the value.
-- Parameters get **nicknames** (remembered per FX, optional), **colors** (FX have a color too, and an EQ's
-  bands are told apart), can be **inverted**, **reordered** by dragging, and their limits and curve
-  **copied and pasted**. Pointing at an FX makes its parameters glow, and the other way round.
-- A **duplicated rack** or a template keeps its parameters, controlling its own FX. Deleting an FX that has
-  parameters asks first; a new FX of the same plug-in takes back the parameters of a deleted one;
-  parameters whose FX is gone can be hidden (Display > Hide disabled parameters) or cleared.
-- The controls, the range selector, the curve editor and the parameter tree are built to be reused by
-  other modules.
-
-Also in 0.14:
-
-- FOH-Mate is now under the **MIT License** (it was GPL-3.0-or-later).
-- The main window is now called **Racks** (it was Plugins Host). The Parameters and Inspector windows dock
-  on their own, with their own docker tab (Display > Windows > Dock Parameters / Dock Inspector), and
-  open again where they were.
-- The **Display** menu is in groups (Daylight and Colors; Performance mode; dock and windows).
-- Settings and the Inspector use foldable sections with clear titles; fields read caption, value, unit.
-- The **Out** menu lists mono outputs before stereo pairs, like everywhere else.
-- Settings, the FX list and the parameter windows open next to the Racks window (a remembered position
-  could leave them off the screen).]]></changelog>
-        <source main="main">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate.lua</source>
-        <source file="FOHMate/settings.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/settings.lua</source>
-        <source file="FOHMate/context.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/context.lua</source>
-        <source file="FOHMate/jsfx.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/jsfx.lua</source>
-        <source file="FOHMate/state.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/state.lua</source>
-        <source file="FOHMate/helpers.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/helpers.lua</source>
-        <source file="FOHMate/modes.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/modes.lua</source>
-        <source file="FOHMate/colors.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/colors.lua</source>
-        <source file="FOHMate/chain.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/chain.lua</source>
-        <source file="FOHMate/tracks.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/tracks.lua</source>
-        <source file="FOHMate/sidechain.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/sidechain.lua</source>
-        <source file="FOHMate/stereo.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/stereo.lua</source>
-        <source file="FOHMate/latency.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/latency.lua</source>
-        <source file="FOHMate/fx_list.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/fx_list.lua</source>
-        <source file="FOHMate/scan.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/scan.lua</source>
-        <source file="FOHMate/fx_list_ui.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/fx_list_ui.lua</source>
-        <source file="FOHMate/add_fx_menu.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/add_fx_menu.lua</source>
-        <source file="FOHMate/setup.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/setup.lua</source>
-        <source file="FOHMate/widgets.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/widgets.lua</source>
-        <source file="FOHMate/controls.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/controls.lua</source>
-        <source file="FOHMate/range_bar.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/range_bar.lua</source>
-        <source file="FOHMate/limit_map.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/limit_map.lua</source>
-        <source file="FOHMate/sidechain_ui.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/sidechain_ui.lua</source>
-        <source file="FOHMate/curves.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/curves.lua</source>
-        <source file="FOHMate/curve_graph.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/curve_graph.lua</source>
-        <source file="FOHMate/param_tree.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/param_tree.lua</source>
-        <source file="FOHMate/params.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/params.lua</source>
-        <source file="FOHMate/racks.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/racks.lua</source>
-        <source file="FOHMate/top_bar.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/top_bar.lua</source>
-        <source file="FOHMate/window.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.14.167/src/FOHMate/window.lua</source>
+      <version name="0.15.9" author="Bianca" time="2026-11-13T17:05:10Z">
+        <changelog><![CDATA[- The user guide is also a **PDF**, rebuilt automatically whenever it changes (link at the top of the README).
+- **Type a value:** double-click the value of a quick access row (not a toggle or a drop-down): a field opens, ready to type in, its unit optional; Enter or a click elsewhere sets it, Escape leaves it. It lands on a step of a stepped encoder and inside the limits. Double-clicking the name still opens the Inspector (Edit mode).
+- **Emphasis** of the quick access rows: on the name (as before) or on the value: the value large, horizontal and centered with its unit, the name small on one line above it. Settings > Performance mode > Emphasis, or Display > Emphasis.
+- **Control position** of the quick access panels: the controls sit on the right of every row (the new default), on the left, or alternating as before. Settings > Performance mode > Control position sets it for every panel; a panel's **...** menu > Control position gives it its own (Default follows Settings).]]></changelog>
+        <source main="main">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate.lua</source>
+        <source file="FOHMate/settings.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/settings.lua</source>
+        <source file="FOHMate/context.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/context.lua</source>
+        <source file="FOHMate/jsfx.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/jsfx.lua</source>
+        <source file="FOHMate/state.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/state.lua</source>
+        <source file="FOHMate/helpers.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/helpers.lua</source>
+        <source file="FOHMate/modes.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/modes.lua</source>
+        <source file="FOHMate/colors.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/colors.lua</source>
+        <source file="FOHMate/chain.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/chain.lua</source>
+        <source file="FOHMate/tracks.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/tracks.lua</source>
+        <source file="FOHMate/sidechain.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/sidechain.lua</source>
+        <source file="FOHMate/stereo.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/stereo.lua</source>
+        <source file="FOHMate/latency.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/latency.lua</source>
+        <source file="FOHMate/fx_list.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/fx_list.lua</source>
+        <source file="FOHMate/scan.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/scan.lua</source>
+        <source file="FOHMate/fx_list_ui.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/fx_list_ui.lua</source>
+        <source file="FOHMate/add_fx_menu.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/add_fx_menu.lua</source>
+        <source file="FOHMate/setup.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/setup.lua</source>
+        <source file="FOHMate/widgets.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/widgets.lua</source>
+        <source file="FOHMate/controls.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/controls.lua</source>
+        <source file="FOHMate/range_bar.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/range_bar.lua</source>
+        <source file="FOHMate/limit_map.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/limit_map.lua</source>
+        <source file="FOHMate/sidechain_ui.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/sidechain_ui.lua</source>
+        <source file="FOHMate/curves.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/curves.lua</source>
+        <source file="FOHMate/curve_graph.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/curve_graph.lua</source>
+        <source file="FOHMate/param_tree.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/param_tree.lua</source>
+        <source file="FOHMate/params.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/params.lua</source>
+        <source file="FOHMate/racks.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/racks.lua</source>
+        <source file="FOHMate/top_bar.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/top_bar.lua</source>
+        <source file="FOHMate/window.lua">https://github.com/sonobianca/FOH-Mate4Reaper/raw/v0.15.9/src/FOHMate/window.lua</source>
       </version>
     </reapack>
   </category>

@@ -631,8 +631,13 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         local kw = cd + 9 * f                                    -- its area: a little wider, for the arc of its limits
         -- the value box between control and name, a little closer to the name (gap vn) than to the control (vc)
         local vw, vn, vc = 22 * f, 2.5 * f, 5.5 * f
+        local valmode = CFG.emphasis == 'value'              -- the value in the name box instead (no vertical box)
+        if valmode then vw, vn = 0, 0 end
         local box_w = rw2 - kw - vw - vn - vc
-        local left = (j % 2 == 1)                            -- odd rows: name left; even rows: name right
+        -- the name on the left (the control on the right), or the other way: the panel's control position
+        -- (panel_ctl_side, params.lua); alternating: odd rows have the name on the left
+        local side = panel_ctl_side(tr)
+        local left = side == 'right' or (side == 'alt' and j % 2 == 1)
         local bx = left and rx or (rx + rw2 - box_w)
         local kx = left and (rx + rw2 - kw) or rx
         local vx = left and (bx + box_w + vn) or (kx + kw + vc)
@@ -653,10 +658,16 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           ps.last = k                                        -- the row touched last
           if fxi then param_pick_select(tr, r) end          -- the parameter window, if open, selects it
         end
-        -- double-click its name or value box (not the control: there it goes back to the default mark):
-        -- the parameter window opens on it (Edit mode; it is the same window as the + opens)
+        -- where the value is (a double-click there types a value, further down) and where the name is:
+        -- with the emphasis on the value, the value takes the name box under its one-line name
+        local name_h = 22 * f                                -- (the name line, draw_row_value_emph)
+        local vbx1, vby1, vbx2 = vx, ry, vx + vw
+        local nby2 = ry + rh
+        if valmode then vbx1, vby1, vbx2, nby2 = bx, ry + name_h, bx + box_w, ry + name_h end
+        -- double-click its name (not the control: there it goes back to the default mark): the parameter
+        -- window opens on it (Edit mode; it is the same window as the + opens)
         if fxi and over and not is_locked() and ig.IsMouseDoubleClicked(ctx, 0)
-           and mouse_in(left and bx or vx, ry, left and (vx + vw) or (bx + box_w), ry + rh) then
+           and mouse_in(bx, ry, bx + box_w, nby2) then
           param_picker_open(tr, nil, 'insp')
           param_pick_select(tr, r)
         end
@@ -693,41 +704,44 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         local rc = mm.rc
         ig.DrawList_AddRectFilled(dl, bx, ry, bx + box_w, ry + rh, rc.name_bg, ROUNDING)
         ig.DrawList_AddRect(dl, bx, ry, bx + box_w, ry + rh, rc.sec_bd, ROUNDING, 0, 1)
-        -- the name: bold, up to two lines
-        local pb = push_bold(name_font, NAME_FONT_SIZE * f)
-        -- the two lines and their widths are kept until the name, the box or the size change
-        -- (with the lock, the text keeps clear of it on both sides, so it stays centered)
-        local lockw = snapout and 14 * f or 0
-        local tw_max = box_w - 8 - 2 * lockw
-        local wkey = rname .. '|' .. box_w .. '|' .. f .. '|' .. lockw
-        if mm.wkey ~= wkey then
-          local l1, l2 = rname, nil
-          if ig.CalcTextSize(ctx, l1) > tw_max then
-            local cut = l1
-            while #cut > 1 and ig.CalcTextSize(ctx, cut) > tw_max do
-              cut = cut:match('^(.*)%s+%S*$') or cut:sub(1, #cut - 1)
+        -- the name: bold, up to two lines (emphasis on the value: drawn with the value, further down)
+        local pb = not valmode and push_bold(name_font, NAME_FONT_SIZE * f)
+        if not valmode then
+          -- the two lines and their widths are kept until the name, the box or the size change
+          -- (with the lock, the text keeps clear of it on both sides, so it stays centered)
+          local lockw = snapout and 14 * f or 0
+          local tw_max = box_w - 8 - 2 * lockw
+          local wkey = rname .. '|' .. box_w .. '|' .. f .. '|' .. lockw
+          if mm.wkey ~= wkey then
+            local l1, l2 = rname, nil
+            if ig.CalcTextSize(ctx, l1) > tw_max then
+              local cut = l1
+              while #cut > 1 and ig.CalcTextSize(ctx, cut) > tw_max do
+                cut = cut:match('^(.*)%s+%S*$') or cut:sub(1, #cut - 1)
+              end
+              l2 = fit_text((l1:sub(#cut + 1):gsub('^%s+', '')), tw_max)
+              l1 = cut
             end
-            l2 = fit_text((l1:sub(#cut + 1):gsub('^%s+', '')), tw_max)
-            l1 = cut
+            mm.wkey, mm.l1, mm.l2 = wkey, l1, l2
+            mm.w1, mm.w2 = ig.CalcTextSize(ctx, l1), l2 and ig.CalcTextSize(ctx, l2)
           end
-          mm.wkey, mm.l1, mm.l2 = wkey, l1, l2
-          mm.w1, mm.w2 = ig.CalcTextSize(ctx, l1), l2 and ig.CalcTextSize(ctx, l2)
-        end
-        local l1, l2 = mm.l1, mm.l2
-        local ty = ry + (rh - blh * (l2 and 2 or 1)) / 2
-        if snapout then                                      -- the lock: at the end of the name box away from the control
-          local lx = left and (bx + 4 + lockw / 2) or (bx + box_w - 4 - lockw / 2)
-          draw_lock(dl, lx, ry + rh / 2, 11 * f, PARAM_SNAPOUT_COL)
-          if mouse_in(lx - lockw / 2, ry + rh / 2 - 8 * f, lx + lockw / 2, ry + rh / 2 + 8 * f)
-             and ig.IsWindowHovered(ctx, ig.HoveredFlags_ChildWindows()) then
-            ig.SetTooltip(ctx, PARAM_SNAPOUT_TIP)
+          local l1, l2 = mm.l1, mm.l2
+          local ty = ry + (rh - blh * (l2 and 2 or 1)) / 2
+          if snapout then                                      -- the lock: at the end of the name box away from the control
+            local lx = left and (bx + 4 + lockw / 2) or (bx + box_w - 4 - lockw / 2)
+            draw_lock(dl, lx, ry + rh / 2, 11 * f, PARAM_SNAPOUT_COL)
+            if mouse_in(lx - lockw / 2, ry + rh / 2 - 8 * f, lx + lockw / 2, ry + rh / 2 + 8 * f)
+               and ig.IsWindowHovered(ctx, ig.HoveredFlags_ChildWindows()) then
+              ig.SetTooltip(ctx, PARAM_SNAPOUT_TIP)
+            end
           end
+          ig.DrawList_AddText(dl, bx + (box_w - mm.w1) / 2, ty, rc.name_txt, l1)
+          if l2 then ig.DrawList_AddText(dl, bx + (box_w - mm.w2) / 2, ty + blh, rc.name_txt, l2) end
         end
-        ig.DrawList_AddText(dl, bx + (box_w - mm.w1) / 2, ty, rc.name_txt, l1)
-        if l2 then ig.DrawList_AddText(dl, bx + (box_w - mm.w2) / 2, ty + blh, rc.name_txt, l2) end
         if pb then ig.PopFont(ctx) end
         -- Edit mode: the name box is the handle to drag the row to another place in its column
-        if not is_locked() then
+        local typing = ROW_EDIT and ROW_EDIT.key == row_key
+        if not is_locked() and not typing then
           ig.SetCursorScreenPos(ctx, bx, ry)
           ig.InvisibleButton(ctx, '##prow' .. k, box_w, rh)
           hint_hovered('Drag: reorder  \194\183  right-click: control for this parameter, remove it')
@@ -760,7 +774,11 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           end
         end
         -- the value, a quarter turn: counterclockwise when the control is on the left, clockwise on the right
-        if ry + rh > cy and ry < cy + ch then
+        if valmode then
+          if ry + rh > cy and ry < cy + ch then
+            draw_row_value_emph(dl, mm, rname, vtxt, bx, ry, box_w, rh, f, rc, left, snapout)
+          end
+        elseif ry + rh > cy and ry < cy + ch then
           ig.DrawList_AddRectFilled(dl, vx, ry, vx + vw, ry + rh, rc.sec_bg, ROUNDING)
           ig.DrawList_AddRect(dl, vx, ry, vx + vw, ry + rh, rc.sec_bd, ROUNDING, 0, 1)
           draw_vtext(dl, vtxt, vx, ry, vw, rh, contrast_text(rc.sec_bg, rcol), not left, f, mm)
@@ -783,6 +801,66 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         elseif drop_here then
           -- the place the dragged row would take
           ig.DrawList_AddRect(dl, rx - 1, ry - 1, rx + rw2 + 1, ry + rh + 1, T.glow, ROUNDING, 0, 2)
+        end
+        -- double-click the value: a field to type one (not a toggle or a drop-down), on top of everything in the
+        -- row, the value it has now selected; Enter or a click elsewhere sets it, Escape leaves it (as REAPER's
+        -- fields). With the emphasis on the value, it takes the number's place, in its size, the unit still shown
+        -- after it (only the number is typed there); on the name, it lies across the vertical value.
+        if fxi and over and not off and not dead and ig.IsMouseDoubleClicked(ctx, 0)
+           and mouse_in(vbx1, vby1, vbx2, ry + rh) and param_typable(r, kind) then
+          local _, cur = reaper.TrackFX_GetFormattedParamValue(tr, fxi, r.idx)
+          cur = cur or ''
+          if valmode and mm.vv_unit and mm.vv_unit ~= '' then
+            local n_, _, isn = param_text_split(cur)
+            if isn then cur = n_ end
+          end
+          ROW_EDIT = { key = row_key, text = cur, seen = FRAME }
+          typing = true
+        end
+        if typing and fxi then
+          ROW_EDIT.seen = FRAME
+          -- where, and in what size: on the value's number (draw_row_value_emph keeps where it drew it), from the
+          -- left of the box to its unit; or across the vertical value (a quarter of the row's length, centered
+          -- on it, kept inside the row)
+          local big = valmode and mm.vv_size and mm.vv_size > 2
+          local pf = big and push_bold(name_font, mm.vv_size)
+          local fh = ig.GetFrameHeight(ctx)
+          local fw, fx0, fy0
+          if big then
+            fx0 = bx + 4 * f
+            fw = math.max(40 * f, (mm.vv_ux or (bx + box_w - 4 * f)) - 3 * f - fx0)
+            fy0 = (mm.vv_y or ry) + mm.vv_size / 2 - fh / 2
+          else
+            fw = rw2 / 4
+            fx0 = math.max(rx, math.min(rx + rw2 - fw, vx + vw / 2 - fw / 2))
+            fy0 = ry + (rh - fh) / 2
+          end
+          ig.SetCursorScreenPos(ctx, fx0, fy0)
+          ig.SetNextItemWidth(ctx, fw)
+          -- a solid background (the row's own color under the field's tint), so nothing shows through
+          local fb = ig.GetStyleColor(ctx, ig.Col_FrameBg())
+          local solid = mix(rc.name_bg | 0xFF, fb | 0xFF, (fb & 0xFF) / 255)
+          -- the keyboard goes to it once the mouse button is up (a click still held elsewhere would take
+          -- it away again), and until it has it
+          if not ROW_EDIT.live and not ig.IsMouseDown(ctx, 0) then ig.SetKeyboardFocusHere(ctx) end
+          ig.PushStyleVar(ctx, ig.StyleVar_FrameBorderSize(), 1.5)      -- an outline: it is meant to be there
+          ig.PushStyleColor(ctx, ig.Col_Border(), T.link)
+          ig.PushStyleColor(ctx, ig.Col_FrameBg(), solid)
+          local enter, t = ig.InputText(ctx, '##rowedit' .. k, ROW_EDIT.text,
+                                        ig.InputTextFlags_AutoSelectAll() | ig.InputTextFlags_EnterReturnsTrue())
+          ig.PopStyleColor(ctx, 2)
+          ig.PopStyleVar(ctx)
+          if pf then ig.PopFont(ctx) end
+          ROW_EDIT.text = t
+          if ig.IsItemActive(ctx) then ROW_EDIT.live = true end
+          hint_hovered('Type a value (its unit optional)  \194\183  Enter or a click elsewhere: set it  \194\183  Escape: leave it')
+          if ig.IsKeyPressed(ctx, ig.Key_Escape()) then
+            ROW_EDIT = nil
+          elseif enter or (ROW_EDIT.live and ig.IsItemDeactivated(ctx)) then
+            local v = param_typed_value(tr, fxi, r, kind, t)
+            if v then reaper.TrackFX_SetParamNormalized(tr, fxi, r.idx, v) end
+            ROW_EDIT = nil
+          end
         end
         if newv then
           reaper.TrackFX_SetParamNormalized(tr, fxi, r.idx, newv)
@@ -949,6 +1027,22 @@ end
 function draw_param_menu(tr)
   local n = #params_read(tr)
 
+  -- where its controls sit: Default follows Settings > Performance mode > Control position
+  if ig.BeginMenu(ctx, 'Control position') then
+    local own = panel_ctl_side_own(tr)
+    for _, o in ipairs(PANEL_SIDES) do
+      local label = o[2]
+      if not o[1] then
+        for _, d in ipairs(PANEL_SIDES) do
+          if d[1] and d[1] == (CFG.ctl_side or 'right') then label = ('Default (now: %s)'):format(d[2]) end
+        end
+      end
+      if ig.MenuItem(ctx, label, nil, own == o[1]) and own ~= o[1] then panel_set_ctl_side(tr, o[1]) end
+    end
+    ig.EndMenu(ctx)
+  end
+  ig.Separator(ctx)
+
   local nu = PARAM_UNLINKED and #PARAM_UNLINKED or 0
   local label = nu > 0 and ('Remove the %d parameter%s not linked any more'):format(nu, nu == 1 and '' or 's')
                         or 'Every parameter is linked: nothing to remove'
@@ -960,6 +1054,75 @@ function draw_param_menu(tr)
       function()
         if valid(tr) then with_undo('Clear the quick access panel', function() params_drop_fx(tr, nil) end) end
       end, 'Clear all')
+  end
+end
+
+ROW_EDIT = nil   -- the row whose value is being typed: { key, text, live (the field had the keyboard), seen (the frame it was drawn) }
+
+-- A row of a quick access panel with the emphasis on the value (Settings > Performance mode > Emphasis):
+-- in the name box, the name small and bold on one line at the top, with the lock at the end away from the
+-- control; under it the value, horizontal and centered, as big
+-- as fits, its unit a little smaller after it (always shown). The size is kept per row and only gets
+-- smaller when a wider text comes, so it doesn't jump while the control turns. Widths are measured once at
+-- the name font's own size and scaled (text widths grow with the size).
+VAL_NAME_SIZE = 11                 -- the name's size (about the vertical value's)
+VAL_UNIT_RATIO = 0.65              -- the unit, against the number
+function draw_row_value_emph(dl, mm, rname, vtxt, bx, ry, box_w, rh, f, rc, left, snapout)
+  local B = NAME_FONT_SIZE
+  local pad = 5 * f
+  local ns = VAL_NAME_SIZE * f
+  local lockw = snapout and 13 * f or 0
+  local pb = push_bold(name_font, B)
+  -- the name line (cut with ... when too long)
+  local nkey = rname .. '|' .. box_w .. '|' .. f .. '|' .. lockw
+  if mm.vn_key ~= nkey then
+    local t = fit_text(rname, (box_w - 2 * pad - 10 * f - 2 * lockw) * B / ns)
+    mm.vn_key, mm.vn_txt, mm.vn_w = nkey, t, ig.CalcTextSize(ctx, t) * ns / B
+  end
+  -- the value: its number and unit, measured when it changes; the size fitted to the room left
+  local geo = box_w .. '|' .. rh .. '|' .. f
+  if mm.vv_geo ~= geo then mm.vv_geo, mm.vv_size, mm.vv_txt = geo, nil, nil end
+  if mm.vv_txt ~= vtxt then
+    local num, unit, isnum = param_text_split(vtxt)
+    if not isnum then num, unit = vtxt, '' end
+    mm.vv_txt, mm.vv_num, mm.vv_unit = vtxt, num, unit
+    mm.vv_wn, mm.vv_wu = ig.CalcTextSize(ctx, num), unit ~= '' and ig.CalcTextSize(ctx, unit) or 0
+    local gap = unit ~= '' and 3 * f or 0
+    local top = pad + ns + 6 * f                       -- under the name line
+    local ah = rh - top - pad
+    local aw = box_w - 2 * pad
+    local s = math.min(ah, (aw - gap) * B / (mm.vv_wn + mm.vv_wu * VAL_UNIT_RATIO))
+    mm.vv_size = math.min(mm.vv_size or s, s)
+  end
+  if pb then ig.PopFont(ctx) end
+  -- the name, centered
+  local th = ns + 4 * f
+  local cx = bx + box_w / 2
+  local ty = ry + pad - 1 * f
+  ig.DrawList_AddTextEx(dl, name_font, ns, cx - mm.vn_w / 2, ty + 2 * f, rc.name_txt, mm.vn_txt)
+  if snapout then                                      -- the lock, in the name line, away from the control
+    local lx = left and (bx + pad + lockw / 2) or (bx + box_w - pad - lockw / 2)
+    local ly = ty + th / 2
+    draw_lock(dl, lx, ly, 10 * f, PARAM_SNAPOUT_COL)
+    if mouse_in(lx - lockw / 2, ly - 7 * f, lx + lockw / 2, ly + 7 * f)
+       and ig.IsWindowHovered(ctx, ig.HoveredFlags_ChildWindows()) then
+      ig.SetTooltip(ctx, PARAM_SNAPOUT_TIP)
+    end
+  end
+  -- the value, brighter than the name, its unit smaller and sitting on the same line
+  local s = mm.vv_size
+  if not s or s <= 2 then return end
+  local us = s * VAL_UNIT_RATIO
+  local gap = mm.vv_unit ~= '' and 3 * f or 0
+  local wn, wu = mm.vv_wn * s / B, mm.vv_wu * us / B
+  local top = ry + pad + ns + 6 * f
+  local vy = top + (ry + rh - pad - top - s) / 2
+  local x = cx - (wn + gap + wu) / 2
+  local col = mix(rc.name_txt, S.daylight and BLACK or WHITE, 0.25)
+  mm.vv_y, mm.vv_ux = vy, x + wn + gap               -- (where the typed-value field goes)
+  ig.DrawList_AddTextEx(dl, name_font, s, x, vy, col, mm.vv_num)
+  if mm.vv_unit ~= '' then
+    ig.DrawList_AddTextEx(dl, name_font, us, x + wn + gap, vy + (s - us) * 0.82, col, mm.vv_unit)
   end
 end
 
@@ -1190,6 +1353,7 @@ end
 
 function draw(dt, now)
   CTL_HOVER_PREV, CTL_HOVER_NOW = CTL_HOVER_NOW, {}
+  if ROW_EDIT and FRAME - ROW_EDIT.seen > 1 then ROW_EDIT = nil end   -- its row isn't drawn any more
   drag_prev_rack, drag_prev_fx = drag_now_rack, drag_now_fx
   drag_now_rack, drag_now_fx = nil, nil
   drag_prev_row, drag_now_row = drag_now_row, nil

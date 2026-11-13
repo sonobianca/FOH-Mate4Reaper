@@ -18,8 +18,12 @@ project). Edit and Show keep working inside it.
   panel belongs to its rack (rows are saved on the rack's track, so a duplicated rack takes them along).
   Each row is one parameter: the FX's GUID, the parameter's index and the name the FX reported (to
   notice a changed FX); a row whose FX or parameter is gone is greyed out, never dropped silently.
-- **Rows alternate sides** (name left / control right, then the other way). The name is bold in its own
-  box (two lines), a small vertical box between name and control shows the value. The whole row glows
+- **Where the control sits** (Settings > Performance mode > Control position, or per panel in its "..."
+  menu): on the right of every row (the default), on the left, or alternating from row to row.
+- **What stands out** (Display > Emphasis): the **name** in bold in its own box (two lines), the value in
+  a small vertical box beside it; or the **value** in big letters, horizontal, its unit smaller, the name
+  small on one line above it (each row keeps its size, so it doesn't jump while the value changes; the
+  vertical text is still there for the name emphasis). Double-click a value to type one. The whole row glows
   under the pointer; pointing at an FX in a rack makes its rows glow in its color, and the other way.
 - **Each panel scrolls on its own** (the rows fade at an edge while there is more, plus a slim bar). A
   band at its top widens it over the neighbours (rows flow in columns, bigger); one at a time.

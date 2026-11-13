@@ -1,0 +1,49 @@
+# The user guide as a PDF: README.md (with its pictures) printed to FOH-Mate-Guide.pdf and published on the
+# "Documentation" release (tag "docs"), replaced each time, so its link never changes:
+# https://github.com/sonobianca/FOH-Mate4Reaper/releases/download/docs/FOH-Mate-Guide.pdf
+# Runs after each push to main that changes the guide or its pictures (or by hand: Actions > Run workflow).
+name: Documentation PDF
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - README.md
+      - docs/img/**
+      - .github/workflows/docs-pdf.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: docs-pdf
+  cancel-in-progress: true
+
+jobs:
+  pdf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # md-to-pdf renders the Markdown like a browser (the <img> tags and their sizes included), then prints it
+      - name: Print the guide
+        run: |
+          npx --yes md-to-pdf@5 README.md \
+            --launch-options '{"args":["--no-sandbox"]}' \
+            --pdf-options '{"format":"A4","margin":{"top":"16mm","bottom":"16mm","left":"14mm","right":"14mm"},"printBackground":true}'
+          mv README.pdf FOH-Mate-Guide.pdf
+
+      - name: Publish it on the Documentation release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view docs >/dev/null 2>&1; then
+            gh release create docs --title "Documentation" --latest=false \
+              --notes "The FOH-Mate user guide as a PDF, rebuilt automatically whenever the guide changes on main."
+          fi
+          gh release upload docs FOH-Mate-Guide.pdf --clobber
