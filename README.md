@@ -437,6 +437,9 @@ where you are.
   Controls > Rotary encoder**. The mouse wheel (or two fingers on a trackpad) turns it too; **Shift** is finer.
 - The small yellow mark is the **default**: double-click the control to go back to it.
 - A small box between the control and the name shows the value, turned a quarter turn.
+- **Control position:** the controls sit on the right of every row, on the left, or alternating from row to
+  row (**Settings > Performance mode > Control position**). A panel can have its own: its **...** menu >
+  **Control position** (Default follows Settings).
 
 <img src="docs/img/quick-access-controls.png" width="260" alt="Controls: encoders, a stepped encoder (Tone), a drop-down (Bank), a toggle (Swap L/R); a blue arc shows limits">
 <img src="docs/img/quick-access-row-menu.png" width="660" alt="Right-click a parameter (Edit mode): Control, Nickname, Recolor, Inspect, the snap-back option, Copy / Paste, Remove">
