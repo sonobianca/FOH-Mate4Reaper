@@ -436,13 +436,38 @@ where you are.
 - Drag up and down (finer the farther the pointer is to the side) or around the control: **Settings >
   Controls > Rotary encoder**. The mouse wheel (or two fingers on a trackpad) turns it too; **Shift** is finer.
 - The small yellow mark is the **default**: double-click the control to go back to it.
-- A small box between the control and the name shows the value, turned a quarter turn.
-- **Control position:** the controls sit on the right of every row, on the left, or alternating from row to
-  row (**Settings > Performance mode > Control position**). A panel can have its own: its **...** menu >
-  **Control position** (Default follows Settings).
+- The value shows next to the name (see **Display options** below for the two ways it can look). Double-click
+  it to type a value.
 
 <img src="docs/img/quick-access-controls.png" width="260" alt="Controls: encoders, a stepped encoder (Tone), a drop-down (Bank), a toggle (Swap L/R); a blue arc shows limits">
 <img src="docs/img/quick-access-row-menu.png" width="660" alt="Right-click a parameter (Edit mode): Control, Nickname, Recolor, Inspect, the snap-back option, Copy / Paste, Remove">
+
+**Display options.**
+
+- **Emphasis** (**Display > Emphasis**, also in **Settings > Performance mode**), for every panel:
+  - **Name** (the default): the name in big letters, the value in a narrow box beside it, written a quarter
+    turn.
+  - **Value:** the value in big letters, horizontal and centered, with its unit a little smaller after it;
+    the name small, on one line above it. Each row keeps the same size while its value changes, so nothing
+    jumps while you turn a control.
+
+  <img src="docs/img/value-emphasis.png" width="840" alt="Emphasis on the value: each row shows its value in big letters, the name small above it">
+
+- **Control position:** the controls sit on the **right** of every row (the default), on the **left**, or
+  **alternating** from row to row. **Settings > Performance mode > Control position** sets it for every
+  panel; a panel's **...** menu > **Control position** gives it its own (**Default** follows Settings). A
+  widened panel keeps it, and a duplicated rack or a template takes it along.
+
+  <img src="docs/img/control-position-menu.png" width="760" alt="A panel's ... menu > Control position: Default, Left, Right, Alternating">
+
+- **Type a value:** double-click a row's value (not a toggle or a drop-down). A field opens, ready to type in,
+  the value it has now selected: type a number in the parameter's own unit (the unit is optional), then
+  **Enter** or a click elsewhere sets it, **Escape** leaves it. A stepped encoder lands on a step, and limits
+  are kept (the nearest allowed value). With the emphasis on the value, the field takes the number's place,
+  in its size, the unit still showing after it; on the name, it lies across the vertical value. It works in
+  Show mode too. Double-clicking the name opens the Inspector (Edit mode).
+
+  <img src="docs/img/type-value-value-emphasis.png" width="252" alt="Typing a value, emphasis on the value"> <img src="docs/img/type-value-name-emphasis.png" width="252" alt="Typing a value, emphasis on the name">
 
 <img src="docs/img/parameters-window.png" width="402" alt="The Parameters window: a rack, its FX and their parameters, with tick boxes">
 
@@ -534,7 +559,7 @@ The top bar, right side: **+** (new rack), then four menus.
 | **Latency** | Latency alerts, Silence / Resume, Latency limits, Scan new / Rescan all FX, Retry failed FX, Ask to scan new FX |
 | **Options** | Disconnect inputs/outputs on copy and template, Disable metering and Level match, Stereo pairs on odd-even channels only, Open the FOH-Mate data folder, Settings... |
 
-<img src="docs/img/menu-display.png" width="400" alt="The Display menu"> <img src="docs/img/menu-fx.png" width="400" alt="The FX menu">
+<img src="docs/img/menu-display.png" width="300" alt="The Display menu, with Emphasis"> <img src="docs/img/menu-fx.png" width="400" alt="The FX menu">
 <img src="docs/img/menu-latency.png" width="400" alt="The Latency menu"> <img src="docs/img/menu-options.png" width="400" alt="The Options menu">
 
 Windows (Settings, FX list) reopen at the size you left them, also after being collapsed.
