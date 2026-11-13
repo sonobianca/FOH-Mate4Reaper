@@ -788,27 +788,39 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         if fxi and over and not off and not dead and ig.IsMouseDoubleClicked(ctx, 0)
            and mouse_in(vbx1, vby1, vbx2, ry + rh) and param_typable(r, kind) then
           local _, cur = reaper.TrackFX_GetFormattedParamValue(tr, fxi, r.idx)
-          ROW_EDIT = { key = row_key, text = cur or '', focus = true, seen = FRAME }
+          ROW_EDIT = { key = row_key, text = cur or '', seen = FRAME }
           typing = true
         end
         if typing and fxi then
           ROW_EDIT.seen = FRAME
+          -- where: with the emphasis on the value, over the name box; on the name, across the vertical value
+          -- (a quarter of the row's length, centered on it, kept inside the row)
           local fh = ig.GetFrameHeight(ctx)
-          ig.SetCursorScreenPos(ctx, bx + 4 * f, ry + (rh - fh) / 2)
-          ig.SetNextItemWidth(ctx, box_w - 8 * f)
-          if ROW_EDIT.focus then ig.SetKeyboardFocusHere(ctx) end
+          local fw, fx0 = box_w - 8 * f, bx + 4 * f
+          if not valmode then
+            fw = rw2 / 4
+            fx0 = math.max(rx, math.min(rx + rw2 - fw, vx + vw / 2 - fw / 2))
+          end
+          ig.SetCursorScreenPos(ctx, fx0, ry + (rh - fh) / 2)
+          ig.SetNextItemWidth(ctx, fw)
+          -- the keyboard goes to it once the mouse button is up (a click still held elsewhere would take
+          -- it away again), and until it has it
+          if not ROW_EDIT.live and not ig.IsMouseDown(ctx, 0) then ig.SetKeyboardFocusHere(ctx) end
+          ig.PushStyleVar(ctx, ig.StyleVar_FrameBorderSize(), 1.5)      -- an outline: it is meant to be there
+          ig.PushStyleColor(ctx, ig.Col_Border(), T.link)
           local enter, t = ig.InputText(ctx, '##rowedit' .. k, ROW_EDIT.text,
                                         ig.InputTextFlags_AutoSelectAll() | ig.InputTextFlags_EnterReturnsTrue())
+          ig.PopStyleColor(ctx)
+          ig.PopStyleVar(ctx)
           ROW_EDIT.text = t
+          if ig.IsItemActive(ctx) then ROW_EDIT.live = true end
           hint_hovered('Type a value (its unit optional)  \194\183  Enter or a click elsewhere: set it  \194\183  Escape: leave it')
           if ig.IsKeyPressed(ctx, ig.Key_Escape()) then
             ROW_EDIT = nil
-          elseif enter or (not ROW_EDIT.focus and ig.IsItemDeactivated(ctx)) then
+          elseif enter or (ROW_EDIT.live and ig.IsItemDeactivated(ctx)) then
             local v = param_typed_value(tr, fxi, r, kind, t)
             if v then reaper.TrackFX_SetParamNormalized(tr, fxi, r.idx, v) end
             ROW_EDIT = nil
-          else
-            ROW_EDIT.focus = false
           end
         end
         if off then
@@ -1025,7 +1037,7 @@ function draw_param_menu(tr)
   end
 end
 
-ROW_EDIT = nil   -- the row whose value is being typed: { key, text, focus, seen (the frame it was drawn) }
+ROW_EDIT = nil   -- the row whose value is being typed: { key, text, live (the field had the keyboard), seen (the frame it was drawn) }
 
 -- A row of a quick access panel with the emphasis on the value (Settings > Performance mode > Emphasis):
 -- in the name box, the name small and bold on one line at the top, with the lock at the end away from the
