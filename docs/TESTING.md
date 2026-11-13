@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 213).
+New items get the next free number (next: 214).
 
 ## Open
 
+- [ ] 213. (0.15.4) Type a value. (a) Name emphasis: double-click the vertical value box of an encoder: a field opens over the name box with the value selected; type a number (e.g. -6), Enter: the parameter takes it. (b) With its unit ("350 Hz"), and a click elsewhere instead of Enter: set too. (c) Escape: nothing changes. (d) Value emphasis: double-click the big value: same; double-click the name line: the Inspector opens (Edit mode). (e) A stepped encoder lands on a step; a parameter with a Range lands inside it; a List of values (as a stepped encoder) on the nearest value. (f) A toggle or a drop-down: no field. (g) Show mode: typing works too. (h) Text that isn't a number, or a unit the FX never shows: nothing changes.
 
 
 

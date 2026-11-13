@@ -643,6 +643,39 @@ function param_find_value(tr, fxi, idx, num, unit)
   return (math.abs((a or math.huge) - num) <= math.abs((b or math.huge) - num)) and lo or hi
 end
 
+-- Typing a value (double-click the value of a quick access row): not for a toggle or a drop-down (an FX's
+-- named values, or a List of values shown as one, or two values: a toggle)
+function param_typable(r, kind)
+  if not kind or kind.kind == 'toggle' or kind.kind == 'list' then return false end
+  if r.lim == 'list' and r.vals then
+    local n = #r.vals
+    return n > 2 and param_list_show(r, kind.kind, n) == 'steps'
+  end
+  return true
+end
+
+-- the value typed for a row: a number in the parameter's own unit, the unit optional (the one it shows now
+-- when left out), then on a step of a stepped encoder and inside the row's limits (the nearest allowed
+-- value, or the nearest value of its list). nil: not a number, or a unit the FX never prints.
+function param_typed_value(tr, fxi, r, kind, text)
+  local tn, tu, tis = param_text_split((text:gsub(',', '.')))
+  if not tis or not tonumber(tn) then return nil end
+  local _, cur = reaper.TrackFX_GetFormattedParamValue(tr, fxi, r.idx)
+  local _, cu = param_text_split(cur or '')
+  local v = param_find_value(tr, fxi, r.idx, tonumber(tn), tu ~= '' and tu or cu)
+  if not v then return nil end
+  if kind.steps and kind.steps > 1 then v = param_on_step(v, kind.steps) end
+  if r.lim == 'list' and r.vals and #r.vals > 0 then
+    local best, bd = v, math.huge
+    for _, x in ipairs(r.vals) do if math.abs(x - v) < bd then best, bd = x, math.abs(x - v) end end
+    v = best
+  else
+    local segs = param_segs(r, kind.kind)
+    if segs then v = param_seg_near(segs, v) end
+  end
+  return v
+end
+
 -- what a list shows as: the user's choice (Show as), or else a drop-down for an FX's named values
 -- (a drop-down already), a single value or a long list, and a stepped encoder otherwise
 function param_list_show(r, kind, n)

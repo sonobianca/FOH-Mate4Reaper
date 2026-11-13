@@ -658,10 +658,16 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           ps.last = k                                        -- the row touched last
           if fxi then param_pick_select(tr, r) end          -- the parameter window, if open, selects it
         end
-        -- double-click its name or value box (not the control: there it goes back to the default mark):
-        -- the parameter window opens on it (Edit mode; it is the same window as the + opens)
+        -- where the value is (a double-click there types a value, further down) and where the name is:
+        -- with the emphasis on the value, the value takes the name box under its one-line name
+        local name_h = 22 * f                                -- (the name line, draw_row_value_emph)
+        local vbx1, vby1, vbx2 = vx, ry, vx + vw
+        local nby2 = ry + rh
+        if valmode then vbx1, vby1, vbx2, nby2 = bx, ry + name_h, bx + box_w, ry + name_h end
+        -- double-click its name (not the control: there it goes back to the default mark): the parameter
+        -- window opens on it (Edit mode; it is the same window as the + opens)
         if fxi and over and not is_locked() and ig.IsMouseDoubleClicked(ctx, 0)
-           and mouse_in(left and bx or vx, ry, left and (vx + vw) or (bx + box_w), ry + rh) then
+           and mouse_in(bx, ry, bx + box_w, nby2) then
           param_picker_open(tr, nil, 'insp')
           param_pick_select(tr, r)
         end
@@ -734,7 +740,8 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         end
         if pb then ig.PopFont(ctx) end
         -- Edit mode: the name box is the handle to drag the row to another place in its column
-        if not is_locked() then
+        local typing = ROW_EDIT and ROW_EDIT.key == row_key
+        if not is_locked() and not typing then
           ig.SetCursorScreenPos(ctx, bx, ry)
           ig.InvisibleButton(ctx, '##prow' .. k, box_w, rh)
           hint_hovered('Drag: reorder  \194\183  right-click: control for this parameter, remove it')
@@ -775,6 +782,34 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           ig.DrawList_AddRectFilled(dl, vx, ry, vx + vw, ry + rh, rc.sec_bg, ROUNDING)
           ig.DrawList_AddRect(dl, vx, ry, vx + vw, ry + rh, rc.sec_bd, ROUNDING, 0, 1)
           draw_vtext(dl, vtxt, vx, ry, vw, rh, contrast_text(rc.sec_bg, rcol), not left, f, mm)
+        end
+        -- double-click the value: a field to type one (not a toggle or a drop-down), over the name box, the
+        -- value it has now selected; Enter or a click elsewhere sets it, Escape leaves it (as REAPER's fields)
+        if fxi and over and not off and not dead and ig.IsMouseDoubleClicked(ctx, 0)
+           and mouse_in(vbx1, vby1, vbx2, ry + rh) and param_typable(r, kind) then
+          local _, cur = reaper.TrackFX_GetFormattedParamValue(tr, fxi, r.idx)
+          ROW_EDIT = { key = row_key, text = cur or '', focus = true, seen = FRAME }
+          typing = true
+        end
+        if typing and fxi then
+          ROW_EDIT.seen = FRAME
+          local fh = ig.GetFrameHeight(ctx)
+          ig.SetCursorScreenPos(ctx, bx + 4 * f, ry + (rh - fh) / 2)
+          ig.SetNextItemWidth(ctx, box_w - 8 * f)
+          if ROW_EDIT.focus then ig.SetKeyboardFocusHere(ctx) end
+          local enter, t = ig.InputText(ctx, '##rowedit' .. k, ROW_EDIT.text,
+                                        ig.InputTextFlags_AutoSelectAll() | ig.InputTextFlags_EnterReturnsTrue())
+          ROW_EDIT.text = t
+          hint_hovered('Type a value (its unit optional)  \194\183  Enter or a click elsewhere: set it  \194\183  Escape: leave it')
+          if ig.IsKeyPressed(ctx, ig.Key_Escape()) then
+            ROW_EDIT = nil
+          elseif enter or (not ROW_EDIT.focus and ig.IsItemDeactivated(ctx)) then
+            local v = param_typed_value(tr, fxi, r, kind, t)
+            if v then reaper.TrackFX_SetParamNormalized(tr, fxi, r.idx, v) end
+            ROW_EDIT = nil
+          else
+            ROW_EDIT.focus = false
+          end
         end
         if off then
           draw_encoder('k' .. k, kcx, kcy, kr, norm, { body = rc.sec_bg, col = rc.border, ptr = T.dim, s = f, static = true,
@@ -989,6 +1024,8 @@ function draw_param_menu(tr)
       end, 'Clear all')
   end
 end
+
+ROW_EDIT = nil   -- the row whose value is being typed: { key, text, focus, seen (the frame it was drawn) }
 
 -- A row of a quick access panel with the emphasis on the value (Settings > Performance mode > Emphasis):
 -- in the name box, the name small and bold on one line at the top, with the lock at the end away from the
@@ -1283,6 +1320,7 @@ end
 
 function draw(dt, now)
   CTL_HOVER_PREV, CTL_HOVER_NOW = CTL_HOVER_NOW, {}
+  if ROW_EDIT and FRAME - ROW_EDIT.seen > 1 then ROW_EDIT = nil end   -- its row isn't drawn any more
   drag_prev_rack, drag_prev_fx = drag_now_rack, drag_now_fx
   drag_now_rack, drag_now_fx = nil, nil
   drag_prev_row, drag_now_row = drag_now_row, nil
