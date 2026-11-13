@@ -783,46 +783,6 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
           ig.DrawList_AddRect(dl, vx, ry, vx + vw, ry + rh, rc.sec_bd, ROUNDING, 0, 1)
           draw_vtext(dl, vtxt, vx, ry, vw, rh, contrast_text(rc.sec_bg, rcol), not left, f, mm)
         end
-        -- double-click the value: a field to type one (not a toggle or a drop-down), over the name box, the
-        -- value it has now selected; Enter or a click elsewhere sets it, Escape leaves it (as REAPER's fields)
-        if fxi and over and not off and not dead and ig.IsMouseDoubleClicked(ctx, 0)
-           and mouse_in(vbx1, vby1, vbx2, ry + rh) and param_typable(r, kind) then
-          local _, cur = reaper.TrackFX_GetFormattedParamValue(tr, fxi, r.idx)
-          ROW_EDIT = { key = row_key, text = cur or '', seen = FRAME }
-          typing = true
-        end
-        if typing and fxi then
-          ROW_EDIT.seen = FRAME
-          -- where: with the emphasis on the value, over the name box; on the name, across the vertical value
-          -- (a quarter of the row's length, centered on it, kept inside the row)
-          local fh = ig.GetFrameHeight(ctx)
-          local fw, fx0 = box_w - 8 * f, bx + 4 * f
-          if not valmode then
-            fw = rw2 / 4
-            fx0 = math.max(rx, math.min(rx + rw2 - fw, vx + vw / 2 - fw / 2))
-          end
-          ig.SetCursorScreenPos(ctx, fx0, ry + (rh - fh) / 2)
-          ig.SetNextItemWidth(ctx, fw)
-          -- the keyboard goes to it once the mouse button is up (a click still held elsewhere would take
-          -- it away again), and until it has it
-          if not ROW_EDIT.live and not ig.IsMouseDown(ctx, 0) then ig.SetKeyboardFocusHere(ctx) end
-          ig.PushStyleVar(ctx, ig.StyleVar_FrameBorderSize(), 1.5)      -- an outline: it is meant to be there
-          ig.PushStyleColor(ctx, ig.Col_Border(), T.link)
-          local enter, t = ig.InputText(ctx, '##rowedit' .. k, ROW_EDIT.text,
-                                        ig.InputTextFlags_AutoSelectAll() | ig.InputTextFlags_EnterReturnsTrue())
-          ig.PopStyleColor(ctx)
-          ig.PopStyleVar(ctx)
-          ROW_EDIT.text = t
-          if ig.IsItemActive(ctx) then ROW_EDIT.live = true end
-          hint_hovered('Type a value (its unit optional)  \194\183  Enter or a click elsewhere: set it  \194\183  Escape: leave it')
-          if ig.IsKeyPressed(ctx, ig.Key_Escape()) then
-            ROW_EDIT = nil
-          elseif enter or (ROW_EDIT.live and ig.IsItemDeactivated(ctx)) then
-            local v = param_typed_value(tr, fxi, r, kind, t)
-            if v then reaper.TrackFX_SetParamNormalized(tr, fxi, r.idx, v) end
-            ROW_EDIT = nil
-          end
-        end
         if off then
           draw_encoder('k' .. k, kcx, kcy, kr, norm, { body = rc.sec_bg, col = rc.border, ptr = T.dim, s = f, static = true,
                        style = 'pan' })
@@ -841,6 +801,66 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         elseif drop_here then
           -- the place the dragged row would take
           ig.DrawList_AddRect(dl, rx - 1, ry - 1, rx + rw2 + 1, ry + rh + 1, T.glow, ROUNDING, 0, 2)
+        end
+        -- double-click the value: a field to type one (not a toggle or a drop-down), on top of everything in the
+        -- row, the value it has now selected; Enter or a click elsewhere sets it, Escape leaves it (as REAPER's
+        -- fields). With the emphasis on the value, it takes the number's place, in its size, the unit still shown
+        -- after it (only the number is typed there); on the name, it lies across the vertical value.
+        if fxi and over and not off and not dead and ig.IsMouseDoubleClicked(ctx, 0)
+           and mouse_in(vbx1, vby1, vbx2, ry + rh) and param_typable(r, kind) then
+          local _, cur = reaper.TrackFX_GetFormattedParamValue(tr, fxi, r.idx)
+          cur = cur or ''
+          if valmode and mm.vv_unit and mm.vv_unit ~= '' then
+            local n_, _, isn = param_text_split(cur)
+            if isn then cur = n_ end
+          end
+          ROW_EDIT = { key = row_key, text = cur, seen = FRAME }
+          typing = true
+        end
+        if typing and fxi then
+          ROW_EDIT.seen = FRAME
+          -- where, and in what size: on the value's number (draw_row_value_emph keeps where it drew it), from the
+          -- left of the box to its unit; or across the vertical value (a quarter of the row's length, centered
+          -- on it, kept inside the row)
+          local big = valmode and mm.vv_size and mm.vv_size > 2
+          local pf = big and push_bold(name_font, mm.vv_size)
+          local fh = ig.GetFrameHeight(ctx)
+          local fw, fx0, fy0
+          if big then
+            fx0 = bx + 4 * f
+            fw = math.max(40 * f, (mm.vv_ux or (bx + box_w - 4 * f)) - 3 * f - fx0)
+            fy0 = (mm.vv_y or ry) + mm.vv_size / 2 - fh / 2
+          else
+            fw = rw2 / 4
+            fx0 = math.max(rx, math.min(rx + rw2 - fw, vx + vw / 2 - fw / 2))
+            fy0 = ry + (rh - fh) / 2
+          end
+          ig.SetCursorScreenPos(ctx, fx0, fy0)
+          ig.SetNextItemWidth(ctx, fw)
+          -- a solid background (the row's own color under the field's tint), so nothing shows through
+          local fb = ig.GetStyleColor(ctx, ig.Col_FrameBg())
+          local solid = mix(rc.name_bg | 0xFF, fb | 0xFF, (fb & 0xFF) / 255)
+          -- the keyboard goes to it once the mouse button is up (a click still held elsewhere would take
+          -- it away again), and until it has it
+          if not ROW_EDIT.live and not ig.IsMouseDown(ctx, 0) then ig.SetKeyboardFocusHere(ctx) end
+          ig.PushStyleVar(ctx, ig.StyleVar_FrameBorderSize(), 1.5)      -- an outline: it is meant to be there
+          ig.PushStyleColor(ctx, ig.Col_Border(), T.link)
+          ig.PushStyleColor(ctx, ig.Col_FrameBg(), solid)
+          local enter, t = ig.InputText(ctx, '##rowedit' .. k, ROW_EDIT.text,
+                                        ig.InputTextFlags_AutoSelectAll() | ig.InputTextFlags_EnterReturnsTrue())
+          ig.PopStyleColor(ctx, 2)
+          ig.PopStyleVar(ctx)
+          if pf then ig.PopFont(ctx) end
+          ROW_EDIT.text = t
+          if ig.IsItemActive(ctx) then ROW_EDIT.live = true end
+          hint_hovered('Type a value (its unit optional)  \194\183  Enter or a click elsewhere: set it  \194\183  Escape: leave it')
+          if ig.IsKeyPressed(ctx, ig.Key_Escape()) then
+            ROW_EDIT = nil
+          elseif enter or (ROW_EDIT.live and ig.IsItemDeactivated(ctx)) then
+            local v = param_typed_value(tr, fxi, r, kind, t)
+            if v then reaper.TrackFX_SetParamNormalized(tr, fxi, r.idx, v) end
+            ROW_EDIT = nil
+          end
         end
         if newv then
           reaper.TrackFX_SetParamNormalized(tr, fxi, r.idx, newv)
@@ -1099,6 +1119,7 @@ function draw_row_value_emph(dl, mm, rname, vtxt, bx, ry, box_w, rh, f, rc, left
   local vy = top + (ry + rh - pad - top - s) / 2
   local x = cx - (wn + gap + wu) / 2
   local col = mix(rc.name_txt, S.daylight and BLACK or WHITE, 0.25)
+  mm.vv_y, mm.vv_ux = vy, x + wn + gap               -- (where the typed-value field goes)
   ig.DrawList_AddTextEx(dl, name_font, s, x, vy, col, mm.vv_num)
   if mm.vv_unit ~= '' then
     ig.DrawList_AddTextEx(dl, name_font, us, x + wn + gap, vy + (s - us) * 0.82, col, mm.vv_unit)
