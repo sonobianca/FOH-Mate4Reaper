@@ -660,7 +660,9 @@ end
 function param_typed_value(tr, fxi, r, kind, text)
   local tn, tu, tis = param_text_split((text:gsub(',', '.')))
   if not tis or not tonumber(tn) then return nil end
-  local _, cur = reaper.TrackFX_GetFormattedParamValue(tr, fxi, r.idx)
+  -- (the unit left out: the one its text has now, asked the same way the search asks, since some FX
+  -- print the value now without a unit and every other position with one: "107.3" / "135.0 Hz")
+  local cur = param_text_at(tr, fxi, r.idx, reaper.TrackFX_GetParamNormalized(tr, fxi, r.idx))
   local _, cu = param_text_split(cur or '')
   local v = param_find_value(tr, fxi, r.idx, tonumber(tn), tu ~= '' and tu or cu)
   if not v then return nil end

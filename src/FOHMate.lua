@@ -23,7 +23,7 @@
 
 local _ENV = setmetatable({}, { __index = _G })
 
-VERSION         = '0.15.4'   -- major.minor.revision, shown in the window's title bar
+VERSION         = '0.15.5'   -- major.minor.revision, shown in the window's title bar
 PREFIX          = 'RACK:'   -- track name prefix (case-insensitive); not editable at run time
 GLOW_M          = 6         -- room left around the racks for the selection glow
 NAME_FONT_SIZE  = 16        -- rack name font (bold)
