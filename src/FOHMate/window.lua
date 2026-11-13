@@ -991,8 +991,8 @@ function draw_param_menu(tr)
 end
 
 -- A row of a quick access panel with the emphasis on the value (Settings > Performance mode > Emphasis):
--- in the name box, the name small and bold on one line at the top, in a thin frame of the row's color (a
--- tag), with the lock at the end away from the control; under it the value, horizontal and centered, as big
+-- in the name box, the name small and bold on one line at the top, with the lock at the end away from the
+-- control; under it the value, horizontal and centered, as big
 -- as fits, its unit a little smaller after it (always shown). The size is kept per row and only gets
 -- smaller when a wider text comes, so it doesn't jump while the control turns. Widths are measured once at
 -- the name font's own size and scaled (text widths grow with the size).
@@ -1026,12 +1026,10 @@ function draw_row_value_emph(dl, mm, rname, vtxt, bx, ry, box_w, rh, f, rc, left
     mm.vv_size = math.min(mm.vv_size or s, s)
   end
   if pb then ig.PopFont(ctx) end
-  -- the name, in its tag, centered
+  -- the name, centered
   local th = ns + 4 * f
-  local tw = mm.vn_w + 10 * f
   local cx = bx + box_w / 2
   local ty = ry + pad - 1 * f
-  ig.DrawList_AddRect(dl, cx - tw / 2, ty, cx + tw / 2, ty + th, rc.border, th / 2, 0, f)
   ig.DrawList_AddTextEx(dl, name_font, ns, cx - mm.vn_w / 2, ty + 2 * f, rc.name_txt, mm.vn_txt)
   if snapout then                                      -- the lock, in the name line, away from the control
     local lx = left and (bx + pad + lockw / 2) or (bx + box_w - pad - lockw / 2)
