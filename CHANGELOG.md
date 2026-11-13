@@ -4,6 +4,7 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.15
 
+- The user guide is also a **PDF**, rebuilt automatically whenever it changes (link at the top of the README).
 - **Type a value:** double-click the value of a quick access row (not a toggle or a drop-down): a field opens, ready to type in, its unit optional; Enter or a click elsewhere sets it, Escape leaves it. It lands on a step of a stepped encoder and inside the limits. Double-clicking the name still opens the Inspector (Edit mode).
 - **Emphasis** of the quick access rows: on the name (as before) or on the value: the value large, horizontal and centered with its unit, the name small on one line above it. Settings > Performance mode > Emphasis, or Display > Emphasis.
 - **Control position** of the quick access panels: the controls sit on the right of every row (the new default), on the left, or alternating as before. Settings > Performance mode > Control position sets it for every panel; a panel's **...** menu > Control position gives it its own (Default follows Settings).

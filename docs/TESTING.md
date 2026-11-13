@@ -2,10 +2,12 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 214).
+New items get the next free number (next: 216).
 
 ## Open
 
+- [ ] 215. (0.15.9, after the release) The guide as a PDF: the link at the top of the README opens FOH-Mate-Guide.pdf (Documentation release), with the pictures; it is rebuilt after a push to main that changes README.md or docs/img.
+- [ ] 214. (0.15.9, after the release) In REAPER: Extensions > ReaPack > Synchronize packages: FOH-Mate updates to 0.15.9; the installed script starts; the new options are there (Display > Emphasis, a panel's ... > Control position, double-click a value).
 
 
 

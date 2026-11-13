@@ -24,6 +24,9 @@ window, away from your playback tracks, so the mixer and the track view stay cle
 [Good to know](#good-to-know) · [Troubleshooting](#troubleshooting) ·
 [Updating and uninstalling](#updating-and-uninstalling)
 
+This guide as a PDF: [FOH-Mate-Guide.pdf](https://github.com/sonobianca/FOH-Mate4Reaper/releases/download/docs/FOH-Mate-Guide.pdf)
+(rebuilt automatically whenever the guide changes).
+
 ---
 
 ## What it does
