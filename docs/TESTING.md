@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 216).
+New items get the next free number (next: 217).
 
 ## Open
 
+- [ ] 216. (0.15.10) Windows come to the front. With the Parameters and Inspector windows floating, click the Racks window so they go behind it, then: (a) the + of a quick access panel: both come to the front; (b) right-click a parameter > Inspect parameter... and right-click an FX > Inspect FX...: same; (c) Display > Windows > Show parameter treeview / inspector (off, then on): it comes to the front; (d) Show mode, then back to Edit mode: they come back in front; (e) Options > Settings... and FX > FX list... while they are open behind: they come to the front. (f) Docked: asking for one shows its docker tab, and the tab doesn't keep jumping back afterwards.
 - [ ] 214. (0.15.9, after the release) In REAPER: Extensions > ReaPack > Synchronize packages: FOH-Mate updates to 0.15.9; the installed script starts; the new options are there (Display > Emphasis, a panel's ... > Control position, double-click a value).
 
 

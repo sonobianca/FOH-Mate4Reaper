@@ -41,6 +41,7 @@ function open_settings_at(group)
   S.set_find = ''
   S.show_settings = true
   S.settings_focus = group
+  raise_window('settings')
 end
 
 -- three groups between lines: the look (Daylight, Colors), Performance mode, the layout (latency
@@ -141,7 +142,7 @@ function draw_fx_menu()
   end
   if ig.MenuItem(ctx, 'FX type colors...') then open_settings_at('FX type colors') end
   ig.Separator(ctx)
-  if ig.MenuItem(ctx, 'FX list...') then LATWIN.open = true end
+  if ig.MenuItem(ctx, 'FX list...') then LATWIN.open = true; raise_window('latlist') end
   if ig.IsItemHovered(ctx) then
     ig.SetTooltip(ctx, 'Every installed FX: favorites, type, latency, scan status.\nRescan one FX or a selection.')
   end
@@ -195,7 +196,7 @@ function draw_options_menu()
   if ig.IsItemHovered(ctx) then
     ig.SetTooltip(ctx, 'fx_latency.txt, favorites.txt, recent_fx.txt, last_scan_log.txt, last_error.txt\n' .. LATDB_DIR)
   end
-  if ig.MenuItem(ctx, 'Settings...') then S.show_settings = true end
+  if ig.MenuItem(ctx, 'Settings...') then S.show_settings = true; raise_window('settings') end
 end
 
 ---------------------------------------------------------------- FX type colors
@@ -252,6 +253,12 @@ FRAME = 0
 
 -- dock: a window of its own context that docks (Parameters, Inspector): it comes back where it was,
 -- floating (where it was left) or in its docker
+-- A FOH-Mate window asked for (a menu item, the +, Inspect...) comes to the front once, also when it is
+-- already open behind another window: begin_window focuses it the next time it is drawn. Only then, not
+-- every frame (a window docked under another tab would keep taking the tab).
+WIN_RAISE = {}
+function raise_window(id) WIN_RAISE[id] = true end
+
 function begin_window(id, title, def_w, def_h, p_open, flags, dock)
   local st = WINSZ[id]
   if not st then
@@ -275,6 +282,10 @@ function begin_window(id, title, def_w, def_h, p_open, flags, dock)
   if dock and DOCK_REQ[id] ~= nil and ig.SetNextWindowDockID then   -- asked from Display > Windows
     ig.SetNextWindowDockID(ctx, DOCK_REQ[id], ig.Cond_Always())
     DOCK_REQ[id] = nil
+  end
+  if WIN_RAISE[id] then
+    WIN_RAISE[id] = nil
+    if ig.SetNextWindowFocus then ig.SetNextWindowFocus(ctx) end
   end
   local vis, open = ig.Begin(ctx, title, p_open, (flags or 0) | ig.WindowFlags_NoCollapse())
   if vis then

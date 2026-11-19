@@ -1317,8 +1317,9 @@ function param_picker_open(tr, sel_key, which)
   P.cache = nil                                            -- the FX's parameters read again (param_tree.lua)
   P.open = P.open or {}
   P.open['R:' .. reaper.GetTrackGUID(tr)] = true
-  if which ~= 'insp' then P.tree_open = true end
+  if which ~= 'insp' then P.tree_open = true; raise_window('parampick') end
   P.insp_open = true
+  raise_window('paraminsp')                                -- (in front, also when they were open behind)
   param_win_save()
   if sel_key then
     P.sel, P.anchor = { [sel_key] = true }, sel_key
@@ -1340,6 +1341,7 @@ function param_pick_toggle(which)
   end
   local f = which == 'tree' and 'tree_open' or 'insp_open'
   P[f] = not P[f]
+  if P[f] then raise_window(which == 'tree' and 'parampick' or 'paraminsp') end
   param_win_save()
 end
 
@@ -2016,7 +2018,11 @@ function draw_param_picker()
   if not P then return end
   -- Show mode closes them; back in Edit mode they come back (Settings > Reopen the Parameters and Inspector windows)
   if P.back and not is_locked() then
-    if CFG.reopen_windows ~= 0 and valid(P.tr) and #param_racks() > 0 then P.tree_open, P.insp_open = P.back.tree, P.back.insp end
+    if CFG.reopen_windows ~= 0 and valid(P.tr) and #param_racks() > 0 then
+      P.tree_open, P.insp_open = P.back.tree, P.back.insp
+      if P.tree_open then raise_window('parampick') end          -- (in front, not stuck behind the Racks window)
+      if P.insp_open then raise_window('paraminsp') end
+    end
     P.back = nil
   end
   if not (P.tree_open or P.insp_open) then P.hl, P.focus = nil, nil; return end
