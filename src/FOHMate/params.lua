@@ -1317,9 +1317,9 @@ function param_picker_open(tr, sel_key, which)
   P.cache = nil                                            -- the FX's parameters read again (param_tree.lua)
   P.open = P.open or {}
   P.open['R:' .. reaper.GetTrackGUID(tr)] = true
-  if which ~= 'insp' then P.tree_open = true; raise_window('parampick') end
   P.insp_open = true
   raise_window('paraminsp')                                -- (in front, also when they were open behind)
+  if which ~= 'insp' then P.tree_open = true; raise_window('parampick', true) end   -- (the tree in front of it)
   param_win_save()
   if sel_key then
     P.sel, P.anchor = { [sel_key] = true }, sel_key
@@ -2020,8 +2020,8 @@ function draw_param_picker()
   if P.back and not is_locked() then
     if CFG.reopen_windows ~= 0 and valid(P.tr) and #param_racks() > 0 then
       P.tree_open, P.insp_open = P.back.tree, P.back.insp
-      if P.tree_open then raise_window('parampick') end          -- (in front, not stuck behind the Racks window)
-      if P.insp_open then raise_window('paraminsp') end
+      if P.insp_open then raise_window('paraminsp') end          -- (in front, not stuck behind the Racks window)
+      if P.tree_open then raise_window('parampick', true) end
     end
     P.back = nil
   end
