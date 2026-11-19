@@ -2,10 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 217).
+New items get the next free number (next: 218).
 
 ## Open
 
+- [ ] 217. (0.15.12) Settings that stick. Options > Settings: change a few sliders that have a unit (Layout > Middle area width, Rack padding; Colors > Hue jump; Performance mode > Fold them after), also one typed with Cmd+click. Close FOH-Mate and start it again: they kept the new values (and the racks keep the new layout). Bug since 0.14.167: the unit next to a slider hid its "done editing" from the save.
 - [ ] 216. (0.15.10) Windows come to the front. With the Parameters and Inspector windows floating, click the Racks window so they go behind it, then: (a) the + of a quick access panel: both come to the front; (b) right-click a parameter > Inspect parameter... and right-click an FX > Inspect FX...: same; (c) Display > Windows > Show parameter treeview / inspector (off, then on): it comes to the front; (d) Show mode, then back to Edit mode: they come back in front; (e) Options > Settings... and FX > FX list... while they are open behind: they come to the front. (f) Docked: asking for one shows its docker tab, and the tab doesn't keep jumping back afterwards. Found (Claude, automated in REAPER): in 0.15.10 a window that was already open stayed behind (each window is alone in its ImGui context, so focusing it there doesn't bring it forward; only reopened windows came up, being new). 0.15.11: a floating window that is asked for is left out for a few frames (a short blink) and comes back as a new window, on top, at the same place; with the +, Parameters ends up in front of the Inspector. Checked in 0.15.11, Racks docked: (a) the + brings Parameters in front of the Inspector, same place; (c) ok both ways; (e) Settings, open behind Parameters, comes back in front at the same place; the FX list opens in front; (f) docked in Dockers 4 and 2: the + changes nothing visible, nothing jumps. Left for Bianca: the real case with the Racks window floating over them, (b), (d), and (f) with another tab in the same docker.
 - [ ] 214. (0.15.9, after the release) In REAPER: Extensions > ReaPack > Synchronize packages: FOH-Mate updates to 0.15.9; the installed script starts; the new options are there (Display > Emphasis, a panel's ... > Control position, double-click a value).
 
