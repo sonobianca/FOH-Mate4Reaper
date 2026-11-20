@@ -2,9 +2,11 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 219).
+New items get the next free number (next: 220).
 
 ## Open
+
+- [ ] 219. (0.15.13, after the release) In REAPER: Extensions > ReaPack > Synchronize packages: FOH-Mate updates to 0.15.13, its changelog says "Bug fixes" with the three fixes; the installed script starts and shows v0.15.13.
 
 ## Done
 
