@@ -28,6 +28,8 @@ fi
 # this minor version's CHANGELOG section (e.g. "## 0.12")
 MINOR=${VERSION%.*}
 CHANGES=$(awk -v h="## $MINOR" '$0 == h {on = 1; next} /^## / {on = 0} on' CHANGELOG.md | sed '/./,$!d')
+# or, for a revision that only fixes things, the text given: RELEASE_NOTES="Bug fixes: ..." tools/make_reapack_index.sh
+[[ -n $RELEASE_NOTES ]] && CHANGES=$RELEASE_NOTES
 
 # the About text: a few simple lines ("# " and "## " headings, "- " bullets, **bold**) become RTF
 ABOUT=$(awk '

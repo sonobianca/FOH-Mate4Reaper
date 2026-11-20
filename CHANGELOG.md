@@ -4,6 +4,9 @@ Changes since the last public release, grouped by minor version (revisions are f
 
 ## 0.15
 
+- Fixed: on a mono-to-stereo rack, an FX with a sidechain input placed after the stereo point could get only the left side after the stereo point was removed and set again; its right input is connected again.
+- Fixed: Settings sliders with a unit (the whole Layout group, colors, meters, fold time...) went back to their old value when FOH-Mate restarted; they are saved again.
+- Fixed: the Parameters and Inspector windows (and Settings, the FX list) could stay hidden behind the Racks window; a FOH-Mate window now comes to the front whenever it is opened or asked for.
 - The user guide is also a **PDF**, rebuilt automatically whenever it changes (link at the top of the README).
 - **Type a value:** double-click the value of a quick access row (not a toggle or a drop-down): a field opens, ready to type in, its unit optional; Enter or a click elsewhere sets it, Escape leaves it. It lands on a step of a stepped encoder and inside the limits. Double-clicking the name still opens the Inspector (Edit mode).
 - **Emphasis** of the quick access rows: on the name (as before) or on the value: the value large, horizontal and centered with its unit, the name small on one line above it. Settings > Performance mode > Emphasis, or Display > Emphasis.

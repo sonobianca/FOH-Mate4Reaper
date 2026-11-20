@@ -10,7 +10,9 @@ reaches users once its tag is pushed. Merging to `main` alone publishes nothing 
    - check `VERSION` in `src/FOHMate.lua`, the `CHANGELOG.md` section for this minor version, and that
      `docs/TESTING.md` has nothing open (except the ReaPack install check, added for after the tag);
    - run `tools/make_reapack_index.sh`. It writes `index.xml` for that version (its changelog is the
-     CHANGELOG section) and stops if `MODULES` and the files in `src/FOHMate/` don't match;
+     CHANGELOG section) and stops if `MODULES` and the files in `src/FOHMate/` don't match. For a
+     bug-fix revision, give ReaPack only what it fixes: `RELEASE_NOTES="Bug fixes: ..."` before the
+     command replaces the CHANGELOG section in what ReaPack shows (the CHANGELOG file is unchanged);
    - commit `index.xml`.
 2. Bianca: merge the branch into `main`.
 3. Bianca: create the tag on `main`, named `v` + the version (e.g. `v0.12.0`), and push `main` and the

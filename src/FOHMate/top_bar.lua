@@ -41,6 +41,7 @@ function open_settings_at(group)
   S.set_find = ''
   S.show_settings = true
   S.settings_focus = group
+  raise_window('settings')
 end
 
 -- three groups between lines: the look (Daylight, Colors), Performance mode, the layout (latency
@@ -141,7 +142,7 @@ function draw_fx_menu()
   end
   if ig.MenuItem(ctx, 'FX type colors...') then open_settings_at('FX type colors') end
   ig.Separator(ctx)
-  if ig.MenuItem(ctx, 'FX list...') then LATWIN.open = true end
+  if ig.MenuItem(ctx, 'FX list...') then LATWIN.open = true; raise_window('latlist') end
   if ig.IsItemHovered(ctx) then
     ig.SetTooltip(ctx, 'Every installed FX: favorites, type, latency, scan status.\nRescan one FX or a selection.')
   end
@@ -195,7 +196,7 @@ function draw_options_menu()
   if ig.IsItemHovered(ctx) then
     ig.SetTooltip(ctx, 'fx_latency.txt, favorites.txt, recent_fx.txt, last_scan_log.txt, last_error.txt\n' .. LATDB_DIR)
   end
-  if ig.MenuItem(ctx, 'Settings...') then S.show_settings = true end
+  if ig.MenuItem(ctx, 'Settings...') then S.show_settings = true; raise_window('settings') end
 end
 
 ---------------------------------------------------------------- FX type colors
@@ -252,6 +253,16 @@ FRAME = 0
 
 -- dock: a window of its own context that docks (Parameters, Inspector): it comes back where it was,
 -- floating (where it was left) or in its docker
+-- A FOH-Mate window asked for (a menu item, the +, Inspect...) comes to the front once, also when it is
+-- already open behind another window. Each window is alone in its ImGui context, so focusing it there
+-- does not bring it in front of the others: a floating one is left out for a few frames instead, and
+-- comes back as a new window, on top, where it was. A docked one has its tab picked. Only when asked,
+-- not every frame (a window docked under another tab would keep taking the tab). later: a few frames
+-- after, so of two windows asked for at once, that one ends up in front.
+WIN_RAISE = {}
+RAISE_GAP = 3
+function raise_window(id, later) WIN_RAISE[id] = FRAME + (later and RAISE_GAP + 1 or 0) end
+
 function begin_window(id, title, def_w, def_h, p_open, flags, dock)
   local st = WINSZ[id]
   if not st then
@@ -259,10 +270,26 @@ function begin_window(id, title, def_w, def_h, p_open, flags, dock)
     st = { w = tonumber(w) or def_w, h = tonumber(h) or def_h, last = -10 }
     WINSZ[id] = st
   end
+  local focus = false
+  if WIN_RAISE[id] and FRAME >= WIN_RAISE[id] then
+    WIN_RAISE[id] = nil
+    if st.last == FRAME - 1 and (st.dock or 0) == 0 then
+      st.skip, st.repos = FRAME + RAISE_GAP, true       -- open and floating: left out, then a new window
+    else
+      focus = true
+    end
+  end
+  if st.skip then
+    if FRAME < st.skip then return false, true end
+    st.skip = nil
+  end
   local back = st.last ~= FRAME - 1          -- not shown last frame: coming back
   if back then
     ig.SetNextWindowSize(ctx, st.w, st.h, ig.Cond_Always())
-    if dock then
+    if st.repos then                                -- brought to the front: exactly where it was
+      st.repos = nil
+      if st.x then ig.SetNextWindowPos(ctx, st.x, st.y, ig.Cond_Always()) end
+    elseif dock then
       -- the first time ever next to the Racks window; afterwards where it was left (its context remembers)
       if MAIN_X then ig.SetNextWindowPos(ctx, MAIN_X + 40, MAIN_Y + 70, ig.Cond_FirstUseEver()) end
       st.dock = tonumber(reaper.GetExtState(EXT_SECTION, 'dock_' .. id)) or 0
@@ -276,9 +303,11 @@ function begin_window(id, title, def_w, def_h, p_open, flags, dock)
     ig.SetNextWindowDockID(ctx, DOCK_REQ[id], ig.Cond_Always())
     DOCK_REQ[id] = nil
   end
+  if focus and ig.SetNextWindowFocus then ig.SetNextWindowFocus(ctx) end
   local vis, open = ig.Begin(ctx, title, p_open, (flags or 0) | ig.WindowFlags_NoCollapse())
   if vis then
     st.last = FRAME
+    st.x, st.y = ig.GetWindowPos(ctx)
     if dock and ig.GetWindowDockID then                -- where it is docked (0: floating), kept for next time
       local did = ig.GetWindowDockID(ctx) or 0
       if did ~= st.dock then
