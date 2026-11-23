@@ -2,10 +2,13 @@
 
 Open items to check in REAPER, newest version first. Report by number (e.g. "3 ok, 7 fails: ...").
 Done items are kept at the bottom, with what was found.
-New items get the next free number (next: 220).
+New items get the next free number (next: 223).
 
 ## Open
 
+- [ ] 222. (0.15.14) Parameters tree: a parameter in the quick access panel that has a nickname shows it in parentheses after its name ("Gain (Low Boost)"); parameters without a nickname, and the tree's search and tick boxes, are as before.
+- [ ] 221. (0.15.14) Inspector: for a parameter with a nickname, the big title is the same as in the rack ("Band 2 Low Boost"), and the grey line under the nickname box reads its own name, a dot, and the FX. Without a nickname the title is its own name, as before.
+- [ ] 220. (0.15.14) A parameter that belongs to a group ("Band 2 Gain" is in "Band 2") and has the nickname "Low Boost" reads **Band 2 Low Boost** on its quick access row. A parameter outside any group just shows its nickname; a nickname that already starts with the group ("Band 2 Boost") is not doubled; clearing the nickname goes back to the FX's own name.
 
 ## Done
 

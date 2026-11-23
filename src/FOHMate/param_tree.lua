@@ -355,6 +355,8 @@ function draw_tree(P, D, o)
         local nm = fx.names[p + 1]
         local key = 'p:' .. fx.guid .. ':' .. p
         local inn = have[fx.guid .. ':' .. p] ~= nil
+        local nick = type(have[fx.guid .. ':' .. p]) == 'table' and have[fx.guid .. ':' .. p].name or nil   -- (its nickname, if it has one)
+        if nick == '' then nick = nil end
         local hid = fx.auto[p] or fx.uhid[p]
         local col = TXT
         if ig.IsRectVisible(ctx, 1, h_par) then
@@ -365,7 +367,7 @@ function draw_tree(P, D, o)
           -- (rack_col here is the color of the FX the parameter is in)
         end
         draw_row({ id = key, sel = key, depth = depth, h = h_par, check = true, on = inn, col = col,
-          name = label .. (hid and '  (hidden)' or ''),
+          name = label .. (nick and (' (' .. nick .. ')') or '') .. (hid and '  (hidden)' or ''),
           tip = label ~= nm and nm or nil,
           right = function()
             -- the kind of value and its value now

@@ -612,7 +612,7 @@ function draw_perf_column(inf, x, y, w, h, M, ps, e)
         rx = rx + 3; local rw2 = rw - 6                      -- a little room for the hover glow
         -- what this row shows: the real parameter (fxi = where its FX is now)
         local r = rows[k]
-        local rname, vtxt, norm, fxi, missing, kind = r.name or r.pname, '?', 0, gmap[r.guid], false, nil
+        local rname, vtxt, norm, fxi, missing, kind = param_label(r), '?', 0, gmap[r.guid], false, nil
         -- what the FX said is kept per row (ROW_MEMO): the name check is done again every 30
         -- frames (half a second) or when the FX moved, the value's text when the value moved or every
         -- 30 frames (an FX may print it differently after another parameter changed)

@@ -832,6 +832,18 @@ function param_group(pname)
   return tonumber(n), word .. ' ' .. n
 end
 
+-- What a quick access row is called on screen (the racks, the Inspector): its nickname, or the FX's own
+-- name. A parameter of a group ("Band 2 Gain" is in "Band 2") that has a nickname keeps its group in front
+-- of it: "Band 2 Low Boost" (unless the nickname starts with it already). The Parameters tree shows the
+-- nickname in parentheses instead (param_tree.lua).
+function param_label(r)
+  local nick = r.name
+  if not nick or nick == '' then return r.pname end
+  local _, lbl = param_group(r.pname)
+  if lbl and nick:sub(1, #lbl):lower() ~= lbl:lower() then return lbl .. ' ' .. nick end
+  return nick
+end
+
 -- The name of a parameter without its group ("Band1 Type" > "Type", "Gain-Band 2" > "Gain"), for the
 -- tree, where the group is the branch it sits in.
 function param_group_rest(pname)
@@ -1459,7 +1471,7 @@ function draw_param_control_panel(P, fxs, gm, targets)
   -- the title: the parameter's name, big and bold, its nickname right under it, then its FX
   local row = #targets == 1 and params_find(tr, first.guid, first.idx)
   local pushed = push_bold(head_font, HEAD_FONT_SIZE)
-  local title = #targets == 1 and first.name or ('%d parameters selected'):format(#targets)
+  local title = #targets == 1 and (row and param_label(row) or first.name) or ('%d parameters selected'):format(#targets)
   if param_snapout_on(row) then                    -- brought back inside its limits: a lock before the title
     local x, y = ig.GetCursorScreenPos(ctx)
     local lh = ig.GetTextLineHeight(ctx)
@@ -1489,7 +1501,9 @@ function draw_param_control_panel(P, fxs, gm, targets)
     P.nick_edit = ig.IsItemActive(ctx)
     if row and ig.IsItemDeactivatedAfterEdit(ctx) then param_set_nick(tr, row, P.nick) end
     if not row then ig.EndDisabled(ctx) end
-    ig.TextDisabled(ctx, (fx_name_type(fxname)))
+    local under = (fx_name_type(fxname))
+    if row and row.name and row.name ~= '' then under = first.name .. '  \194\183  ' .. under end   -- (its own name, when the title is the nickname)
+    ig.TextDisabled(ctx, under)
   else
     ig.TextDisabled(ctx, 'The choice applies to all of them.')
   end
